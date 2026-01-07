@@ -50,4 +50,49 @@ body {
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2) !important;
 }
 
+/* Glassmorphic effects */
+@supports (backdrop-filter: blur(10px)) {
+  .glassmorphic {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+}
+
+/* Aurora animation enhancements */
+@keyframes aurora-float {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0.8;
+  }
+  33% {
+    transform: translate(30px, -30px) rotate(120deg);
+    opacity: 1;
+  }
+  66% {
+    transform: translate(-20px, 20px) rotate(240deg);
+    opacity: 0.9;
+  }
+}
+
+@keyframes aurora-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+/* Smooth transitions for glassmorphic cards */
+.glassmorphic-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glassmorphic-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
 
