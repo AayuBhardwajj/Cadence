@@ -12,7 +12,19 @@ import {
 } from "@chakra-ui/react";
 import { Button } from "../components/ui/button";
 
-export function LoginPage() {
+export function LoginPage({
+  onSwitchToSignup,
+  onLoginSuccess
+}: {
+  onSwitchToSignup: () => void;
+  onLoginSuccess: (username: string) => void;
+}) {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Allow login with any credentials for now
+    onLoginSuccess("User");
+  };
+
   return (
     <Box
       minH="100vh"
@@ -26,7 +38,7 @@ export function LoginPage() {
         left: "10%",
         width: "220px",
         height: "220px",
-        bg: "rgba(59,130,246,0.25)",
+        bg: "radial-gradient(circle at center, rgba(244,114,182,0.45), rgba(59,130,246,0.15))",
         filter: "blur(90px)",
         borderRadius: "50%"
       }}
@@ -37,7 +49,7 @@ export function LoginPage() {
         right: "6%",
         width: "240px",
         height: "240px",
-        bg: "rgba(124,58,237,0.22)",
+        bg: "radial-gradient(circle at center, rgba(244,114,182,0.35), rgba(129,140,248,0.2))",
         filter: "blur(100px)",
         borderRadius: "50%"
       }}
@@ -64,32 +76,34 @@ export function LoginPage() {
               </Text>
             </Stack>
 
-            <Stack spacing={4}>
-              <FormControl>
-                <FormLabel fontSize="sm">Email</FormLabel>
-                <Input
-                  type="email"
-                  placeholder="you@example.com"
-                  size="md"
-                  borderRadius="lg"
-                />
-              </FormControl>
-              <FormControl>
-                <FormLabel fontSize="sm">Password</FormLabel>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  size="md"
-                  borderRadius="lg"
-                />
-              </FormControl>
-              <Checkbox size="sm" colorScheme="blue">
-                Remember me
-              </Checkbox>
-              <Button size="md" w="full">
-                Continue
-              </Button>
-            </Stack>
+            <form onSubmit={handleSubmit}>
+              <Stack spacing={4}>
+                <FormControl>
+                  <FormLabel fontSize="sm">Email</FormLabel>
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    size="md"
+                    borderRadius="lg"
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel fontSize="sm">Password</FormLabel>
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    size="md"
+                    borderRadius="lg"
+                  />
+                </FormControl>
+                <Checkbox size="sm" colorScheme="blue">
+                  Remember me
+                </Checkbox>
+                <Button type="submit" size="md" w="full">
+                  Continue
+                </Button>
+              </Stack>
+            </form>
 
             <Text fontSize="xs" color="gray.500" textAlign="center">
               Forgot password?{" "}
@@ -99,7 +113,15 @@ export function LoginPage() {
             </Text>
             <Text fontSize="xs" color="gray.500" textAlign="center">
               New to Fluently?{" "}
-              <Link color="blue.500" fontWeight="medium">
+              <Link
+                color="blue.500"
+                fontWeight="medium"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSwitchToSignup();
+                }}
+                cursor="pointer"
+              >
                 Create an account
               </Link>
             </Text>
