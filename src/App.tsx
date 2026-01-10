@@ -3,6 +3,10 @@ import { Box } from "@chakra-ui/react";
 import { LoginPage } from "./pages/Login";
 import { SignupPage } from "./pages/Signup";
 import { Dashboard } from "./pages/Dashboard";
+import { Welcome } from "./pages/Welcome";
+import { Assessment } from "./pages/Assessment";
+import { PreRecording } from "./pages/PreRecording";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 export default function App() {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,32 +17,29 @@ export default function App() {
     setUsername(user);
     setIsAuthenticated(true);
   };
-
   const handleSignupSuccess = (user: string) => {
     setUsername(user);
     setIsAuthenticated(true);
   };
 
-  if (isAuthenticated) {
-    return <Dashboard username={username} />;
-  }
-
   return (
-    <Box minH="100vh" bg="gray.50">
-      {isLogin ? (
-        <LoginPage
-          onSwitchToSignup={() => setIsLogin(false)}
-          onLoginSuccess={handleLoginSuccess}
-        />
+    <Router>
+      {isAuthenticated ? (
+        <Routes>
+          <Route path="/" element={<Welcome />} />
+          <Route path="/pre-recording" element={<PreRecording />} />
+          <Route path="/assessment" element={<Assessment />} />
+          <Route path="*" element={<Dashboard username={username} />} />
+        </Routes>
       ) : (
-        <SignupPage
-          onSwitchToLogin={() => setIsLogin(true)}
-          onSignupSuccess={handleSignupSuccess}
-        />
+        <Box minH="100vh" bg="gray.50">
+          {isLogin ? (
+            <LoginPage onSwitchToSignup={() => setIsLogin(false)} onLoginSuccess={handleLoginSuccess} />
+          ) : (
+            <SignupPage onSwitchToLogin={() => setIsLogin(true)} onSignupSuccess={handleSignupSuccess} />
+          )}
+        </Box>
       )}
-    </Box>
+    </Router>
   );
 }
-
-
-
