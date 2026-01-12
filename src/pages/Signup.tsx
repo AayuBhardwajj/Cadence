@@ -41,19 +41,9 @@ interface FormData {
   termsAccepted: boolean;
 }
 
-interface FormErrors {
-  username?: string;
-  fullName?: string;
-  email?: string;
-  password?: string;
-  confirmPassword?: string;
-  age?: string;
-  nativeLanguage?: string;
-  primaryGoal?: string;
-  englishProficiency?: string;
-  region?: string;
-  termsAccepted?: string;
-}
+type FormErrors = {
+  [K in keyof FormData]?: string;
+};
 
 function getPasswordStrength(password: string): {
   strength: number;

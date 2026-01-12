@@ -1,700 +1,405 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Box,
-  Container,
-  Heading,
-  Text,
-  Stack,
-  HStack,
-  VStack,
-  Button,
-  Avatar,
-  Badge,
-  Progress,
-  IconButton,
-  SimpleGrid,
-  Divider,
-  Flex,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  useColorModeValue,
-  useColorMode,
-  Image,
-  Link,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  MenuDivider,
-  Icon
-} from "@chakra-ui/react";
-import { BellIcon, MoonIcon, SunIcon, ChevronDownIcon, SettingsIcon } from "@chakra-ui/icons";
-import { FiUser, FiLogOut } from "react-icons/fi";
-import { AuroraBackground } from "../components/arcenity/AuroraBackground";
-import { GlassmorphicCard } from "../components/arcenity/GlassmorphicCard";
-import { FeatureSection } from "../components/arcenity/FeatureSection";
-
-// Medical/Healthcare color palette
-// Medical/Healthcare color palette hook
-function useMedicalColors() {
-  return {
-    white: useColorModeValue("#FFFFFF", "rgba(26, 32, 44, 0.4)"),
-    lightGray: useColorModeValue("#F8F9FA", "rgba(45, 55, 72, 0.3)"),
-    softBlue: useColorModeValue("#E3F2FD", "rgba(42, 67, 101, 0.3)"),
-    medicalBlue: useColorModeValue("#2196F3", "#90CDF4"),
-    deepBlue: useColorModeValue("#1565C0", "#63B3ED"),
-    medicalGreen: useColorModeValue("#4CAF50", "#68D391"),
-    lightGreen: useColorModeValue("#E8F5E9", "#2F855A"),
-    accentBlue: useColorModeValue("#42A5F5", "#63B3ED"),
-    textPrimary: useColorModeValue("#212121", "#F7FAFC"),
-    textSecondary: useColorModeValue("#757575", "#A0AEC0"),
-    borderLight: useColorModeValue("#E0E0E0", "rgba(255, 255, 255, 0.1)"),
-    success: useColorModeValue("#66BB6A", "#68D391"),
-    warning: useColorModeValue("#FFA726", "#F6AD55"),
-    info: useColorModeValue("#42A5F5", "#63B3ED")
-  };
-}
-
-// Fallback for default props
-const defaultMedicalColors = {
-  white: "#FFFFFF",
-  lightGray: "#F8F9FA",
-  softBlue: "#E3F2FD",
-  medicalBlue: "#2196F3",
-  deepBlue: "#1565C0",
-  medicalGreen: "#4CAF50",
-  lightGreen: "#E8F5E9",
-  accentBlue: "#42A5F5",
-  textPrimary: "#212121",
-  textSecondary: "#757575",
-  borderLight: "#E0E0E0",
-  success: "#66BB6A",
-  warning: "#FFA726",
-  info: "#42A5F5"
-};
-
-function MedicalCard({
-  title,
-  icon,
-  children,
-  accentColor = defaultMedicalColors.medicalBlue,
-  ...props
-}: {
-  title?: string;
-  icon?: string;
-  children: React.ReactNode;
-  accentColor?: string;
-  [key: string]: any;
-}) {
-  const medicalColors = useMedicalColors();
-  return (
-    <GlassmorphicCard
-      intensity="medium"
-      borderRadius="lg"
-      borderWidth="1px"
-      borderColor={medicalColors.borderLight}
-      transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-      _hover={{
-        transform: "translateY(-4px)",
-        boxShadow: "0 12px 24px rgba(0,0,0,0.12)",
-      }}
-      position="relative"
-      overflow="hidden"
-      p={0}
-      {...props}
-    >
-      {title && (
-        <Box
-          bg={useColorModeValue("rgba(248, 249, 250, 0.6)", "rgba(45, 55, 72, 0.4)")}
-          borderBottomWidth="1px"
-          borderBottomColor={medicalColors.borderLight}
-          py={3}
-          px={4}
-          backdropFilter="blur(5px)"
-        >
-          <HStack spacing={2}>
-            {icon && <Text fontSize="lg">{icon}</Text>}
-            <Heading size="sm" color={medicalColors.textPrimary} fontWeight="600">
-              {title}
-            </Heading>
-          </HStack>
-        </Box>
-      )}
-      <Box p={4}>{children}</Box>
-    </GlassmorphicCard>
-  );
-}
-
-function StatPill({ label, value, change, color }: {
-  label: string;
-  value: string;
-  change?: string;
-  color: string;
-}) {
-  const medicalColors = useMedicalColors();
-  return (
-    <GlassmorphicCard
-      intensity="light"
-      borderRadius="lg"
-      px={4}
-      py={3}
-      borderWidth="1px"
-      borderColor={`${color}30`}
-      borderLeftWidth="4px"
-      borderLeftColor={color}
-      bg={`linear-gradient(135deg, ${color}10, ${color}05)`}
-    >
-      <Text fontSize="xs" color={medicalColors.textSecondary} fontWeight="500" mb={1}>
-        {label}
-      </Text>
-      <HStack spacing={2} align="baseline">
-        <Text fontSize="xl" fontWeight="700" color={medicalColors.textPrimary}>
-          {value}
-        </Text>
-        {change && (
-          <Text fontSize="xs" color={medicalColors.success} fontWeight="600">
-            {change}
-          </Text>
-        )}
-      </HStack>
-    </GlassmorphicCard>
-  );
-}
-
-function ChallengeItem({ title, progress, color }: {
-  title: string;
-  progress: number;
-  color: string;
-}) {
-  const medicalColors = useMedicalColors();
-  return (
-    <GlassmorphicCard
-      intensity="light"
-      bg={useColorModeValue("rgba(240, 244, 248, 0.4)", "rgba(45, 55, 72, 0.3)")}
-      borderRadius="md"
-      p={3}
-    >
-      <VStack align="stretch" spacing={2}>
-        <HStack justify="space-between">
-          <Text fontSize="sm" fontWeight="500" color={medicalColors.textPrimary}>
-            {title}
-          </Text>
-          <Text fontSize="sm" fontWeight="600" color={color}>
-            {progress}%
-          </Text>
-        </HStack>
-        <Progress
-          value={progress}
-          colorScheme="blue"
-          bg={medicalColors.borderLight}
-          borderRadius="full"
-          height="6px"
-          sx={{
-            "& > div": {
-              background: `linear-gradient(90deg, ${color}, ${color}DD)`
-            }
-          }}
-        />
-      </VStack>
-    </GlassmorphicCard>
-  );
-}
-
-function ProblemAreaCard({ title, metric, color }: {
-  title: string;
-  metric: string;
-  color: string;
-}) {
-  const medicalColors = useMedicalColors();
-  return (
-    <GlassmorphicCard
-      intensity="light"
-      borderRadius="lg"
-      p={4}
-      borderWidth="1px"
-      borderColor={`${color}30`}
-      borderLeftWidth="4px"
-      borderLeftColor={color}
-      bg={`linear-gradient(135deg, ${color}10, ${color}05)`}
-      transition="all 0.2s"
-      _hover={{
-        bg: `${color}15`,
-        transform: "translateX(4px)",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-      }}
-    >
-      <Text fontSize="sm" fontWeight="600" color={medicalColors.textPrimary} mb={2}>
-        {title}
-      </Text>
-      <Text fontSize="xs" color={medicalColors.textSecondary} mb={3}>
-        {metric}
-      </Text>
-      <Button
-        size="sm"
-        bg={color}
-        color="white"
-        borderRadius="md"
-        _hover={{ bg: color, opacity: 0.9 }}
-        fontWeight="500"
-        fontSize="xs"
-      >
-        Practice Now
-      </Button>
-    </GlassmorphicCard>
-  );
-}
+  Bell,
+  Moon,
+  Sun,
+  User,
+  Settings,
+  LogOut,
+  CreditCard,
+  HelpCircle,
+  Crown,
+  ChevronDown,
+  Activity,
+  Target,
+  Trophy,
+  Flame,
+  Calendar,
+  MessageSquare,
+  TrendingUp,
+  Mic
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 import { supabase } from "../lib/supabase";
+import { cn } from "../lib/utils";
 
-export function Dashboard({ username = "User" }: { username?: string }) {
-  const { colorMode, toggleColorMode } = useColorMode();
-  const medicalColors = useMedicalColors();
+// Custom Dashboard Components
+import { DashboardBackground } from "../components/dashboard/DashboardBackground";
+import { EnhancedCard } from "../components/dashboard/EnhancedCard";
+import { AnimatedCounter } from "../components/dashboard/AnimatedCounter";
+import { RadialProgress } from "../components/dashboard/RadialProgress";
+import { FluencyChart } from "../components/dashboard/FluencyChart";
+import { Sparkline } from "../components/dashboard/Sparkline";
+import { StreakHeatmap } from "../components/dashboard/StreakHeatmap";
+import { RotatingQuotes } from "../components/dashboard/RotatingQuotes";
+import { QuickActions } from "../components/dashboard/QuickActions";
+import { KeyboardHints } from "../components/dashboard/KeyboardHints";
+
+export function Dashboard({ username = "Alex" }: { username?: string }) {
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [greeting, setGreeting] = useState('');
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Good morning');
+    else if (hour < 18) setGreeting('Good afternoon');
+    else setGreeting('Good evening');
+
+    // Celebration on load for milestone reaching
+    setTimeout(() => {
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#3b82f6', '#8b5cf6', '#2dd4bf']
+      });
+    }, 1500);
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = "/login";
   };
 
-  const features = [
-    {
-      icon: "🎯",
-      title: "AI-Powered Analysis",
-      description: "Advanced speech analysis using multi-modal AI to detect stuttering, accent issues, and word retrieval problems.",
-      color: medicalColors.medicalBlue
-    },
-    {
-      icon: "📊",
-      title: "Real-Time Feedback",
-      description: "Get instant feedback on your pronunciation, fluency, and vocabulary during practice sessions.",
-      color: medicalColors.medicalGreen
-    },
-    {
-      icon: "📈",
-      title: "Progress Tracking",
-      description: "Track your improvement over time with detailed analytics and personalized insights.",
-      color: medicalColors.accentBlue
-    },
-    {
-      icon: "🎓",
-      title: "Personalized Exercises",
-      description: "Practice modules tailored to your specific needs and learning goals.",
-      color: "#9C27B0"
-    },
-    {
-      icon: "💬",
-      title: "Community Support",
-      description: "Connect with others on similar journeys and share your progress.",
-      color: medicalColors.warning
-    },
-    {
-      icon: "🏆",
-      title: "Achievement System",
-      description: "Unlock badges and milestones as you progress in your communication journey.",
-      color: medicalColors.success
-    }
-  ];
-
   return (
-    <AuroraBackground variant="mixed" minH="100vh">
-      {/* Header */}
-      <Box
-        bg={useColorModeValue("rgba(255, 255, 255, 0.8)", "rgba(10, 15, 30, 0.8)")}
-        backdropFilter="blur(15px)"
-        sx={{ WebkitBackdropFilter: "blur(15px)" }}
-        borderBottomWidth="1px"
-        borderBottomColor={medicalColors.borderLight}
-        py={4}
-        px={6}
-        position="sticky"
-        top={0}
-        zIndex={100}
-        boxShadow="0 1px 3px rgba(0,0,0,0.05)"
-      >
-        <Flex justify="space-between" align="center">
-          <HStack spacing={3}>
-            <Heading
-              size="lg"
-              color={medicalColors.medicalBlue}
-              fontWeight="700"
-              letterSpacing="-0.5px"
-            >
-              🎤 Fluently
-            </Heading>
-          </HStack>
-          <HStack spacing={4}>
-            <HStack
-              spacing={1}
-              px={2}
-              py={1}
-              borderRadius="md"
-            >
-              <Button variant="ghost" size="sm" colorScheme="blue" fontWeight="500">Home</Button>
-              <Button variant="ghost" size="sm" color={medicalColors.textSecondary}>Practice</Button>
-              <Button variant="ghost" size="sm" color={medicalColors.textSecondary}>Progress</Button>
-              <Button variant="ghost" size="sm" color={medicalColors.textSecondary}>Exercises</Button>
-              <Button variant="ghost" size="sm" color={medicalColors.textSecondary}>Settings</Button>
-            </HStack>
-            <IconButton
-              aria-label="Notifications"
-              icon={<BellIcon />}
-              variant="ghost"
-              borderRadius="md"
-              color={medicalColors.textSecondary}
-            />
-            <IconButton
-              aria-label="Toggle Dark Mode"
-              icon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}
-              onClick={toggleColorMode}
-              variant="ghost"
-              borderRadius="md"
-              color={medicalColors.textSecondary}
-            />
-            <Menu>
-              <MenuButton
-                as={Button}
-                variant="ghost"
-                p={0}
-                borderRadius="full"
-                _hover={{ bg: "transparent" }}
-              >
-                <HStack spacing={2}>
-                  <Avatar
-                    name={username}
-                    size="sm"
-                    bg={medicalColors.medicalBlue}
-                    color="white"
-                  />
-                  <ChevronDownIcon color={medicalColors.textSecondary} />
-                </HStack>
-              </MenuButton>
-              <MenuList
-                bg={useColorModeValue("white", "gray.800")}
-                borderColor={medicalColors.borderLight}
-                boxShadow="xl"
-                backdropFilter="blur(15px)"
-                sx={{ WebkitBackdropFilter: "blur(15px)" }}
-              >
-                <MenuItem icon={<Icon as={FiUser} />} fontWeight="500">
-                  View Profile
-                </MenuItem>
-                <MenuItem icon={<SettingsIcon />} fontWeight="500">
-                  Account Settings
-                </MenuItem>
-                <MenuItem icon={<Text as="span" fontSize="md">💳</Text>} fontWeight="500">
-                  Billing & Plans
-                </MenuItem>
-                <MenuItem icon={<Badge colorScheme="purple">Pro</Badge>} fontWeight="500">
-                  Subscription
-                </MenuItem>
-                <MenuItem icon={<Text as="span" fontSize="md">🙋‍♂️</Text>} fontWeight="500">
-                  Support & Help
-                </MenuItem>
-                <MenuDivider />
-                <MenuItem
-                  icon={<Icon as={FiLogOut} />}
-                  onClick={handleLogout}
-                  color="red.500"
-                  fontWeight="600"
+    <DashboardBackground>
+      <div className="flex flex-col min-h-screen">
+        {/* Navigation Bar */}
+        <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/20 backdrop-blur-xl transition-all duration-300">
+          <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-blue-600 rounded-lg shadow-lg shadow-blue-500/50">
+                <Mic className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 tracking-tighter">
+                FLUENTLY
+              </span>
+            </div>
+
+            <div className="hidden md:flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
+              {['Home', 'Practice', 'Progress', 'Exercises', 'Community'].map((item) => (
+                <button
+                  key={item}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                    item === 'Home' ? "bg-white/10 text-white shadow-sm" : "text-white/60 hover:text-white hover:bg-white/5"
+                  )}
                 >
-                  Logout
-                </MenuItem>
-              </MenuList>
-            </Menu>
-          </HStack>
-        </Flex>
-      </Box>
+                  {item}
+                </button>
+              ))}
+            </div>
 
-      <Container maxW="8xl" py={6}>
-        <SimpleGrid columns={{ base: 1, lg: 12 }} spacing={6}>
-          {/* Left Column: Stats & Missions (3 cols) */}
-          <Box gridColumn={{ base: "span 1", lg: "span 3" }}>
-            <VStack spacing={6} align="stretch">
-              {/* Module 1: Today's Quick Stats */}
-              <GlassmorphicCard intensity="medium" p={4}>
-                <VStack align="stretch" spacing={3} mb={3}>
-                  <HStack spacing={2}>
-                    <Text fontSize="lg">📊</Text>
-                    <Heading size="sm" color={medicalColors.textPrimary} fontWeight="600">
-                      Today's Performance
-                    </Heading>
-                  </HStack>
-                </VStack>
-                <VStack spacing={4} align="stretch">
-                  <StatPill
-                    label="Fluency Score"
-                    value="78/100"
-                    change="+5"
-                    color={medicalColors.medicalBlue}
-                  />
-                  <StatPill
-                    label="Practice Time"
-                    value="12 min"
-                    color={medicalColors.medicalGreen}
-                  />
-                  <StatPill
-                    label="Sessions"
-                    value="2"
-                    color={medicalColors.accentBlue}
-                  />
-                </VStack>
-              </GlassmorphicCard>
+            <div className="flex items-center gap-4">
+              <button className="relative p-2 text-white/60 hover:text-white transition-colors">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0a0a1a]" />
+              </button>
 
-              {/* Module 3: Active Challenges */}
-              <GlassmorphicCard intensity="medium" p={4}>
-                <VStack align="stretch" spacing={3} mb={3}>
-                  <HStack spacing={2}>
-                    <Text fontSize="lg">🎯</Text>
-                    <Heading size="sm" color={medicalColors.textPrimary} fontWeight="600">
-                      Your Missions
-                    </Heading>
-                  </HStack>
-                </VStack>
-                <VStack spacing={3} align="stretch">
-                  <ChallengeItem
-                    title="Master the 'th' sound"
-                    progress={60}
-                    color={medicalColors.medicalBlue}
-                  />
-                  <ChallengeItem
-                    title="Reduce filler words"
-                    progress={40}
-                    color={medicalColors.medicalGreen}
-                  />
-                  <ChallengeItem
-                    title="5 Day Streak"
-                    progress={80}
-                    color={medicalColors.accentBlue}
-                  />
-                </VStack>
-              </GlassmorphicCard>
-            </VStack>
-          </Box>
+              <div className="h-8 w-[1px] bg-white/10 mx-2" />
 
-          {/* Center Column: Welcome & Assessment (6 cols) */}
-          <Box gridColumn={{ base: "span 1", lg: "span 6" }}>
-            <VStack spacing={6} align="stretch">
-              {/* Hero Welcome Section - Enhanced */}
-              <GlassmorphicCard
-                intensity="strong"
-                p={8}
-                position="relative"
-                overflow="hidden"
-                bgGradient={useColorModeValue(
-                  "linear(to-br, whiteAlpha.900, whiteAlpha.600)",
-                  "linear(to-br, blackAlpha.600, blackAlpha.300)"
-                )}
-              >
-                <VStack spacing={8} align="center" textAlign="center">
-                  <VStack spacing={2}>
-                    <Heading size="xl" color={medicalColors.medicalBlue} fontWeight="800" letterSpacing="-1px">
-                      Welcome back, {username}!
-                    </Heading>
-                    <Text fontSize="lg" color={medicalColors.textSecondary} maxW="md">
-                      "Practice makes progress, not perfection. Keep going! 💪"
-                    </Text>
-                  </VStack>
+              <div className="relative">
+                <button
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="flex items-center gap-3 p-1 rounded-full bg-white/5 border border-white/10 hover:border-white/20 transition-all active:scale-95"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center font-bold text-xs ring-2 ring-white/10">
+                    {username[0].toUpperCase()}
+                  </div>
+                  <ChevronDown className={cn("w-4 h-4 text-white/60 transition-transform", isMenuOpen && "rotate-180")} />
+                </button>
 
-                  <Divider borderColor="gray.200" />
-
-                  {/* Main Action Area */}
-                  <Box
-                    p={2}
-                    borderRadius="full"
-                    bgGradient={`linear(to-r, ${medicalColors.medicalBlue}, ${medicalColors.accentBlue})`}
-                    boxShadow="0 10px 30px rgba(33,150,243,0.3)"
-                    transition="transform 0.2s"
-                    _hover={{ transform: "scale(1.02)" }}
-                  >
-                    <Button
-                      as={Link}
-                      href="/pre-recording"
-                      size="lg"
-                      w="full"
-                      h="64px"
-                      bg="white"
-                      color={medicalColors.medicalBlue}
-                      borderRadius="full"
-                      fontSize="xl"
-                      fontWeight="bold"
-                      leftIcon={<Text fontSize="2xl">🎤</Text>}
-                      _hover={{ bg: "gray.50" }}
+                <AnimatePresence>
+                  {isMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute right-0 mt-4 w-64 bg-slate-900/90 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden"
                     >
-                      Start New Assessment
-                    </Button>
-                  </Box>
+                      <div className="p-4 border-b border-white/10 bg-white/5">
+                        <p className="text-sm font-medium text-white">{username}</p>
+                        <p className="text-xs text-white/40">Pro Member</p>
+                      </div>
+                      <div className="p-2">
+                        {[
+                          { icon: <User className="w-4 h-4" />, label: "View Profile" },
+                          { icon: <Settings className="w-4 h-4" />, label: "Account Settings" },
+                          { icon: <CreditCard className="w-4 h-4" />, label: "Billing & Plans" },
+                          { icon: <Crown className="w-4 h-4 text-amber-400" />, label: "Upgrade to Pro" },
+                        ].map((item) => (
+                          <button key={item.label} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                            {item.icon}
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="p-2 border-t border-white/10">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Logout
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
+        </nav>
 
-                  <HStack spacing={8} pt={2}>
-                    <VStack spacing={0}>
-                      <Text fontSize="2xl" fontWeight="800" color={medicalColors.textPrimary}>7</Text>
-                      <Text fontSize="xs" color={medicalColors.textSecondary} fontWeight="600" textTransform="uppercase">Day Streak 🔥</Text>
-                    </VStack>
-                    <Box w="1px" h="40px" bg="gray.200" />
-                    <VStack spacing={0}>
-                      <Text fontSize="2xl" fontWeight="800" color={medicalColors.textPrimary}>82%</Text>
-                      <Text fontSize="xs" color={medicalColors.textSecondary} fontWeight="600" textTransform="uppercase"> Avg. Fluency 📈</Text>
-                    </VStack>
-                  </HStack>
-                </VStack>
-              </GlassmorphicCard>
+        {/* Main Content */}
+        <main className="flex-grow max-w-[1400px] mx-auto w-full px-6 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-              {/* Module 4: Recent Sessions Feed */}
-              <MedicalCard
-                title="Recent Activity"
-                accentColor={medicalColors.medicalBlue}
-              >
-                <Box overflowX="auto">
-                  <Table variant="simple" size="sm">
-                    <Thead>
-                      <Tr bg={medicalColors.lightGray}>
-                        <Th>Date</Th>
-                        <Th>Score</Th>
-                        <Th>Report</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {[
-                        { date: "Jan 7", fluency: "82/100" },
-                        { date: "Jan 6", fluency: "77/100" },
-                        { date: "Jan 5", fluency: "75/100" }
-                      ].map((session, idx) => (
-                        <Tr key={idx} _hover={{ bg: medicalColors.softBlue }}>
-                          <Td fontWeight="500">{session.date}</Td>
-                          <Td color={medicalColors.medicalBlue} fontWeight="bold">{session.fluency}</Td>
-                          <Td>
-                            <Button size="xs" colorScheme="blue" variant="ghost">View</Button>
-                          </Td>
-                        </Tr>
-                      ))}
-                    </Tbody>
-                  </Table>
-                </Box>
-              </MedicalCard>
+            {/* Left Rail: Stats & Missions */}
+            <div className="lg:col-span-3 space-y-6">
+              <EnhancedCard className="bg-gradient-to-br from-blue-600/20 to-transparent border-blue-500/20">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-blue-500/20 rounded-lg">
+                    <Activity className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <h3 className="font-bold text-white tracking-tight">Today's Performance</h3>
+                </div>
 
-              {/* Feature Section Preview */}
-              <FeatureSection
-                title=""
-                subtitle="Explore more tools"
-                features={features.slice(0, 3)}
-                columns={{ base: 1, md: 3 }}
-              />
+                <div className="space-y-6">
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 group hover:border-blue-500/30 transition-all">
+                    <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">Fluency Score</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-black text-white">
+                        <AnimatedCounter value={78} suffix="/100" />
+                      </span>
+                      <span className="text-xs font-bold text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">+5%</span>
+                    </div>
+                  </div>
 
-            </VStack>
-          </Box>
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 group hover:border-green-500/30 transition-all">
+                    <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">Practice time</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-black text-white">
+                        <AnimatedCounter value={12} suffix="m" />
+                      </span>
+                    </div>
+                  </div>
 
-          {/* Right Column: Progress & Community (3 cols) */}
-          <Box gridColumn={{ base: "span 1", lg: "span 3" }}>
-            <VStack spacing={6} align="stretch">
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 group hover:border-purple-500/30 transition-all">
+                    <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">Sessions today</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-black text-white">
+                        <AnimatedCounter value={2} />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </EnhancedCard>
 
-              {/* Module 9: Motivation Meter */}
-              <MedicalCard title="Weekly Goal 🏃‍♂️" accentColor={medicalColors.success}>
-                <VStack spacing={4}>
-                  <Box position="relative" w="120px" h="120px">
-                    <Progress
-                      value={80}
-                      size="lg"
-                      w="100%"
-                      borderRadius="full"
-                      colorScheme="green"
-                      sx={{ "& > div": { transition: "all 0.5s ease" } }}
-                    />
-                    {/* Simple circular progress simulation for now */}
-                    <Flex
-                      position="absolute" top="0" left="0" right="0" bottom="0"
-                      align="center" justify="center" direction="column"
-                      bg={medicalColors.lightGreen} borderRadius="full" m={2}
-                    >
-                      <Text fontSize="2xl" fontWeight="800" color={medicalColors.medicalGreen}>80%</Text>
-                    </Flex>
-                  </Box>
-                  <Text fontSize="xs" textAlign="center" color={medicalColors.textSecondary}>
-                    Practice 1 more session to reach goal!
-                  </Text>
-                </VStack>
-              </MedicalCard>
+              <EnhancedCard className="bg-gradient-to-br from-emerald-600/10 to-transparent border-emerald-500/20">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-emerald-500/20 rounded-lg">
+                    <Target className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <h3 className="font-bold text-white tracking-tight">Your Missions</h3>
+                </div>
 
-              {/* Module 6: Tip of the Day */}
-              <Box
-                bg={medicalColors.info}
-                p={4}
-                borderRadius="lg"
-                color="white"
-                boxShadow="lg"
-              >
-                <HStack mb={2}>
-                  <Text fontSize="xl">💡</Text>
-                  <Text fontWeight="bold">Tip of the Day</Text>
-                </HStack>
-                <Text fontSize="sm" lineHeight="1.5" opacity={0.9}>
-                  Your 'v/w' confusion improved. Try saying 'very', 'wave', and 'vowel' 10 times today.
-                </Text>
-              </Box>
-
-              {/* Module 8: Community */}
-              <MedicalCard title="Top Improvers 🏆" accentColor={medicalColors.warning}>
-                <VStack spacing={3} align="stretch">
+                <div className="space-y-4">
                   {[
-                    { user: "User_A2X", val: "+25%" },
-                    { user: "User_B7Y", val: "+22%" },
-                    { user: "User_C9Z", val: "+20%" }
-                  ].map((item, i) => (
-                    <HStack key={i} justify="space-between" p={2} bg={medicalColors.lightGray} borderRadius="md">
-                      <Text fontSize="sm" fontWeight="500">{item.user}</Text>
-                      <Text fontSize="sm" fontWeight="bold" color={medicalColors.success}>{item.val}</Text>
-                    </HStack>
+                    { title: "Master the 'th' sound", progress: 60, color: "#3b82f6", trend: [10, 25, 20, 45, 60] },
+                    { title: "Reduce filler words", progress: 40, color: "#10b981", trend: [60, 55, 65, 50, 40] },
+                    { title: "Vocabulary Range", progress: 80, color: "#8b5cf6", trend: [20, 40, 50, 75, 80] },
+                  ].map((mission) => (
+                    <div key={mission.title} className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-3 group hover:bg-white/10 transition-colors">
+                      <div className="flex justify-between items-start">
+                        <p className="text-sm font-medium text-white/80 group-hover:text-white transition-colors">{mission.title}</p>
+                        <Sparkline data={mission.trend} color={mission.color} />
+                      </div>
+                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${mission.progress}%` }}
+                          transition={{ duration: 1, delay: 0.5 }}
+                          className="h-full rounded-full"
+                          style={{ backgroundColor: mission.color }}
+                        />
+                      </div>
+                    </div>
                   ))}
-                  <Text fontSize="xs" color="gray.500" textAlign="center" pt={2}>
-                    You are in the top 30%!
-                  </Text>
-                </VStack>
-              </MedicalCard>
+                </div>
+              </EnhancedCard>
+            </div>
 
-            </VStack>
-          </Box>
+            {/* Center Area: Hero & Trend */}
+            <div className="lg:col-span-6 space-y-8">
+              <EnhancedCard className="relative overflow-visible pb-12 bg-gradient-to-br from-indigo-600/20 via-slate-900/40 to-transparent border-indigo-500/30">
+                <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-blue-600 rounded-3xl rotate-12 flex items-center justify-center shadow-2xl shadow-blue-500/50">
+                  <Mic className="w-12 h-12 text-white -rotate-12" />
+                </div>
 
-        </SimpleGrid>
-      </Container>
+                <div className="mt-12 text-center space-y-4">
+                  <motion.h1
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-4xl md:text-5xl font-black text-white tracking-tight"
+                  >
+                    {greeting}, {username}!
+                  </motion.h1>
 
-      {/* Footer */}
-      <Box
-        bg={useColorModeValue("rgba(255, 255, 255, 0.8)", "rgba(26, 32, 44, 0.8)")}
-        backdropFilter="blur(10px)"
-        sx={{ WebkitBackdropFilter: "blur(10px)" }}
-        color={medicalColors.textSecondary}
-        py={6}
-        px={6}
-        mt={8}
-        borderTopWidth="1px"
-        borderTopColor={medicalColors.borderLight}
-      >
-        <Flex
-          justify="space-between"
-          align="center"
-          direction={{ base: "column", md: "row" }}
-          gap={4}
-        >
-          <HStack spacing={4} flexWrap="wrap" justify="center">
-            <Link fontSize="sm" color={medicalColors.medicalBlue} fontWeight="500" _hover={{ textDecoration: "underline" }}>
-              Help Center
-            </Link>
-            <Text fontSize="sm" color={medicalColors.borderLight}>|</Text>
-            <Link fontSize="sm" color={medicalColors.medicalBlue} fontWeight="500" _hover={{ textDecoration: "underline" }}>
-              Feedback
-            </Link>
-            <Text fontSize="sm" color={medicalColors.borderLight}>|</Text>
-            <Link fontSize="sm" color={medicalColors.medicalBlue} fontWeight="500" _hover={{ textDecoration: "underline" }}>
-              Report a Bug
-            </Link>
-            <Text fontSize="sm" color={medicalColors.borderLight}>|</Text>
-            <Link fontSize="sm" color={medicalColors.medicalBlue} fontWeight="500" _hover={{ textDecoration: "underline" }}>
-              Share with Friends
-            </Link>
-          </HStack>
-          <Text fontSize="sm" color={medicalColors.textSecondary}>👋</Text>
-        </Flex>
-      </Box>
-    </AuroraBackground>
+                  <RotatingQuotes />
+
+                  <div className="pt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-4xl font-black text-blue-400">7</p>
+                      <p className="text-[10px] uppercase font-bold text-white/40 tracking-widest flex items-center justify-center gap-1">
+                        <Flame className="w-3 h-3 text-orange-500" /> Day Streak
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-4xl font-black text-emerald-400">82%</p>
+                      <p className="text-[10px] uppercase font-bold text-white/40 tracking-widest flex items-center justify-center gap-1">
+                        <TrendingUp className="w-3 h-3 text-emerald-500" /> Avg. Fluency
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-4xl font-black text-purple-400">14</p>
+                      <p className="text-[10px] uppercase font-bold text-white/40 tracking-widest flex items-center justify-center gap-1">
+                        <Trophy className="w-3 h-3 text-amber-500" /> Medals Won
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-4xl font-black text-indigo-400">Lv.8</p>
+                      <p className="text-[10px] uppercase font-bold text-white/40 tracking-widest flex items-center justify-center gap-1">
+                        <Crown className="w-3 h-3 text-indigo-500" /> Speaker Rank
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-10">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="group relative px-12 py-5 rounded-2xl bg-white text-slate-950 font-black text-lg shadow-2xl shadow-white/10 hover:shadow-white/20 transition-all overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <span className="relative z-10 group-hover:text-white flex items-center gap-3">
+                        <Mic className="w-6 h-6" /> START NEW ASSESSMENT
+                      </span>
+                    </motion.button>
+                  </div>
+                </div>
+              </EnhancedCard>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <EnhancedCard className="md:col-span-2">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500/20 rounded-lg">
+                        <Activity className="w-5 h-5 text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-white tracking-tight">Fluency Trend</h3>
+                        <p className="text-xs text-white/40 font-medium tracking-tight">Your progress over the last 7 days</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {['7D', '1M', '3M', 'All'].map(t => (
+                        <button key={t} className={cn("px-2 py-1 text-[10px] font-bold rounded-md", t === '7D' ? "bg-blue-600 text-white" : "bg-white/5 text-white/40")}>
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <FluencyChart />
+                </EnhancedCard>
+              </div>
+            </div>
+
+            {/* Right Rail: Goals & Heatmap */}
+            <div className="lg:col-span-3 space-y-6">
+              <EnhancedCard className="bg-gradient-to-br from-indigo-600/10 to-transparent border-indigo-500/20 flex flex-col items-center">
+                <div className="flex items-center gap-3 mb-8 w-full">
+                  <div className="p-2 bg-indigo-500/20 rounded-lg">
+                    <Calendar className="w-5 h-5 text-indigo-400" />
+                  </div>
+                  <h3 className="font-bold text-white tracking-tight">Weekly Goal</h3>
+                </div>
+
+                <RadialProgress progress={80} color="#6366f1" size={160} strokeWidth={12} />
+
+                <div className="mt-8 text-center">
+                  <p className="text-sm font-medium text-white/80">You're smashing it! 🚀</p>
+                  <p className="text-xs text-white/40 mt-1">Practice 1 more session to reach your weekly milestone.</p>
+                </div>
+              </EnhancedCard>
+
+              <EnhancedCard className="bg-gradient-to-br from-green-600/10 to-transparent border-green-500/20">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-green-500/20 rounded-lg">
+                    <Flame className="w-5 h-5 text-green-400" />
+                  </div>
+                  <h3 className="font-bold text-white tracking-tight">Practice Streak</h3>
+                </div>
+
+                <StreakHeatmap />
+
+                <div className="mt-6 pt-6 border-t border-white/10 flex justify-between items-center text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                  <span>Less Active</span>
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 rounded-[1px] bg-white/5" />
+                    <div className="w-2 h-2 rounded-[1px] bg-green-500/30" />
+                    <div className="w-2 h-2 rounded-[1px] bg-green-500/60" />
+                    <div className="w-2 h-2 rounded-[1px] bg-green-500/90" />
+                  </div>
+                  <span>Most Active</span>
+                </div>
+              </EnhancedCard>
+
+              <EnhancedCard className="bg-gradient-to-br from-orange-600/10 to-transparent border-orange-500/20">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-orange-500/20 rounded-lg">
+                    <MessageSquare className="w-5 h-5 text-orange-400" />
+                  </div>
+                  <h3 className="font-bold text-white tracking-tight">Tip of the Day</h3>
+                </div>
+
+                <p className="text-sm text-white/80 leading-relaxed italic">
+                  "Your 'v/w' confusion is improving. Focus on lip placement today: bite your lower lip gently for 'v' sounds."
+                </p>
+              </EnhancedCard>
+            </div>
+
+          </div>
+        </main>
+
+        <QuickActions />
+        <KeyboardHints />
+
+        {/* Footer */}
+        <footer className="border-t border-white/5 py-12 bg-black/40 backdrop-blur-md">
+          <div className="max-w-[1400px] mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+            <div className="flex items-center gap-2 opacity-50">
+              <Mic className="w-4 h-4 text-white" />
+              <span className="text-sm font-black tracking-tighter">FLUENTLY</span>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-8">
+              {['Help Center', 'Feedback', 'Report Bug', 'Share'].map(link => (
+                <button key={link} className="text-xs font-bold text-white/30 hover:text-white transition-colors uppercase tracking-widest">
+                  {link}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-2 rounded-full bg-white/5 border border-white/10">
+              <HelpCircle className="w-4 h-4 text-white/40" />
+            </div>
+          </div>
+        </footer>
+      </div>
+    </DashboardBackground>
   );
 }
