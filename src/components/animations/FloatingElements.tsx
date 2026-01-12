@@ -68,7 +68,7 @@ export const GlassCard: React.FC<BoxProps> = ({ children, ...props }) => {
 /**
  * PulseGlow: Adds a pulsing glow effect to any component.
  */
-export const PulseGlow: React.FC<BoxProps> = ({ children, ...props }) => {
+export const PulseGlow: React.FC<Omit<MotionBoxProps, "transition">> = ({ children, ...props }) => {
     return (
         <MotionBox
             animate={{
