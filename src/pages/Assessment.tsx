@@ -1,7 +1,239 @@
-import { Box, Heading } from "@chakra-ui/react";
+import {
+    Box,
+    Container,
+    Heading,
+    Text,
+    VStack,
+    HStack,
+    Button,
+    Progress,
+    useColorModeValue,
+    Flex,
+    Icon,
+    Circle,
+    SimpleGrid,
+    Badge,
+} from "@chakra-ui/react";
+import { useState, useEffect } from "react";
+import { AuroraBackground } from "../components/arcenity/AuroraBackground";
+import { GlassmorphicCard } from "../components/arcenity/GlassmorphicCard";
+import { FloatingOrb } from "../components/animations/FloatingElements";
 
-export const Assessment = () => (
-    <Box p={8}>
-        <Heading size="lg">Assessment Flow (to be implemented)</Heading>
-    </Box>
-);
+// --- Types ---
+type AssessmentState = "instructions" | "recording" | "processing" | "results";
+
+// --- Components ---
+
+const RecordingVisualizer = () => {
+    return (
+        <HStack spacing={1} h="60px" align="center" justify="center">
+            {[...Array(20)].map((_, i) => (
+                <Box
+                    key={i}
+                    w="4px"
+                    h="20px"
+                    bg="blue.400"
+                    borderRadius="full"
+                    sx={{
+                        animation: `wave 1s infinite ${i * 0.1}s ease-in-out`,
+                        "@keyframes wave": {
+                            "0%, 100%": { height: "20px", opacity: 0.5 },
+                            "50%": { height: "50px", opacity: 1 },
+                        },
+                    }}
+                />
+            ))}
+        </HStack>
+    );
+};
+
+export function Assessment() {
+    const [state, setState] = useState<AssessmentState>("instructions");
+    const [timeLeft, setTimeLeft] = useState(60); // 60 seconds for recording
+    const [processingProgress, setProcessingProgress] = useState(0);
+
+    // Timer logic for recording state
+    useEffect(() => {
+        let interval: any;
+        if (state === "recording" && timeLeft > 0) {
+            interval = setInterval(() => {
+                setTimeLeft((prev) => prev - 1);
+            }, 1000);
+        } else if (timeLeft === 0 && state === "recording") {
+            setState("processing");
+        }
+        return () => clearInterval(interval);
+    }, [state, timeLeft]);
+
+    // Mock processing logic
+    useEffect(() => {
+        if (state === "processing") {
+            const interval = setInterval(() => {
+                setProcessingProgress((prev) => {
+                    if (prev >= 100) {
+                        clearInterval(interval);
+                        setState("results");
+                        return 100;
+                    }
+                    return prev + 2;
+                });
+            }, 50);
+            return () => clearInterval(interval);
+        }
+    }, [state]);
+
+    const startRecording = () => {
+        setState("recording");
+        setTimeLeft(60);
+    };
+
+    const stopRecording = () => {
+        setState("processing");
+    };
+
+    const resetAssessment = () => {
+        setState("instructions");
+        setTimeLeft(60);
+        setProcessingProgress(0);
+    };
+
+    return (
+        <AuroraBackground variant="mixed" minH="100vh">
+            <Box position="absolute" top={0} left={0} w="full" h="full" overflow="hidden" pointerEvents="none">
+                <FloatingOrb top="10%" left="5%" boxSize="100px" bg="blue.200" opacity={0.3} xRange={20} yRange={30} />
+                <FloatingOrb bottom="15%" right="10%" boxSize="150px" bg="purple.200" opacity={0.2} xRange={30} yRange={40} delay={1} />
+            </Box>
+            <Container maxW="4xl" py={20} position="relative" zIndex={10}>
+                <VStack spacing={8} align="stretch">
+                    {/* Header */}
+                    <VStack spacing={2} textAlign="center">
+                        <Heading size="2xl" color="gray.800" fontWeight="800">
+                            Speech Assessment
+                        </Heading>
+                        <Text fontSize="lg" color="gray.600">
+                            Analyze your communication skills with our advanced AI
+                        </Text>
+                    </VStack>
+
+                    {/* Main Content Card */}
+                    <GlassmorphicCard intensity="strong" p={10} minH="400px">
+                        {state === "instructions" && (
+                            <VStack spacing={8} align="center" justify="center" h="100%">
+                                <Circle size="80px" bg="blue.50" color="blue.500">
+                                    <Text fontSize="4xl">🎙️</Text>
+                                </Circle>
+                                <VStack spacing={4} textAlign="center" maxW="md">
+                                    <Heading size="md">Ready to begin?</Heading>
+                                    <Text color="gray.600">
+                                        You will have 60 seconds to introduce yourself and describe your perfect weekend.
+                                        Speak naturally and clearly.
+                                    </Text>
+                                </VStack>
+                                <Button
+                                    size="lg"
+                                    colorScheme="blue"
+                                    onClick={startRecording}
+                                    rounded="full"
+                                    px={12}
+                                    boxShadow="lg"
+                                    _hover={{ transform: "translateY(-2px)", boxShadow: "xl" }}
+                                >
+                                    Start Recording
+                                </Button>
+                            </VStack>
+                        )}
+
+                        {state === "recording" && (
+                            <VStack spacing={8} align="center" justify="center" h="100%">
+                                <Text fontSize="sm" fontWeight="bold" color="red.500" letterSpacing="widest">
+                                    RECORDING IN PROGRESS
+                                </Text>
+                                <Heading size="3xl" fontFamily="monospace">
+                                    00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
+                                </Heading>
+                                <RecordingVisualizer />
+                                <Text color="gray.500" fontSize="sm">
+                                    Topic: Introduce yourself and describe your perfect weekend.
+                                </Text>
+                                <Button
+                                    colorScheme="red"
+                                    variant="outline"
+                                    onClick={stopRecording}
+                                    rounded="full"
+                                    px={8}
+                                >
+                                    Stop Recording
+                                </Button>
+                            </VStack>
+                        )}
+
+                        {state === "processing" && (
+                            <VStack spacing={8} align="center" justify="center" h="100%">
+                                <Heading size="md" color="blue.600">
+                                    Analyzing Audio...
+                                </Heading>
+                                <Box w="full" maxW="md">
+                                    <Progress
+                                        value={processingProgress}
+                                        size="sm"
+                                        colorScheme="blue"
+                                        rounded="full"
+                                        isAnimated
+                                        hasStripe
+                                    />
+                                </Box>
+                                <Text color="gray.500" fontSize="sm">
+                                    Calculating fluency, checking pronunciation, and analyzing sentiment.
+                                </Text>
+                            </VStack>
+                        )}
+
+                        {state === "results" && (
+                            <VStack spacing={8} align="stretch">
+                                <HStack justify="space-between" align="center">
+                                    <Heading size="lg">Assessment Results</Heading>
+                                    <Badge colorScheme="green" fontSize="md" p={2} rounded="md">
+                                        Excellent
+                                    </Badge>
+                                </HStack>
+
+                                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
+                                    <Box p={4} bg="whiteAlpha.500" rounded="xl" border="1px" borderColor="whiteAlpha.300">
+                                        <Text color="gray.500" fontSize="sm">Overall Score</Text>
+                                        <Heading size="xl" color="blue.500">92/100</Heading>
+                                    </Box>
+                                    <Box p={4} bg="whiteAlpha.500" rounded="xl" border="1px" borderColor="whiteAlpha.300">
+                                        <Text color="gray.500" fontSize="sm">Fluency</Text>
+                                        <Heading size="xl" color="green.500">High</Heading>
+                                    </Box>
+                                    <Box p={4} bg="whiteAlpha.500" rounded="xl" border="1px" borderColor="whiteAlpha.300">
+                                        <Text color="gray.500" fontSize="sm">Pace</Text>
+                                        <Heading size="xl" color="purple.500">140 wpm</Heading>
+                                    </Box>
+                                </SimpleGrid>
+
+                                <VStack align="start" spacing={3} bg="blue.50" p={6} rounded="xl">
+                                    <Heading size="sm" color="blue.700">Feedback</Heading>
+                                    <Text color="gray.700">
+                                        Great job! You spoke clearly and maintained a steady pace.
+                                        Try to reduce the use of filler words like "um" and "uh" in your next session.
+                                        Your intonation was natural and engaging.
+                                    </Text>
+                                </VStack>
+
+                                <HStack justify="center" pt={4}>
+                                    <Button onClick={resetAssessment} variant="ghost">
+                                        Try Again
+                                    </Button>
+                                    <Button colorScheme="blue" onClick={() => window.location.href = '/dashboard'}>
+                                        Go to Dashboard
+                                    </Button>
+                                </HStack>
+                            </VStack>
+                        )}
+                    </GlassmorphicCard>
+                </VStack>
+            </Container>
+        </AuroraBackground>
+    );
+}
