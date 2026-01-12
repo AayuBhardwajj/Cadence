@@ -52,10 +52,27 @@ export function LoginPage({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Allow login with any credentials for now
-    onLoginSuccess("User");
+    const email = (e.target as any)[0].value;
+    const password = (e.target as any)[1].value;
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      // App.tsx listener will handle redirection
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
   return (
