@@ -8,9 +8,15 @@ import {
   FormLabel,
   Input,
   Checkbox,
-  Link
+  Link,
+  Icon,
+  useToast
 } from "@chakra-ui/react";
 import { Button } from "../components/ui/button";
+import { FcGoogle } from "react-icons/fc";
+import { FaXTwitter } from "react-icons/fa6";
+import { supabase } from "../lib/supabase";
+import { useState } from "react";
 
 export function LoginPage({
   onSwitchToSignup,
@@ -19,6 +25,33 @@ export function LoginPage({
   onSwitchToSignup: () => void;
   onLoginSuccess: (username: string) => void;
 }) {
+  const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+  const toast = useToast();
+
+  const handleSocialLogin = async (provider: 'google' | 'twitter') => {
+    try {
+      setLoadingProvider(provider);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider,
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+
+      if (error) throw error;
+
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      setLoadingProvider(null);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Allow login with any credentials for now
@@ -104,6 +137,44 @@ export function LoginPage({
                 </Button>
               </Stack>
             </form>
+
+            <Stack spacing={3}>
+              <Text fontSize="xs" color="gray.500" textAlign="center" position="relative">
+                <Box as="span" bg="white" px={2} position="relative" zIndex={1}>
+                  Or continue with
+                </Box>
+                <Box
+                  position="absolute"
+                  top="50%"
+                  left="0"
+                  right="0"
+                  height="1px"
+                  bg="gray.200"
+                  zIndex={0}
+                />
+              </Text>
+
+              <Button
+                size="md"
+                w="full"
+                variant="outline"
+                leftIcon={<Icon as={FcGoogle} fontSize="xl" />}
+                onClick={() => handleSocialLogin('google')}
+                isLoading={loadingProvider === 'google'}
+              >
+                Google
+              </Button>
+              <Button
+                size="md"
+                w="full"
+                variant="outline"
+                leftIcon={<Icon as={FaXTwitter} fontSize="xl" />}
+                onClick={() => handleSocialLogin('twitter')}
+                isLoading={loadingProvider === 'twitter'}
+              >
+                X (Twitter)
+              </Button>
+            </Stack>
 
             <Text fontSize="xs" color="gray.500" textAlign="center">
               Forgot password?{" "}
