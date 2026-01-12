@@ -304,498 +304,251 @@ export function Dashboard({ username = "User" }: { username?: string }) {
         </Flex>
       </Box>
 
-      <Container maxW="7xl" py={8}>
-        {/* Hero Welcome Section */}
-        <GlassmorphicCard
-          intensity="medium"
-          p={8}
-          mb={6}
-        >
-          <Flex
-            direction={{ base: "column", md: "row" }}
-            justify="space-between"
-            align={{ base: "flex-start", md: "center" }}
-            gap={6}
-          >
-            <VStack align="flex-start" spacing={3}>
-              <Heading size="xl" color={medicalColors.textPrimary} fontWeight="700">
-                Welcome back, {username}! 👋
-              </Heading>
-              <Box
-                bg={medicalColors.white}
-                borderRadius="lg"
-                px={5}
-                py={3}
-                borderWidth="1px"
-                borderColor={medicalColors.borderLight}
-                boxShadow="0 1px 3px rgba(0,0,0,0.05)"
-              >
-                <Text fontSize="sm" color={medicalColors.textSecondary} fontStyle="italic">
-                  "Practice makes progress, not perfection. Keep going! 💪"
-                </Text>
-              </Box>
-            </VStack>
-            <HStack spacing={4}>
-              <Box
-                bg={medicalColors.medicalBlue}
-                color="white"
-                px={5}
-                py={2}
-                borderRadius="lg"
-                fontWeight="600"
-                fontSize="sm"
-                boxShadow="0 2px 4px rgba(33,150,243,0.3)"
-              >
-                🔥 7 Day Streak
-              </Box>
-              <Button
-                size="lg"
-                bg={medicalColors.medicalBlue}
-                color="white"
-                borderRadius="lg"
-                px={8}
-                py={6}
-                fontWeight="600"
-                fontSize="md"
-                boxShadow="0 4px 12px rgba(33,150,243,0.3)"
-                _hover={{
-                  bg: medicalColors.deepBlue,
-                  transform: "translateY(-1px)",
-                  boxShadow: "0 6px 16px rgba(33,150,243,0.4)"
-                }}
-                _active={{
-                  transform: "translateY(0)"
-                }}
-              >
-                Start New Session
-              </Button>
-            </HStack>
-          </Flex>
-        </GlassmorphicCard>
-
-        {/* Modular Card Grid */}
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-          {/* Module 1: Today's Quick Stats */}
-          <GlassmorphicCard intensity="medium" p={4}>
-            <VStack align="stretch" spacing={3} mb={3}>
-              <HStack spacing={2}>
-                <Text fontSize="lg">📊</Text>
-                <Heading size="sm" color={medicalColors.textPrimary} fontWeight="600">
-                  Today's Performance
-                </Heading>
-              </HStack>
-            </VStack>
-            <VStack spacing={4} align="stretch">
-              <StatPill
-                label="Fluency Score"
-                value="78/100"
-                change="+5"
-                color={medicalColors.medicalBlue}
-              />
-              <StatPill
-                label="Practice Time"
-                value="12 min"
-                color={medicalColors.medicalGreen}
-              />
-              <StatPill
-                label="Sessions"
-                value="2"
-                color={medicalColors.accentBlue}
-              />
-              <Box mt={2}>
-                <Text fontSize="xs" color={medicalColors.textSecondary} mb={2} fontWeight="500">
-                  Progress Gauge
-                </Text>
-                <Box
-                  w="100%"
-                  h="60px"
-                  bg={medicalColors.lightGray}
-                  borderRadius="lg"
-                  borderWidth="1px"
-                  borderColor={medicalColors.borderLight}
-                  position="relative"
-                  overflow="hidden"
-                >
-                  <Box
-                    w="78%"
-                    h="100%"
-                    bg={`linear-gradient(90deg, ${medicalColors.medicalBlue}, ${medicalColors.accentBlue})`}
-                    borderRadius="lg"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <Text
-                      fontFamily="system-ui"
-                      fontWeight="700"
-                      color="white"
-                      fontSize="lg"
-                    >
-                      78%
-                    </Text>
-                  </Box>
-                </Box>
-              </Box>
-            </VStack>
-          </GlassmorphicCard>
-
-          {/* Module 2: Your Progress Journey */}
-          <MedicalCard
-            title="30-Day Progress 📈"
-            accentColor={medicalColors.medicalGreen}
-            gridColumn={{ base: 1, md: "span 2", lg: "span 1" }}
-          >
-            <Box
-              bg={medicalColors.white}
-              p={4}
-              borderRadius="lg"
-              borderWidth="1px"
-              borderColor={medicalColors.borderLight}
-            >
-              <VStack spacing={4} align="stretch">
-                <HStack spacing={2} flexWrap="wrap">
-                  <Badge
-                    bg={`${medicalColors.medicalBlue}15`}
-                    color={medicalColors.medicalBlue}
-                    px={3}
-                    py={1}
-                    borderRadius="md"
-                    fontWeight="500"
-                  >
-                    Fluency
-                  </Badge>
-                  <Badge
-                    bg={`${medicalColors.medicalGreen}15`}
-                    color={medicalColors.medicalGreen}
-                    px={3}
-                    py={1}
-                    borderRadius="md"
-                    fontWeight="500"
-                  >
-                    Accent
-                  </Badge>
-                  <Badge
-                    bg={`${medicalColors.accentBlue}15`}
-                    color={medicalColors.accentBlue}
-                    px={3}
-                    py={1}
-                    borderRadius="md"
-                    fontWeight="500"
-                  >
-                    Vocabulary
-                  </Badge>
-                </HStack>
-                <Box
-                  h="200px"
-                  bg={medicalColors.lightGray}
-                  borderRadius="lg"
-                  borderWidth="1px"
-                  borderColor={medicalColors.borderLight}
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <VStack spacing={2}>
-                    <Text fontFamily="system-ui" fontSize="lg" color={medicalColors.textSecondary}>
-                      📊
-                    </Text>
-                    <Text fontFamily="system-ui" fontSize="sm" color={medicalColors.textSecondary}>
-                      Graph visualization (30-day trend lines)
-                    </Text>
-                  </VStack>
-                </Box>
-              </VStack>
-            </Box>
-          </MedicalCard>
-
-          {/* Module 3: Active Challenges */}
-          <GlassmorphicCard intensity="medium" p={4}>
-            <VStack align="stretch" spacing={3} mb={3}>
-              <HStack spacing={2}>
-                <Text fontSize="lg">🎯</Text>
-                <Heading size="sm" color={medicalColors.textPrimary} fontWeight="600">
-                  Your Missions
-                </Heading>
-              </HStack>
-            </VStack>
-            <VStack spacing={3} align="stretch">
-              <ChallengeItem
-                title="Master the 'th' sound"
-                progress={60}
-                color={medicalColors.medicalBlue}
-              />
-              <ChallengeItem
-                title="Reduce filler words to <3/min"
-                progress={40}
-                color={medicalColors.medicalGreen}
-              />
-              <ChallengeItem
-                title="Practice 5 days in a row"
-                progress={80}
-                color={medicalColors.accentBlue}
-              />
-            </VStack>
-          </GlassmorphicCard>
-
-          {/* Module 4: Recent Sessions */}
-          <MedicalCard
-            title="Recent Practice Sessions 🎙️"
-            accentColor={medicalColors.medicalBlue}
-            gridColumn={{ base: 1, md: "span 2" }}
-          >
-            <Box overflowX="auto">
-              <Table variant="simple" size="sm">
-                <Thead>
-                  <Tr bg={medicalColors.lightGray}>
-                    <Th color={medicalColors.textPrimary} fontWeight="600" fontSize="xs">Date</Th>
-                    <Th color={medicalColors.textPrimary} fontWeight="600" fontSize="xs">Duration</Th>
-                    <Th color={medicalColors.textPrimary} fontWeight="600" fontSize="xs">Fluency</Th>
-                    <Th color={medicalColors.textPrimary} fontWeight="600" fontSize="xs">Action</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {[
-                    { date: "Jan 7, 2026", duration: "5 min", fluency: "82/100" },
-                    { date: "Jan 6, 2026", duration: "8 min", fluency: "77/100" },
-                    { date: "Jan 5, 2026", duration: "6 min", fluency: "75/100" }
-                  ].map((session, idx) => (
-                    <Tr
-                      key={idx}
-                      bg={idx % 2 === 0 ? medicalColors.white : medicalColors.lightGray}
-                      _hover={{ bg: medicalColors.softBlue }}
-                      transition="all 0.2s"
-                    >
-                      <Td color={medicalColors.textSecondary} fontSize="sm">{session.date}</Td>
-                      <Td color={medicalColors.textSecondary} fontSize="sm">{session.duration}</Td>
-                      <Td color={medicalColors.textPrimary} fontWeight="600" fontSize="sm">
-                        {session.fluency}
-                      </Td>
-                      <Td>
-                        <Button
-                          size="xs"
-                          bg={medicalColors.medicalBlue}
-                          color="white"
-                          borderRadius="md"
-                          fontWeight="500"
-                          _hover={{ bg: medicalColors.deepBlue }}
-                        >
-                          View Report
-                        </Button>
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            </Box>
-          </MedicalCard>
-
-          {/* Module 5: Problem Areas Focus */}
-          <MedicalCard title="Areas Needing Attention ⚠️" accentColor={medicalColors.warning}>
-            <VStack spacing={3} align="stretch">
-              <ProblemAreaCard
-                title="TH Sound"
-                metric="Mispronounced 8/12 times"
-                color={medicalColors.medicalBlue}
-              />
-              <ProblemAreaCard
-                title="Word Pauses"
-                metric="Average 2.3 sec pauses"
-                color={medicalColors.warning}
-              />
-              <ProblemAreaCard
-                title="Filler Words"
-                metric="18 'um/uh' per session"
-                color={medicalColors.accentBlue}
-              />
-            </VStack>
-          </MedicalCard>
-
-          {/* Module 6: Personalized Tip */}
-          <MedicalCard title="Coach's Tip of the Day 💡" accentColor={medicalColors.info}>
-            <Box
-              bg={medicalColors.lightGray}
-              color={medicalColors.textPrimary}
-              p={4}
-              borderRadius="lg"
-              borderWidth="1px"
-              borderColor={medicalColors.borderLight}
-              borderLeftWidth="4px"
-              borderLeftColor={medicalColors.info}
-            >
-              <Text fontSize="sm" mb={3} lineHeight="1.6" color={medicalColors.textPrimary}>
-                Your 'v/w' confusion improved 30% this week! Keep practicing words like 'very',
-                'wave', and 'vowel'. Try saying them 10 times before your next session.
-              </Text>
-              <Button
-                size="sm"
-                bg={medicalColors.info}
-                color="white"
-                borderRadius="md"
-                fontWeight="500"
-                _hover={{ bg: medicalColors.medicalBlue }}
-              >
-                Next Tip
-              </Button>
-            </Box>
-          </MedicalCard>
-
-          {/* Module 7: Recommended Practice */}
-          <MedicalCard
-            title="Suggested for You 🎯"
-            accentColor={medicalColors.medicalGreen}
-            gridColumn={{ base: 1, md: "span 2" }}
-          >
-            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-              {[
-                { title: "TH Sound Drills", duration: "5 min", level: "Beginner", color: medicalColors.medicalBlue },
-                { title: "Word Association Game", duration: "10 min", level: "Intermediate", color: medicalColors.medicalGreen },
-                { title: "Job Interview Simulation", duration: "15 min", level: "Advanced", color: medicalColors.accentBlue }
-              ].map((exercise, idx) => (
-                <Box
-                  key={idx}
-                  bg={`linear-gradient(135deg, ${exercise.color}10, ${exercise.color}05)`}
-                  borderRadius="lg"
-                  p={4}
-                  borderWidth="1px"
-                  borderColor={`${exercise.color}30`}
-                  borderLeftWidth="4px"
-                  borderLeftColor={exercise.color}
-                >
-                  <Text fontSize="sm" fontWeight="600" color={medicalColors.textPrimary} mb={2}>
-                    {exercise.title}
-                  </Text>
-                  <HStack spacing={2} mb={3}>
-                    <Badge
-                      bg={`${exercise.color}15`}
-                      color={exercise.color}
-                      fontSize="xs"
-                      fontWeight="500"
-                    >
-                      {exercise.duration}
-                    </Badge>
-                    <Badge
-                      bg={medicalColors.lightGray}
-                      color={medicalColors.textSecondary}
-                      fontSize="xs"
-                      fontWeight="500"
-                    >
-                      {exercise.level}
-                    </Badge>
+      <Container maxW="8xl" py={6}>
+        <SimpleGrid columns={{ base: 1, lg: 12 }} spacing={6}>
+          {/* Left Column: Stats & Missions (3 cols) */}
+          <Box gridColumn={{ base: "span 1", lg: "span 3" }}>
+            <VStack spacing={6} align="stretch">
+              {/* Module 1: Today's Quick Stats */}
+              <GlassmorphicCard intensity="medium" p={4}>
+                <VStack align="stretch" spacing={3} mb={3}>
+                  <HStack spacing={2}>
+                    <Text fontSize="lg">📊</Text>
+                    <Heading size="sm" color={medicalColors.textPrimary} fontWeight="600">
+                      Today's Performance
+                    </Heading>
                   </HStack>
-                  <Button
-                    size="sm"
-                    bg={exercise.color}
-                    color="white"
-                    w="full"
-                    borderRadius="md"
-                    fontWeight="500"
-                    _hover={{ bg: exercise.color, opacity: 0.9 }}
-                  >
-                    Start
-                  </Button>
-                </Box>
-              ))}
-            </SimpleGrid>
-          </MedicalCard>
+                </VStack>
+                <VStack spacing={4} align="stretch">
+                  <StatPill
+                    label="Fluency Score"
+                    value="78/100"
+                    change="+5"
+                    color={medicalColors.medicalBlue}
+                  />
+                  <StatPill
+                    label="Practice Time"
+                    value="12 min"
+                    color={medicalColors.medicalGreen}
+                  />
+                  <StatPill
+                    label="Sessions"
+                    value="2"
+                    color={medicalColors.accentBlue}
+                  />
+                </VStack>
+              </GlassmorphicCard>
 
-          {/* Module 8: Community Highlights */}
-          <MedicalCard title="Community Corner 🌟" accentColor={medicalColors.accentBlue}>
-            <VStack spacing={3} align="stretch">
-              <Text fontSize="sm" fontWeight="600" color={medicalColors.textPrimary}>
-                Top Improvers This Week
-              </Text>
-              {[
-                { user: "User_A2X", improvement: "25%", rank: 1 },
-                { user: "User_B7Y", improvement: "22%", rank: 2 },
-                { user: "User_C9Z", improvement: "20%", rank: 3 }
-              ].map((item) => (
-                <HStack
-                  key={item.rank}
-                  bg={medicalColors.lightGray}
-                  p={3}
-                  borderRadius="md"
-                  borderWidth="1px"
-                  borderColor={medicalColors.borderLight}
-                >
-                  <Text fontSize="lg">
-                    {item.rank === 1 ? "🥇" : item.rank === 2 ? "🥈" : "🥉"}
-                  </Text>
-                  <Text fontSize="sm" fontWeight="500" color={medicalColors.textPrimary} flex={1}>
-                    {item.user}
-                  </Text>
-                  <Text fontSize="sm" fontWeight="600" color={medicalColors.success}>
-                    +{item.improvement}
-                  </Text>
-                </HStack>
-              ))}
-              <Box
-                bg={`linear-gradient(135deg, ${medicalColors.medicalBlue}10, ${medicalColors.medicalGreen}10)`}
-                p={3}
-                borderRadius="md"
-                borderWidth="1px"
-                borderColor={medicalColors.borderLight}
-                borderLeftWidth="4px"
-                borderLeftColor={medicalColors.medicalBlue}
-                mt={2}
-              >
-                <Text fontSize="sm" fontWeight="500" color={medicalColors.textPrimary} textAlign="center">
-                  You're in top 30% of active users! 🎉
-                </Text>
-              </Box>
+              {/* Module 3: Active Challenges */}
+              <GlassmorphicCard intensity="medium" p={4}>
+                <VStack align="stretch" spacing={3} mb={3}>
+                  <HStack spacing={2}>
+                    <Text fontSize="lg">🎯</Text>
+                    <Heading size="sm" color={medicalColors.textPrimary} fontWeight="600">
+                      Your Missions
+                    </Heading>
+                  </HStack>
+                </VStack>
+                <VStack spacing={3} align="stretch">
+                  <ChallengeItem
+                    title="Master the 'th' sound"
+                    progress={60}
+                    color={medicalColors.medicalBlue}
+                  />
+                  <ChallengeItem
+                    title="Reduce filler words"
+                    progress={40}
+                    color={medicalColors.medicalGreen}
+                  />
+                  <ChallengeItem
+                    title="5 Day Streak"
+                    progress={80}
+                    color={medicalColors.accentBlue}
+                  />
+                </VStack>
+              </GlassmorphicCard>
             </VStack>
-          </MedicalCard>
+          </Box>
 
-          {/* Module 9: Motivation Meter */}
-          <MedicalCard title="Keep Going! 💪" accentColor={medicalColors.success}>
-            <VStack spacing={3}>
-              <Box
-                w="100%"
-                h="120px"
-                bg={medicalColors.lightGray}
-                borderRadius="lg"
-                borderWidth="1px"
-                borderColor={medicalColors.borderLight}
+          {/* Center Column: Welcome & Assessment (6 cols) */}
+          <Box gridColumn={{ base: "span 1", lg: "span 6" }}>
+            <VStack spacing={6} align="stretch">
+              {/* Hero Welcome Section - Enhanced */}
+              <GlassmorphicCard
+                intensity="strong"
+                p={8}
                 position="relative"
                 overflow="hidden"
+                bgGradient="linear(to-br, whiteAlpha.900, whiteAlpha.600)"
               >
-                <Box
-                  w="80%"
-                  h="100%"
-                  bg={`linear-gradient(90deg, ${medicalColors.medicalGreen}, ${medicalColors.success})`}
-                  borderRadius="lg"
-                  position="relative"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <Text
-                    fontWeight="700"
-                    color="white"
-                    fontSize="xl"
-                  >
-                    80%
-                  </Text>
-                </Box>
-              </Box>
-              <Text fontSize="sm" color={medicalColors.textSecondary} textAlign="center" fontWeight="500">
-                You're 80% toward your weekly goal!
-              </Text>
-              <Text fontSize="xs" color={medicalColors.textPrimary} textAlign="center">
-                Practice 1 more session to unlock 'Bronze Speaker' badge 🏅
-              </Text>
-            </VStack>
-          </MedicalCard>
-        </SimpleGrid>
+                <VStack spacing={8} align="center" textAlign="center">
+                  <VStack spacing={2}>
+                    <Heading size="xl" color={medicalColors.medicalBlue} fontWeight="800" letterSpacing="-1px">
+                      Welcome back, {username}!
+                    </Heading>
+                    <Text fontSize="lg" color={medicalColors.textSecondary} maxW="md">
+                      "Practice makes progress, not perfection. Keep going! 💪"
+                    </Text>
+                  </VStack>
 
-        {/* Feature Section */}
-        <Box mt={12}>
-          <FeatureSection
-            title="Why Choose Fluently?"
-            subtitle="Comprehensive speech improvement tools powered by advanced AI technology"
-            features={features}
-            columns={{ base: 1, md: 2, lg: 3 }}
-          />
-        </Box>
+                  <Divider borderColor="gray.200" />
+
+                  {/* Main Action Area */}
+                  <Box
+                    p={2}
+                    borderRadius="full"
+                    bgGradient={`linear(to-r, ${medicalColors.medicalBlue}, ${medicalColors.accentBlue})`}
+                    boxShadow="0 10px 30px rgba(33,150,243,0.3)"
+                    transition="transform 0.2s"
+                    _hover={{ transform: "scale(1.02)" }}
+                  >
+                    <Button
+                      as={Link}
+                      href="/pre-recording"
+                      size="lg"
+                      w="full"
+                      h="64px"
+                      bg="white"
+                      color={medicalColors.medicalBlue}
+                      borderRadius="full"
+                      fontSize="xl"
+                      fontWeight="bold"
+                      leftIcon={<Text fontSize="2xl">🎤</Text>}
+                      _hover={{ bg: "gray.50" }}
+                    >
+                      Start New Assessment
+                    </Button>
+                  </Box>
+
+                  <HStack spacing={8} pt={2}>
+                    <VStack spacing={0}>
+                      <Text fontSize="2xl" fontWeight="800" color={medicalColors.textPrimary}>7</Text>
+                      <Text fontSize="xs" color={medicalColors.textSecondary} fontWeight="600" textTransform="uppercase">Day Streak 🔥</Text>
+                    </VStack>
+                    <Box w="1px" h="40px" bg="gray.200" />
+                    <VStack spacing={0}>
+                      <Text fontSize="2xl" fontWeight="800" color={medicalColors.textPrimary}>82%</Text>
+                      <Text fontSize="xs" color={medicalColors.textSecondary} fontWeight="600" textTransform="uppercase"> Avg. Fluency 📈</Text>
+                    </VStack>
+                  </HStack>
+                </VStack>
+              </GlassmorphicCard>
+
+              {/* Module 4: Recent Sessions Feed */}
+              <MedicalCard
+                title="Recent Activity"
+                accentColor={medicalColors.medicalBlue}
+              >
+                <Box overflowX="auto">
+                  <Table variant="simple" size="sm">
+                    <Thead>
+                      <Tr bg={medicalColors.lightGray}>
+                        <Th>Date</Th>
+                        <Th>Score</Th>
+                        <Th>Report</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {[
+                        { date: "Jan 7", fluency: "82/100" },
+                        { date: "Jan 6", fluency: "77/100" },
+                        { date: "Jan 5", fluency: "75/100" }
+                      ].map((session, idx) => (
+                        <Tr key={idx} _hover={{ bg: medicalColors.softBlue }}>
+                          <Td fontWeight="500">{session.date}</Td>
+                          <Td color={medicalColors.medicalBlue} fontWeight="bold">{session.fluency}</Td>
+                          <Td>
+                            <Button size="xs" colorScheme="blue" variant="ghost">View</Button>
+                          </Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </Box>
+              </MedicalCard>
+
+              {/* Feature Section Preview */}
+              <FeatureSection
+                title=""
+                subtitle="Explore more tools"
+                features={features.slice(0, 3)}
+                columns={{ base: 1, md: 3 }}
+              />
+
+            </VStack>
+          </Box>
+
+          {/* Right Column: Progress & Community (3 cols) */}
+          <Box gridColumn={{ base: "span 1", lg: "span 3" }}>
+            <VStack spacing={6} align="stretch">
+
+              {/* Module 9: Motivation Meter */}
+              <MedicalCard title="Weekly Goal 🏃‍♂️" accentColor={medicalColors.success}>
+                <VStack spacing={4}>
+                  <Box position="relative" w="120px" h="120px">
+                    <Progress
+                      value={80}
+                      size="lg"
+                      w="100%"
+                      borderRadius="full"
+                      colorScheme="green"
+                      sx={{ "& > div": { transition: "all 0.5s ease" } }}
+                    />
+                    {/* Simple circular progress simulation for now */}
+                    <Flex
+                      position="absolute" top="0" left="0" right="0" bottom="0"
+                      align="center" justify="center" direction="column"
+                      bg={medicalColors.lightGreen} borderRadius="full" m={2}
+                    >
+                      <Text fontSize="2xl" fontWeight="800" color={medicalColors.medicalGreen}>80%</Text>
+                    </Flex>
+                  </Box>
+                  <Text fontSize="xs" textAlign="center" color={medicalColors.textSecondary}>
+                    Practice 1 more session to reach goal!
+                  </Text>
+                </VStack>
+              </MedicalCard>
+
+              {/* Module 6: Tip of the Day */}
+              <Box
+                bg={medicalColors.info}
+                p={4}
+                borderRadius="lg"
+                color="white"
+                boxShadow="lg"
+              >
+                <HStack mb={2}>
+                  <Text fontSize="xl">💡</Text>
+                  <Text fontWeight="bold">Tip of the Day</Text>
+                </HStack>
+                <Text fontSize="sm" lineHeight="1.5" opacity={0.9}>
+                  Your 'v/w' confusion improved. Try saying 'very', 'wave', and 'vowel' 10 times today.
+                </Text>
+              </Box>
+
+              {/* Module 8: Community */}
+              <MedicalCard title="Top Improvers 🏆" accentColor={medicalColors.warning}>
+                <VStack spacing={3} align="stretch">
+                  {[
+                    { user: "User_A2X", val: "+25%" },
+                    { user: "User_B7Y", val: "+22%" },
+                    { user: "User_C9Z", val: "+20%" }
+                  ].map((item, i) => (
+                    <HStack key={i} justify="space-between" p={2} bg={medicalColors.lightGray} borderRadius="md">
+                      <Text fontSize="sm" fontWeight="500">{item.user}</Text>
+                      <Text fontSize="sm" fontWeight="bold" color={medicalColors.success}>{item.val}</Text>
+                    </HStack>
+                  ))}
+                  <Text fontSize="xs" color="gray.500" textAlign="center" pt={2}>
+                    You are in the top 30%!
+                  </Text>
+                </VStack>
+              </MedicalCard>
+
+            </VStack>
+          </Box>
+
+        </SimpleGrid>
       </Container>
 
       {/* Footer */}
