@@ -3,7 +3,7 @@ import { motion, HTMLMotionProps } from "framer-motion";
 import React from "react";
 
 // Types
-type MotionBoxProps = BoxProps & HTMLMotionProps<"div">;
+type MotionBoxProps = Omit<BoxProps, "transition"> & HTMLMotionProps<"div">;
 
 // Chakra-compatible Motion Box
 const MotionBox = motion(Box) as React.FC<MotionBoxProps>;
