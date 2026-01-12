@@ -180,7 +180,7 @@ function ProblemAreaCard({ title, metric, color }: {
       borderLeftWidth="4px"
       borderLeftColor={color}
       transition="all 0.2s"
-      _hover={{ 
+      _hover={{
         bg: `${color}15`,
         transform: "translateX(4px)",
         boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
@@ -253,7 +253,7 @@ export function Dashboard({ username = "User" }: { username?: string }) {
       <Box
         bg="rgba(255, 255, 255, 0.9)"
         backdropFilter="blur(10px)"
-        WebkitBackdropFilter="blur(10px)"
+        sx={{ WebkitBackdropFilter: "blur(10px)" }}
         borderBottomWidth="1px"
         borderBottomColor="rgba(224, 224, 224, 0.5)"
         py={4}
@@ -386,21 +386,21 @@ export function Dashboard({ username = "User" }: { username?: string }) {
               </HStack>
             </VStack>
             <VStack spacing={4} align="stretch">
-              <StatPill 
-                label="Fluency Score" 
-                value="78/100" 
-                change="+5" 
-                color={medicalColors.medicalBlue} 
+              <StatPill
+                label="Fluency Score"
+                value="78/100"
+                change="+5"
+                color={medicalColors.medicalBlue}
               />
-              <StatPill 
-                label="Practice Time" 
-                value="12 min" 
-                color={medicalColors.medicalGreen} 
+              <StatPill
+                label="Practice Time"
+                value="12 min"
+                color={medicalColors.medicalGreen}
               />
-              <StatPill 
-                label="Sessions" 
-                value="2" 
-                color={medicalColors.accentBlue} 
+              <StatPill
+                label="Sessions"
+                value="2"
+                color={medicalColors.accentBlue}
               />
               <Box mt={2}>
                 <Text fontSize="xs" color={medicalColors.textSecondary} mb={2} fontWeight="500">
@@ -454,39 +454,39 @@ export function Dashboard({ username = "User" }: { username?: string }) {
             >
               <VStack spacing={4} align="stretch">
                 <HStack spacing={2} flexWrap="wrap">
-                  <Badge 
-                    bg={`${medicalColors.medicalBlue}15`} 
-                    color={medicalColors.medicalBlue} 
-                    px={3} 
-                    py={1} 
+                  <Badge
+                    bg={`${medicalColors.medicalBlue}15`}
+                    color={medicalColors.medicalBlue}
+                    px={3}
+                    py={1}
                     borderRadius="md"
                     fontWeight="500"
                   >
                     Fluency
                   </Badge>
-                  <Badge 
-                    bg={`${medicalColors.medicalGreen}15`} 
-                    color={medicalColors.medicalGreen} 
-                    px={3} 
-                    py={1} 
+                  <Badge
+                    bg={`${medicalColors.medicalGreen}15`}
+                    color={medicalColors.medicalGreen}
+                    px={3}
+                    py={1}
                     borderRadius="md"
                     fontWeight="500"
                   >
                     Accent
                   </Badge>
-                  <Badge 
-                    bg={`${medicalColors.accentBlue}15`} 
-                    color={medicalColors.accentBlue} 
-                    px={3} 
-                    py={1} 
+                  <Badge
+                    bg={`${medicalColors.accentBlue}15`}
+                    color={medicalColors.accentBlue}
+                    px={3}
+                    py={1}
                     borderRadius="md"
                     fontWeight="500"
                   >
                     Vocabulary
                   </Badge>
                 </HStack>
-                <Box 
-                  h="200px" 
+                <Box
+                  h="200px"
                   bg={medicalColors.lightGray}
                   borderRadius="lg"
                   borderWidth="1px"
@@ -665,17 +665,17 @@ export function Dashboard({ username = "User" }: { username?: string }) {
                     {exercise.title}
                   </Text>
                   <HStack spacing={2} mb={3}>
-                    <Badge 
-                      bg={`${exercise.color}15`} 
-                      color={exercise.color} 
+                    <Badge
+                      bg={`${exercise.color}15`}
+                      color={exercise.color}
                       fontSize="xs"
                       fontWeight="500"
                     >
                       {exercise.duration}
                     </Badge>
-                    <Badge 
-                      bg={medicalColors.lightGray} 
-                      color={medicalColors.textSecondary} 
+                    <Badge
+                      bg={medicalColors.lightGray}
+                      color={medicalColors.textSecondary}
                       fontSize="xs"
                       fontWeight="500"
                     >
@@ -802,7 +802,7 @@ export function Dashboard({ username = "User" }: { username?: string }) {
       <Box
         bg="rgba(255, 255, 255, 0.8)"
         backdropFilter="blur(10px)"
-        WebkitBackdropFilter="blur(10px)"
+        sx={{ WebkitBackdropFilter: "blur(10px)" }}
         color={medicalColors.textSecondary}
         py={6}
         px={6}
