@@ -1,4 +1,4 @@
-import { Box, Heading, Text, VStack, HStack, SimpleGrid, Icon } from "@chakra-ui/react";
+import { Box, Heading, Text, VStack, HStack, SimpleGrid, Icon, useColorModeValue } from "@chakra-ui/react";
 import { GlassmorphicCard } from "./GlassmorphicCard";
 
 interface Feature {
@@ -28,7 +28,7 @@ export function FeatureSection({
           {title}
         </Heading>
         {subtitle && (
-          <Text fontSize="lg" color="gray.600" maxW="2xl">
+          <Text fontSize="lg" color={useColorModeValue("gray.600", "gray.400")} maxW="2xl">
             {subtitle}
           </Text>
         )}
@@ -61,7 +61,7 @@ export function FeatureSection({
                   {feature.title}
                 </Heading>
               </HStack>
-              <Text fontSize="sm" color="gray.600" lineHeight="1.6">
+              <Text fontSize="sm" color={useColorModeValue("gray.600", "gray.400")} lineHeight="1.6">
                 {feature.description}
               </Text>
             </VStack>

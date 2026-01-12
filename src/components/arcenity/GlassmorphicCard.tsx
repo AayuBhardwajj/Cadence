@@ -1,4 +1,4 @@
-import { Box, BoxProps } from "@chakra-ui/react";
+import { Box, BoxProps, useColorModeValue } from "@chakra-ui/react";
 import { ReactNode } from "react";
 
 interface GlassmorphicCardProps extends BoxProps {
@@ -18,19 +18,29 @@ export function GlassmorphicCard({
   };
 
   const opacityMap = {
-    light: "0.7",
-    medium: "0.8",
-    strong: "0.9"
+    light: "0.2",
+    medium: "0.4",
+    strong: "0.6"
   };
+
+  const bg = useColorModeValue(
+    `rgba(255, 255, 255, ${opacityMap[intensity]})`,
+    `rgba(26, 32, 44, ${opacityMap[intensity]})`
+  );
+
+  const borderColor = useColorModeValue(
+    "rgba(255, 255, 255, 0.3)",
+    "rgba(255, 255, 255, 0.1)"
+  );
 
   return (
     <Box
-      bg={`rgba(255, 255, 255, ${opacityMap[intensity]})`}
+      bg={bg}
       backdropFilter={`blur(${blurMap[intensity]})`}
       WebkitBackdropFilter={`blur(${blurMap[intensity]})`}
       borderRadius="xl"
       borderWidth="1px"
-      borderColor="rgba(255, 255, 255, 0.3)"
+      borderColor={borderColor}
       boxShadow="0 8px 32px rgba(0, 0, 0, 0.1)"
       position="relative"
       overflow="hidden"
@@ -49,4 +59,3 @@ export function GlassmorphicCard({
     </Box>
   );
 }
-

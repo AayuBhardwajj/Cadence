@@ -12,9 +12,6 @@ import {
   Progress,
   IconButton,
   SimpleGrid,
-  Card,
-  CardBody,
-  CardHeader,
   Divider,
   Flex,
   Table,
@@ -26,9 +23,16 @@ import {
   useColorModeValue,
   useColorMode,
   Image,
-  Link
+  Link,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  MenuDivider,
+  Icon
 } from "@chakra-ui/react";
-import { BellIcon, MoonIcon, SunIcon } from "@chakra-ui/icons";
+import { BellIcon, MoonIcon, SunIcon, ChevronDownIcon, SettingsIcon } from "@chakra-ui/icons";
+import { FiUser, FiLogOut } from "react-icons/fi";
 import { AuroraBackground } from "../components/arcenity/AuroraBackground";
 import { GlassmorphicCard } from "../components/arcenity/GlassmorphicCard";
 import { FeatureSection } from "../components/arcenity/FeatureSection";
@@ -37,9 +41,9 @@ import { FeatureSection } from "../components/arcenity/FeatureSection";
 // Medical/Healthcare color palette hook
 function useMedicalColors() {
   return {
-    white: useColorModeValue("#FFFFFF", "#1A202C"),
-    lightGray: useColorModeValue("#F8F9FA", "#2D3748"),
-    softBlue: useColorModeValue("#E3F2FD", "#2A4365"),
+    white: useColorModeValue("#FFFFFF", "rgba(26, 32, 44, 0.4)"),
+    lightGray: useColorModeValue("#F8F9FA", "rgba(45, 55, 72, 0.3)"),
+    softBlue: useColorModeValue("#E3F2FD", "rgba(42, 67, 101, 0.3)"),
     medicalBlue: useColorModeValue("#2196F3", "#90CDF4"),
     deepBlue: useColorModeValue("#1565C0", "#63B3ED"),
     medicalGreen: useColorModeValue("#4CAF50", "#68D391"),
@@ -47,7 +51,7 @@ function useMedicalColors() {
     accentBlue: useColorModeValue("#42A5F5", "#63B3ED"),
     textPrimary: useColorModeValue("#212121", "#F7FAFC"),
     textSecondary: useColorModeValue("#757575", "#A0AEC0"),
-    borderLight: useColorModeValue("#E0E0E0", "#4A5568"),
+    borderLight: useColorModeValue("#E0E0E0", "rgba(255, 255, 255, 0.1)"),
     success: useColorModeValue("#66BB6A", "#68D391"),
     warning: useColorModeValue("#FFA726", "#F6AD55"),
     info: useColorModeValue("#42A5F5", "#63B3ED")
@@ -87,28 +91,29 @@ function MedicalCard({
 }) {
   const medicalColors = useMedicalColors();
   return (
-    <Card
-      bg={medicalColors.white}
+    <GlassmorphicCard
+      intensity="medium"
       borderRadius="lg"
-      boxShadow="0 2px 8px rgba(0,0,0,0.08)"
       borderWidth="1px"
       borderColor={medicalColors.borderLight}
+      transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
       _hover={{
-        transform: "translateY(-2px)",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-        transition: "all 0.2s ease"
+        transform: "translateY(-4px)",
+        boxShadow: "0 12px 24px rgba(0,0,0,0.12)",
       }}
       position="relative"
       overflow="hidden"
+      p={0}
       {...props}
     >
       {title && (
-        <CardHeader
-          bg={medicalColors.lightGray}
+        <Box
+          bg={useColorModeValue("rgba(248, 249, 250, 0.6)", "rgba(45, 55, 72, 0.4)")}
           borderBottomWidth="1px"
           borderBottomColor={medicalColors.borderLight}
           py={3}
           px={4}
+          backdropFilter="blur(5px)"
         >
           <HStack spacing={2}>
             {icon && <Text fontSize="lg">{icon}</Text>}
@@ -116,10 +121,10 @@ function MedicalCard({
               {title}
             </Heading>
           </HStack>
-        </CardHeader>
+        </Box>
       )}
-      <CardBody p={4}>{children}</CardBody>
-    </Card>
+      <Box p={4}>{children}</Box>
+    </GlassmorphicCard>
   );
 }
 
@@ -131,8 +136,8 @@ function StatPill({ label, value, change, color }: {
 }) {
   const medicalColors = useMedicalColors();
   return (
-    <Box
-      bg={`linear-gradient(135deg, ${color}15, ${color}08)`}
+    <GlassmorphicCard
+      intensity="light"
       borderRadius="lg"
       px={4}
       py={3}
@@ -140,6 +145,7 @@ function StatPill({ label, value, change, color }: {
       borderColor={`${color}30`}
       borderLeftWidth="4px"
       borderLeftColor={color}
+      bg={`linear-gradient(135deg, ${color}10, ${color}05)`}
     >
       <Text fontSize="xs" color={medicalColors.textSecondary} fontWeight="500" mb={1}>
         {label}
@@ -154,7 +160,7 @@ function StatPill({ label, value, change, color }: {
           </Text>
         )}
       </HStack>
-    </Box>
+    </GlassmorphicCard>
   );
 }
 
@@ -165,28 +171,35 @@ function ChallengeItem({ title, progress, color }: {
 }) {
   const medicalColors = useMedicalColors();
   return (
-    <VStack align="stretch" spacing={2} p={3} bg={medicalColors.lightGray} borderRadius="md">
-      <HStack justify="space-between">
-        <Text fontSize="sm" fontWeight="500" color={medicalColors.textPrimary}>
-          {title}
-        </Text>
-        <Text fontSize="sm" fontWeight="600" color={color}>
-          {progress}%
-        </Text>
-      </HStack>
-      <Progress
-        value={progress}
-        colorScheme="blue"
-        bg={medicalColors.borderLight}
-        borderRadius="full"
-        height="6px"
-        sx={{
-          "& > div": {
-            background: `linear-gradient(90deg, ${color}, ${color}DD)`
-          }
-        }}
-      />
-    </VStack>
+    <GlassmorphicCard
+      intensity="light"
+      bg={useColorModeValue("rgba(240, 244, 248, 0.4)", "rgba(45, 55, 72, 0.3)")}
+      borderRadius="md"
+      p={3}
+    >
+      <VStack align="stretch" spacing={2}>
+        <HStack justify="space-between">
+          <Text fontSize="sm" fontWeight="500" color={medicalColors.textPrimary}>
+            {title}
+          </Text>
+          <Text fontSize="sm" fontWeight="600" color={color}>
+            {progress}%
+          </Text>
+        </HStack>
+        <Progress
+          value={progress}
+          colorScheme="blue"
+          bg={medicalColors.borderLight}
+          borderRadius="full"
+          height="6px"
+          sx={{
+            "& > div": {
+              background: `linear-gradient(90deg, ${color}, ${color}DD)`
+            }
+          }}
+        />
+      </VStack>
+    </GlassmorphicCard>
   );
 }
 
@@ -197,14 +210,15 @@ function ProblemAreaCard({ title, metric, color }: {
 }) {
   const medicalColors = useMedicalColors();
   return (
-    <Box
-      bg={`linear-gradient(135deg, ${color}10, ${color}05)`}
+    <GlassmorphicCard
+      intensity="light"
       borderRadius="lg"
       p={4}
       borderWidth="1px"
       borderColor={`${color}30`}
       borderLeftWidth="4px"
       borderLeftColor={color}
+      bg={`linear-gradient(135deg, ${color}10, ${color}05)`}
       transition="all 0.2s"
       _hover={{
         bg: `${color}15`,
@@ -229,13 +243,20 @@ function ProblemAreaCard({ title, metric, color }: {
       >
         Practice Now
       </Button>
-    </Box>
+    </GlassmorphicCard>
   );
 }
+
+import { supabase } from "../lib/supabase";
 
 export function Dashboard({ username = "User" }: { username?: string }) {
   const { colorMode, toggleColorMode } = useColorMode();
   const medicalColors = useMedicalColors();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
 
   const features = [
     {
@@ -277,12 +298,12 @@ export function Dashboard({ username = "User" }: { username?: string }) {
   ];
 
   return (
-    <AuroraBackground variant="mixed" minH="100vh" bg={medicalColors.lightGray}>
+    <AuroraBackground variant="mixed" minH="100vh">
       {/* Header */}
       <Box
-        bg={useColorModeValue("rgba(255, 255, 255, 0.9)", "rgba(26, 32, 44, 0.9)")}
-        backdropFilter="blur(10px)"
-        sx={{ WebkitBackdropFilter: "blur(10px)" }}
+        bg={useColorModeValue("rgba(255, 255, 255, 0.8)", "rgba(10, 15, 30, 0.8)")}
+        backdropFilter="blur(15px)"
+        sx={{ WebkitBackdropFilter: "blur(15px)" }}
         borderBottomWidth="1px"
         borderBottomColor={medicalColors.borderLight}
         py={4}
@@ -331,12 +352,57 @@ export function Dashboard({ username = "User" }: { username?: string }) {
               borderRadius="md"
               color={medicalColors.textSecondary}
             />
-            <Avatar
-              name={username}
-              size="sm"
-              bg={medicalColors.medicalBlue}
-              color="white"
-            />
+            <Menu>
+              <MenuButton
+                as={Button}
+                variant="ghost"
+                p={0}
+                borderRadius="full"
+                _hover={{ bg: "transparent" }}
+              >
+                <HStack spacing={2}>
+                  <Avatar
+                    name={username}
+                    size="sm"
+                    bg={medicalColors.medicalBlue}
+                    color="white"
+                  />
+                  <ChevronDownIcon color={medicalColors.textSecondary} />
+                </HStack>
+              </MenuButton>
+              <MenuList
+                bg={useColorModeValue("white", "gray.800")}
+                borderColor={medicalColors.borderLight}
+                boxShadow="xl"
+                backdropFilter="blur(15px)"
+                sx={{ WebkitBackdropFilter: "blur(15px)" }}
+              >
+                <MenuItem icon={<Icon as={FiUser} />} fontWeight="500">
+                  View Profile
+                </MenuItem>
+                <MenuItem icon={<SettingsIcon />} fontWeight="500">
+                  Account Settings
+                </MenuItem>
+                <MenuItem icon={<Text as="span" fontSize="md">💳</Text>} fontWeight="500">
+                  Billing & Plans
+                </MenuItem>
+                <MenuItem icon={<Badge colorScheme="purple">Pro</Badge>} fontWeight="500">
+                  Subscription
+                </MenuItem>
+                <MenuItem icon={<Text as="span" fontSize="md">🙋‍♂️</Text>} fontWeight="500">
+                  Support & Help
+                </MenuItem>
+                <MenuDivider />
+                <MenuItem
+                  icon={<Icon as={FiLogOut} />}
+                  onClick={handleLogout}
+                  color="red.500"
+                  fontWeight="600"
+                >
+                  Logout
+                </MenuItem>
+              </MenuList>
+            </Menu>
           </HStack>
         </Flex>
       </Box>

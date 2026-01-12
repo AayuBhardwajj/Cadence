@@ -1,4 +1,4 @@
-import { Box, BoxProps } from "@chakra-ui/react";
+import { Box, BoxProps, useColorModeValue } from "@chakra-ui/react";
 import { ReactNode } from "react";
 
 interface AuroraBackgroundProps extends BoxProps {
@@ -40,6 +40,7 @@ export function AuroraBackground({
     <Box
       position="relative"
       overflow="hidden"
+      bg={useColorModeValue("white", "rgba(10, 15, 30, 1)")}
       {...props}
       _before={{
         content: '""',
