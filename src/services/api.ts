@@ -11,6 +11,7 @@ export interface AnalysisResult {
         eye_contact: number;
     };
     feedback: string;
+    transcription: string;
 }
 
 export const uploadVideoForAnalysis = async (videoBlob: Blob): Promise<AnalysisResult> => {

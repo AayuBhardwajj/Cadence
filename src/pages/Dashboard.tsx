@@ -24,16 +24,38 @@ import {
   Th,
   Td,
   useColorModeValue,
+  useColorMode,
   Image,
   Link
 } from "@chakra-ui/react";
-import { BellIcon } from "@chakra-ui/icons";
+import { BellIcon, MoonIcon, SunIcon } from "@chakra-ui/icons";
 import { AuroraBackground } from "../components/arcenity/AuroraBackground";
 import { GlassmorphicCard } from "../components/arcenity/GlassmorphicCard";
 import { FeatureSection } from "../components/arcenity/FeatureSection";
 
 // Medical/Healthcare color palette
-const medicalColors = {
+// Medical/Healthcare color palette hook
+function useMedicalColors() {
+  return {
+    white: useColorModeValue("#FFFFFF", "#1A202C"),
+    lightGray: useColorModeValue("#F8F9FA", "#2D3748"),
+    softBlue: useColorModeValue("#E3F2FD", "#2A4365"),
+    medicalBlue: useColorModeValue("#2196F3", "#90CDF4"),
+    deepBlue: useColorModeValue("#1565C0", "#63B3ED"),
+    medicalGreen: useColorModeValue("#4CAF50", "#68D391"),
+    lightGreen: useColorModeValue("#E8F5E9", "#2F855A"),
+    accentBlue: useColorModeValue("#42A5F5", "#63B3ED"),
+    textPrimary: useColorModeValue("#212121", "#F7FAFC"),
+    textSecondary: useColorModeValue("#757575", "#A0AEC0"),
+    borderLight: useColorModeValue("#E0E0E0", "#4A5568"),
+    success: useColorModeValue("#66BB6A", "#68D391"),
+    warning: useColorModeValue("#FFA726", "#F6AD55"),
+    info: useColorModeValue("#42A5F5", "#63B3ED")
+  };
+}
+
+// Fallback for default props
+const defaultMedicalColors = {
   white: "#FFFFFF",
   lightGray: "#F8F9FA",
   softBlue: "#E3F2FD",
@@ -54,7 +76,7 @@ function MedicalCard({
   title,
   icon,
   children,
-  accentColor = medicalColors.medicalBlue,
+  accentColor = defaultMedicalColors.medicalBlue,
   ...props
 }: {
   title?: string;
@@ -63,6 +85,7 @@ function MedicalCard({
   accentColor?: string;
   [key: string]: any;
 }) {
+  const medicalColors = useMedicalColors();
   return (
     <Card
       bg={medicalColors.white}
@@ -106,6 +129,7 @@ function StatPill({ label, value, change, color }: {
   change?: string;
   color: string;
 }) {
+  const medicalColors = useMedicalColors();
   return (
     <Box
       bg={`linear-gradient(135deg, ${color}15, ${color}08)`}
@@ -139,6 +163,7 @@ function ChallengeItem({ title, progress, color }: {
   progress: number;
   color: string;
 }) {
+  const medicalColors = useMedicalColors();
   return (
     <VStack align="stretch" spacing={2} p={3} bg={medicalColors.lightGray} borderRadius="md">
       <HStack justify="space-between">
@@ -170,6 +195,7 @@ function ProblemAreaCard({ title, metric, color }: {
   metric: string;
   color: string;
 }) {
+  const medicalColors = useMedicalColors();
   return (
     <Box
       bg={`linear-gradient(135deg, ${color}10, ${color}05)`}
@@ -208,6 +234,9 @@ function ProblemAreaCard({ title, metric, color }: {
 }
 
 export function Dashboard({ username = "User" }: { username?: string }) {
+  const { colorMode, toggleColorMode } = useColorMode();
+  const medicalColors = useMedicalColors();
+
   const features = [
     {
       icon: "🎯",
@@ -251,11 +280,11 @@ export function Dashboard({ username = "User" }: { username?: string }) {
     <AuroraBackground variant="mixed" minH="100vh" bg={medicalColors.lightGray}>
       {/* Header */}
       <Box
-        bg="rgba(255, 255, 255, 0.9)"
+        bg={useColorModeValue("rgba(255, 255, 255, 0.9)", "rgba(26, 32, 44, 0.9)")}
         backdropFilter="blur(10px)"
         sx={{ WebkitBackdropFilter: "blur(10px)" }}
         borderBottomWidth="1px"
-        borderBottomColor="rgba(224, 224, 224, 0.5)"
+        borderBottomColor={medicalColors.borderLight}
         py={4}
         px={6}
         position="sticky"
@@ -290,6 +319,14 @@ export function Dashboard({ username = "User" }: { username?: string }) {
             <IconButton
               aria-label="Notifications"
               icon={<BellIcon />}
+              variant="ghost"
+              borderRadius="md"
+              color={medicalColors.textSecondary}
+            />
+            <IconButton
+              aria-label="Toggle Dark Mode"
+              icon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}
+              onClick={toggleColorMode}
               variant="ghost"
               borderRadius="md"
               color={medicalColors.textSecondary}
@@ -379,7 +416,10 @@ export function Dashboard({ username = "User" }: { username?: string }) {
                 p={8}
                 position="relative"
                 overflow="hidden"
-                bgGradient="linear(to-br, whiteAlpha.900, whiteAlpha.600)"
+                bgGradient={useColorModeValue(
+                  "linear(to-br, whiteAlpha.900, whiteAlpha.600)",
+                  "linear(to-br, blackAlpha.600, blackAlpha.300)"
+                )}
               >
                 <VStack spacing={8} align="center" textAlign="center">
                   <VStack spacing={2}>
@@ -553,7 +593,7 @@ export function Dashboard({ username = "User" }: { username?: string }) {
 
       {/* Footer */}
       <Box
-        bg="rgba(255, 255, 255, 0.8)"
+        bg={useColorModeValue("rgba(255, 255, 255, 0.8)", "rgba(26, 32, 44, 0.8)")}
         backdropFilter="blur(10px)"
         sx={{ WebkitBackdropFilter: "blur(10px)" }}
         color={medicalColors.textSecondary}
@@ -561,7 +601,7 @@ export function Dashboard({ username = "User" }: { username?: string }) {
         px={6}
         mt={8}
         borderTopWidth="1px"
-        borderTopColor="rgba(224, 224, 224, 0.5)"
+        borderTopColor={medicalColors.borderLight}
       >
         <Flex
           justify="space-between"

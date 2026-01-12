@@ -19,6 +19,7 @@ import { AuroraBackground } from "../components/arcenity/AuroraBackground";
 import { GlassmorphicCard } from "../components/arcenity/GlassmorphicCard";
 import { FloatingOrb } from "../components/animations/FloatingElements";
 import { uploadVideoForAnalysis, AnalysisResult } from "../services/api";
+import { supabase } from "../lib/supabase";
 
 // --- Types ---
 type AssessmentState = "instructions" | "recording" | "processing" | "results";
@@ -91,6 +92,27 @@ export function Assessment() {
             }, 500);
 
             const result = await uploadVideoForAnalysis(blob);
+
+            // Save to Supabase
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                const { error: dbError } = await supabase
+                    .from('assessments')
+                    .insert({
+                        user_id: session.user.id,
+                        overall_score: result.overall_score,
+                        wpm: result.breakdown.wpm,
+                        eye_contact_score: result.breakdown.eye_contact,
+                        filler_word_count: result.breakdown.fillers,
+                        feedback: result.feedback,
+                        transcription: result.transcription,
+                        // video_url: result.video_url // Handle if available
+                    });
+
+                if (dbError) {
+                    console.error("Error saving assessment:", dbError);
+                }
+            }
 
             clearInterval(progressInterval);
             setProcessingProgress(100);

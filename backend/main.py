@@ -51,16 +51,8 @@ async def analyze_video_endpoint(file: UploadFile = File(...)):
         # 3. Calculate Score
         score_data = calculate_score(audio_data, video_data)
         
-        # Mock Response
-        score_data = {
-            "overall_score": 85,
-            "audio_score": 82,
-            "video_score": 88,
-            "feedback": {
-                "fluency": "Good pace, few filler words.",
-                "eye_contact": "Maintained eye contact most of the time."
-            }
-        }
+        # 4. Add Transcription for storage
+        score_data["transcription"] = audio_data.get("transcription", "")
 
         # 4. Cleanup
         os.remove(temp_file_path)
