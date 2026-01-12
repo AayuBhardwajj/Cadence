@@ -14,10 +14,11 @@ import {
     SimpleGrid,
     Badge,
 } from "@chakra-ui/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AuroraBackground } from "../components/arcenity/AuroraBackground";
 import { GlassmorphicCard } from "../components/arcenity/GlassmorphicCard";
 import { FloatingOrb } from "../components/animations/FloatingElements";
+import { uploadVideoForAnalysis, AnalysisResult } from "../services/api";
 
 // --- Types ---
 type AssessmentState = "instructions" | "recording" | "processing" | "results";
@@ -51,6 +52,12 @@ export function Assessment() {
     const [state, setState] = useState<AssessmentState>("instructions");
     const [timeLeft, setTimeLeft] = useState(60); // 60 seconds for recording
     const [processingProgress, setProcessingProgress] = useState(0);
+    const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const chunksRef = useRef<Blob[]>([]);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
 
     // Timer logic for recording state
     useEffect(() => {
@@ -60,41 +67,94 @@ export function Assessment() {
                 setTimeLeft((prev) => prev - 1);
             }, 1000);
         } else if (timeLeft === 0 && state === "recording") {
-            setState("processing");
+            stopRecording();
         }
         return () => clearInterval(interval);
     }, [state, timeLeft]);
 
-    // Mock processing logic
-    useEffect(() => {
-        if (state === "processing") {
-            const interval = setInterval(() => {
-                setProcessingProgress((prev) => {
-                    if (prev >= 100) {
-                        clearInterval(interval);
-                        setState("results");
-                        return 100;
-                    }
-                    return prev + 2;
-                });
-            }, 50);
-            return () => clearInterval(interval);
-        }
-    }, [state]);
+    // Setup Camera on Mount (if needed) or when entering recording state
+    // For now, we assume permission is handled in startRecording
 
-    const startRecording = () => {
-        setState("recording");
-        setTimeLeft(60);
+    // Process Video and Upload
+    const processVideo = async () => {
+        if (chunksRef.current.length === 0) return;
+
+        const blob = new Blob(chunksRef.current, { type: "video/webm" });
+
+        try {
+            // Fake progress for UX
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 10;
+                if (progress > 90) clearInterval(progressInterval);
+                setProcessingProgress(Math.min(progress, 90));
+            }, 500);
+
+            const result = await uploadVideoForAnalysis(blob);
+
+            clearInterval(progressInterval);
+            setProcessingProgress(100);
+            setAnalysisResult(result);
+            setState("results");
+        } catch (err: any) {
+            setError("Analysis failed. Please try again.");
+            setState("instructions"); // Go back to start on error
+            alert("Failed to analyze video: " + err.message);
+        }
+    };
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+
+            // Connect stream to video element for preview (optional)
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+
+            const mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+            mediaRecorderRef.current = mediaRecorder;
+            chunksRef.current = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    chunksRef.current.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                // Stop all tracks to turn off camera light
+                stream.getTracks().forEach(track => track.stop());
+                processVideo();
+            };
+
+            mediaRecorder.start();
+            setState("recording");
+            setTimeLeft(60);
+            setError(null);
+        } catch (err) {
+            console.error("Error accessing media devices", err);
+            alert("Could not access camera/microphone. Please allow permissions.");
+        }
     };
 
     const stopRecording = () => {
-        setState("processing");
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+            mediaRecorderRef.current.stop();
+            setState("processing");
+        }
     };
+
+    // Removed Mock processing logic since we are using real API now
+
+
 
     const resetAssessment = () => {
         setState("instructions");
         setTimeLeft(60);
         setProcessingProgress(0);
+        setAnalysisResult(null);
+        chunksRef.current = [];
     };
 
     return (
@@ -188,36 +248,37 @@ export function Assessment() {
                             </VStack>
                         )}
 
-                        {state === "results" && (
+                        {state === "results" && analysisResult && (
                             <VStack spacing={8} align="stretch">
                                 <HStack justify="space-between" align="center">
                                     <Heading size="lg">Assessment Results</Heading>
                                     <Badge colorScheme="green" fontSize="md" p={2} rounded="md">
-                                        Excellent
+                                        {analysisResult.overall_score >= 80 ? "Excellent" : analysisResult.overall_score >= 60 ? "Good" : "Needs Improvement"}
                                     </Badge>
                                 </HStack>
 
                                 <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
                                     <Box p={4} bg="whiteAlpha.500" rounded="xl" border="1px" borderColor="whiteAlpha.300">
                                         <Text color="gray.500" fontSize="sm">Overall Score</Text>
-                                        <Heading size="xl" color="blue.500">92/100</Heading>
+                                        <Heading size="xl" color="blue.500">{analysisResult.overall_score}/100</Heading>
                                     </Box>
                                     <Box p={4} bg="whiteAlpha.500" rounded="xl" border="1px" borderColor="whiteAlpha.300">
-                                        <Text color="gray.500" fontSize="sm">Fluency</Text>
-                                        <Heading size="xl" color="green.500">High</Heading>
+                                        <Text color="gray.500" fontSize="sm">WPM (Pace)</Text>
+                                        <Heading size="xl" color="green.500">{analysisResult.breakdown.wpm}</Heading>
                                     </Box>
                                     <Box p={4} bg="whiteAlpha.500" rounded="xl" border="1px" borderColor="whiteAlpha.300">
-                                        <Text color="gray.500" fontSize="sm">Pace</Text>
-                                        <Heading size="xl" color="purple.500">140 wpm</Heading>
+                                        <Text color="gray.500" fontSize="sm">Eye Contact</Text>
+                                        <Heading size="xl" color="purple.500">{analysisResult.breakdown.eye_contact}%</Heading>
                                     </Box>
                                 </SimpleGrid>
 
                                 <VStack align="start" spacing={3} bg="blue.50" p={6} rounded="xl">
-                                    <Heading size="sm" color="blue.700">Feedback</Heading>
+                                    <Heading size="sm" color="blue.700">AI Feedback</Heading>
                                     <Text color="gray.700">
-                                        Great job! You spoke clearly and maintained a steady pace.
-                                        Try to reduce the use of filler words like "um" and "uh" in your next session.
-                                        Your intonation was natural and engaging.
+                                        {analysisResult.feedback}
+                                    </Text>
+                                    <Text fontSize="sm" color="gray.500">
+                                        Filler Words Used: {analysisResult.breakdown.fillers}
                                     </Text>
                                 </VStack>
 
