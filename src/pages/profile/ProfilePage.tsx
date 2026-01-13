@@ -370,6 +370,7 @@ export const ProfilePage = () => {
                                             onChange={handleInputChange}
                                             onBlur={(e) => handleBlur('occupation', e.target.value)}
                                             placeholder="e.g. UI Designer"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -383,6 +384,18 @@ export const ProfilePage = () => {
                                             placeholder="e.g. Master Fluency"
                                             className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
                                         />
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-white/40 uppercase tracking-wider ml-1">Banner Quote</label>
+                                            <input
+                                                type="text"
+                                                name="banner_quote"
+                                                value={profile?.banner_quote || ''}
+                                                onChange={handleInputChange}
+                                                onBlur={(e) => handleBlur('banner_quote', e.target.value)}
+                                                placeholder="e.g. Believe you can..."
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
