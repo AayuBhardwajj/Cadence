@@ -9,7 +9,7 @@ interface EnhancedCardProps {
     hoverScale?: boolean;
 }
 
-export const EnhancedCard: React.FC<EnhancedCardProps> = ({
+export const EnhancedCard = React.memo<EnhancedCardProps>(({
     children,
     className,
     delay = 0,
@@ -22,9 +22,10 @@ export const EnhancedCard: React.FC<EnhancedCardProps> = ({
             transition={{ duration: 0.5, delay }}
             whileHover={hoverScale ? { y: -5, transition: { duration: 0.2 } } : {}}
             className={cn(
-                "relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-6 backdrop-blur-xl transition-all duration-300",
+                "relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-6 backdrop-blur-md transition-all duration-300",
                 "shadow-[0_8px_32px_0_rgba(31,38,135,0.37)]",
                 "before:absolute before:inset-0 before:-z-10 before:bg-gradient-to-br before:from-white/10 before:to-transparent",
+                "will-change-transform",
                 className
             )}
         >
@@ -33,4 +34,4 @@ export const EnhancedCard: React.FC<EnhancedCardProps> = ({
             {children}
         </motion.div>
     );
-};
+});

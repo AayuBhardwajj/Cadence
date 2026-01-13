@@ -20,6 +20,8 @@ import { GlassmorphicCard } from "../components/arcenity/GlassmorphicCard";
 import { FloatingOrb } from "../components/animations/FloatingElements";
 import { uploadVideoForAnalysis, AnalysisResult } from "../services/api";
 import { supabase } from "../lib/supabase";
+import { useTier } from "../lib/TierContext";
+import { Lock, Crown } from 'lucide-react';
 
 // --- Types ---
 type AssessmentState = "instructions" | "recording" | "processing" | "results";
@@ -50,6 +52,7 @@ const RecordingVisualizer = () => {
 };
 
 export function Assessment() {
+    const { tier } = useTier();
     const [state, setState] = useState<AssessmentState>("instructions");
     const [timeLeft, setTimeLeft] = useState(60); // 60 seconds for recording
     const [processingProgress, setProcessingProgress] = useState(0);
@@ -135,6 +138,20 @@ export function Assessment() {
             }
 
             const mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+            // Daily limit check for FREE users
+            if (tier === 'FREE') {
+                const { data: assessments } = await supabase
+                    .from('assessments')
+                    .select('created_at')
+                    .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+                    .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString());
+
+                if (assessments && assessments.length >= 1) {
+                    setError("Daily assessment limit reached. Upgrade to Pro for unlimited sessions.");
+                    return;
+                }
+            }
+
             mediaRecorderRef.current = mediaRecorder;
             chunksRef.current = [];
 
@@ -218,10 +235,23 @@ export function Assessment() {
                                     rounded="full"
                                     px={12}
                                     boxShadow="lg"
+                                    isDisabled={tier === 'FREE' && error !== null}
                                     _hover={{ transform: "translateY(-2px)", boxShadow: "xl" }}
                                 >
                                     Start Recording
                                 </Button>
+                                {error && (
+                                    <VStack spacing={4} mt={4} p={6} bg="amber.50" rounded="2xl" border="1px" borderColor="amber.200">
+                                        <HStack color="amber.600">
+                                            <Lock size={18} />
+                                            <Text fontWeight="bold" fontSize="sm">Daily limit reached</Text>
+                                        </HStack>
+                                        <Text fontSize="xs" color="gray.600">Want to continue practicing today? Pro users get unlimited assessments.</Text>
+                                        <Button size="sm" colorScheme="amber" leftIcon={<Crown size={14} />}>
+                                            Upgrade Now
+                                        </Button>
+                                    </VStack>
+                                )}
                             </VStack>
                         )}
 

@@ -36,8 +36,12 @@ import { StreakHeatmap } from "../components/dashboard/StreakHeatmap";
 import { RotatingQuotes } from "../components/dashboard/RotatingQuotes";
 import { QuickActions } from "../components/dashboard/QuickActions";
 import { KeyboardHints } from "../components/dashboard/KeyboardHints";
+import { useTier } from "../lib/TierContext";
+import { Navbar } from "../components/navigation/Navbar";
+import { Lock } from 'lucide-react';
 
 export function Dashboard({ username = "Alex" }: { username?: string }) {
+  const { tier, isFeatureLocked } = useTier();
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [greeting, setGreeting] = useState('');
@@ -67,92 +71,7 @@ export function Dashboard({ username = "Alex" }: { username?: string }) {
   return (
     <DashboardBackground>
       <div className="flex flex-col min-h-screen">
-        {/* Navigation Bar */}
-        <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/20 backdrop-blur-xl transition-all duration-300">
-          <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-blue-600 rounded-lg shadow-lg shadow-blue-500/50">
-                <Mic className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 tracking-tighter">
-                FLUENTLY
-              </span>
-            </div>
-
-            <div className="hidden md:flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
-              {['Home', 'Practice', 'Progress', 'Exercises', 'Community'].map((item) => (
-                <button
-                  key={item}
-                  className={cn(
-                    "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                    item === 'Home' ? "bg-white/10 text-white shadow-sm" : "text-white/60 hover:text-white hover:bg-white/5"
-                  )}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-4">
-              <button className="relative p-2 text-white/60 hover:text-white transition-colors">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0a0a1a]" />
-              </button>
-
-              <div className="h-8 w-[1px] bg-white/10 mx-2" />
-
-              <div className="relative">
-                <button
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="flex items-center gap-3 p-1 rounded-full bg-white/5 border border-white/10 hover:border-white/20 transition-all active:scale-95"
-                >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center font-bold text-xs ring-2 ring-white/10">
-                    {username[0].toUpperCase()}
-                  </div>
-                  <ChevronDown className={cn("w-4 h-4 text-white/60 transition-transform", isMenuOpen && "rotate-180")} />
-                </button>
-
-                <AnimatePresence>
-                  {isMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute right-0 mt-4 w-64 bg-slate-900/90 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden"
-                    >
-                      <div className="p-4 border-b border-white/10 bg-white/5">
-                        <p className="text-sm font-medium text-white">{username}</p>
-                        <p className="text-xs text-white/40">Pro Member</p>
-                      </div>
-                      <div className="p-2">
-                        {[
-                          { icon: <User className="w-4 h-4" />, label: "View Profile" },
-                          { icon: <Settings className="w-4 h-4" />, label: "Account Settings" },
-                          { icon: <CreditCard className="w-4 h-4" />, label: "Billing & Plans" },
-                          { icon: <Crown className="w-4 h-4 text-amber-400" />, label: "Upgrade to Pro" },
-                        ].map((item) => (
-                          <button key={item.label} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-                            {item.icon}
-                            {item.label}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="p-2 border-t border-white/10">
-                        <button
-                          onClick={handleLogout}
-                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          Logout
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </div>
-        </nav>
+        <Navbar username={username} />
 
         {/* Main Content */}
         <main className="flex-grow max-w-[1400px] mx-auto w-full px-6 py-8">
@@ -289,6 +208,11 @@ export function Dashboard({ username = "Alex" }: { username?: string }) {
                         <Mic className="w-6 h-6" /> START NEW ASSESSMENT
                       </span>
                     </motion.button>
+                    {tier === 'FREE' && (
+                      <p className="mt-4 text-xs font-bold text-white/40 uppercase tracking-widest">
+                        Sessions Today: <span className="text-blue-400">1/1</span>
+                      </p>
+                    )}
                   </div>
                 </div>
               </EnhancedCard>
@@ -313,7 +237,20 @@ export function Dashboard({ username = "Alex" }: { username?: string }) {
                       ))}
                     </div>
                   </div>
-                  <FluencyChart />
+                  <div className="relative">
+                    <FluencyChart />
+                    {tier === 'FREE' && (
+                      <div className="absolute inset-x-0 bottom-0 top-[40%] bg-gradient-to-t from-slate-950 to-transparent flex flex-col items-center justify-end pb-8 group">
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex flex-col items-center gap-3 transform group-hover:scale-105 transition-all">
+                          <Lock className="w-6 h-6 text-amber-400" />
+                          <p className="text-sm font-bold text-white">Unlock Full History</p>
+                          <button className="px-6 py-2 bg-amber-400 text-slate-950 text-xs font-black rounded-lg uppercase tracking-wider">
+                            Upgrade to Pro
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </EnhancedCard>
               </div>
             </div>
@@ -370,6 +307,21 @@ export function Dashboard({ username = "Alex" }: { username?: string }) {
                   "Your 'v/w' confusion is improving. Focus on lip placement today: bite your lower lip gently for 'v' sounds."
                 </p>
               </EnhancedCard>
+
+              {tier === 'FREE' && (
+                <EnhancedCard className="bg-gradient-to-br from-amber-400/20 to-transparent border-amber-400/30 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-3">
+                    <Crown className="w-5 h-5 text-amber-400 animate-pulse" />
+                  </div>
+                  <div className="space-y-4">
+                    <h3 className="font-black text-white text-lg leading-tight">Unlock Your Full Potential ✨</h3>
+                    <p className="text-xs text-white/60 font-medium">Upgrade to Pro for unlimited practice sessions & advanced analytics.</p>
+                    <button className="w-full py-3 bg-amber-400 text-slate-950 font-black text-xs rounded-xl uppercase tracking-widest shadow-lg shadow-amber-400/20 hover:shadow-amber-400/40 transition-all">
+                      See Plans
+                    </button>
+                  </div>
+                </EnhancedCard>
+              )}
             </div>
 
           </div>

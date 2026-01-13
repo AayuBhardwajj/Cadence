@@ -9,6 +9,28 @@ import { PreRecording } from "./pages/PreRecording";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { supabase } from "./lib/supabase";
 
+// Layouts
+import { SettingsLayout } from "./layouts/SettingsLayout";
+
+// Pages
+import { ProfilePage } from "./pages/profile/ProfilePage";
+import { AnalyticsPage } from "./pages/profile/AnalyticsPage";
+import { AchievementsPage } from "./pages/profile/AchievementsPage";
+import { HistoryPage } from "./pages/profile/HistoryPage";
+import { AccountSettings } from "./pages/settings/AccountSettings";
+import { GoalsSettings } from "./pages/settings/GoalsSettings";
+import { BillingSettings } from "./pages/settings/BillingSettings";
+import { NotificationSettings } from "./pages/settings/NotificationSettings";
+import { LanguageSettings } from "./pages/settings/LanguageSettings";
+import { AppearanceSettings } from "./pages/settings/AppearanceSettings";
+import { DevicesSettings } from "./pages/settings/DevicesSettings";
+import { PrivacySettings } from "./pages/settings/PrivacySettings";
+import { HelpPage } from "./pages/help/HelpPage";
+import { PracticePage } from "./pages/Practice";
+import { ProgressPage } from "./pages/Progress";
+import { ExercisesPage } from "./pages/Exercises";
+import { CommunityPage } from "./pages/Community";
+
 export default function App() {
   const [isLogin, setIsLogin] = useState(true);
   const [session, setSession] = useState<any>(null);
@@ -47,8 +69,31 @@ export default function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/welcome" element={<Welcome />} />
           <Route path="/pre-recording" element={<PreRecording />} />
-          <Route path="/assessment" element={<Assessment />} />
+          <Route path="/practice" element={<PracticePage username={username} />} />
+          <Route path="/progress" element={<ProgressPage username={username} />} />
+          <Route path="/exercises" element={<ExercisesPage username={username} />} />
+          <Route path="/community" element={<CommunityPage username={username} />} />
           <Route path="/dashboard" element={<Dashboard username={username} />} />
+
+          {/* Settings & Profile Routes */}
+          <Route element={<SettingsLayout />}>
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/achievements" element={<AchievementsPage />} />
+            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/help" element={<HelpPage />} />
+
+            <Route path="/settings">
+              <Route path="account" element={<AccountSettings />} />
+              <Route path="goals" element={<GoalsSettings />} />
+              <Route path="billing" element={<BillingSettings />} />
+              <Route path="notifications" element={<NotificationSettings />} />
+              <Route path="language" element={<LanguageSettings />} />
+              <Route path="appearance" element={<AppearanceSettings />} />
+              <Route path="devices" element={<DevicesSettings />} />
+              <Route path="privacy" element={<PrivacySettings />} />
+            </Route>
+          </Route>
 
           {/* Add Login/Signup as accessible routes too for testing */}
           <Route path="/login" element={<LoginPage onSwitchToSignup={() => { }} onLoginSuccess={() => { }} />} />

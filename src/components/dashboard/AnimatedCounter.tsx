@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, useSpring, useTransform, useMotionValueEvent } from 'framer-motion';
 
-export const AnimatedCounter: React.FC<{ value: number; duration?: number; suffix?: string }> = ({
+export const AnimatedCounter = React.memo<{ value: number; duration?: number; suffix?: string }>(({
     value,
     duration = 2,
     suffix = ""
@@ -25,4 +25,4 @@ export const AnimatedCounter: React.FC<{ value: number; duration?: number; suffi
     });
 
     return <span>{current}{suffix}</span>;
-};
+});
