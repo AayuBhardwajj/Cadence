@@ -182,28 +182,41 @@ export const ProfilePage = () => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        setSaving(type === 'avatar' ? 'Updating DP...' : 'Updating Banner...');
+        // Optimistic UI: Create local preview
+        const localUrl = URL.createObjectURL(file);
+        setProfile((prev: any) => ({ ...prev, [type === 'avatar' ? 'avatar_url' : 'cover_url']: localUrl }));
+
+        setSaving(type === 'avatar' ? 'Uploading Photo...' : 'Uploading Banner...');
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
         const fileExt = file.name.split('.').pop();
-        const filePath = `${user.id}/${type}_${Math.random()}.${fileExt}`;
+        const filePath = `${user.id}/${type}_${Date.now()}.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage
-            .from('avatars')
-            .upload(filePath, file);
+        try {
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file, {
+                    upsert: true,
+                    cacheControl: '3600'
+                });
 
-        if (uploadError) {
-            console.error('Error uploading image:', uploadError);
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            // Perist to DB
+            await updateProfile({ [type === 'avatar' ? 'avatar_url' : 'cover_url']: publicUrl });
             setSaving(null);
-            return;
+        } catch (error) {
+            console.error('Upload failed:', error);
+            alert('Failed to upload image. Please try again.');
+            // Revert on error - fetch fresh data
+            fetchProfile(user.id);
+            setSaving(null);
         }
-
-        const { data: { publicUrl } } = supabase.storage
-            .from('avatars')
-            .getPublicUrl(filePath);
-
-        await updateProfile({ [type === 'avatar' ? 'avatar_url' : 'cover_url']: publicUrl });
     };
 
     if (loading) {

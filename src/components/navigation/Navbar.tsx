@@ -4,15 +4,53 @@ import { Mic, Bell, ChevronDown, Users, User, Shield } from 'lucide-react';
 import { cn } from "../../lib/utils";
 import { useTier } from "../../lib/TierContext";
 import { ProfileDropdown } from "./ProfileDropdown";
+import { supabase } from "../../lib/supabase";
 
 interface NavbarProps {
     username: string;
 }
 
-export function Navbar({ username }: NavbarProps) {
+export function Navbar({ username: initialUsername }: NavbarProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const { tier } = useTier();
+    const [profile, setProfile] = React.useState<any>(null);
+
+    React.useEffect(() => {
+        const fetchProfile = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+                if (data) setProfile(data);
+
+                // Real-time synchronization
+                const subscription = supabase
+                    .channel('navbar_profile_sync')
+                    .on('postgres_changes', {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'profiles',
+                        filter: `id=eq.${user.id}`
+                    }, (payload) => {
+                        setProfile(payload.new);
+                    })
+                    .subscribe();
+
+                return () => {
+                    subscription.unsubscribe();
+                };
+            }
+        };
+        fetchProfile();
+    }, []);
+
+    const userEmail = profile?.email || `${(profile?.username || initialUsername).toLowerCase()}@example.com`;
+    const avatarUrl = profile?.avatar_url;
+    const currentUsername = profile?.full_name || profile?.username || initialUsername;
 
     const navItems = [
         { name: 'Home', path: '/dashboard' },
@@ -73,7 +111,7 @@ export function Navbar({ username }: NavbarProps) {
                                     <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Active Member</p>
                                     <div className="flex items-center gap-2 mt-2">
                                         <div className="w-6 h-6 rounded-full bg-blue-500 border border-white/20" />
-                                        <span className="text-xs font-bold text-white">{username}</span>
+                                        <span className="text-xs font-bold text-white">{currentUsername}</span>
                                         <Shield className="w-3 h-3 text-blue-400 ml-auto" />
                                     </div>
                                 </div>
@@ -104,8 +142,9 @@ export function Navbar({ username }: NavbarProps) {
                     <div className="h-8 w-[1px] bg-white/10 mx-2" />
 
                     <ProfileDropdown user={{
-                        username: username,
-                        email: `${username.toLowerCase()}@example.com`
+                        username: currentUsername,
+                        email: userEmail,
+                        avatar_url: avatarUrl
                     }} />
                 </div>
             </div>
