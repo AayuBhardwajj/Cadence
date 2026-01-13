@@ -25,8 +25,7 @@ import {
     AlertCircle,
     CheckCircle2,
     MoreVertical,
-    Play,
-    Activity
+    Play
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
@@ -42,7 +41,6 @@ export const AccountSettings = () => {
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [user, setUser] = useState<any>(null);
     const [isOAuth, setIsOAuth] = useState(false);
-    const [securityAudit, setSecurityAudit] = useState<any[]>([]);
     const [mfaEnabled, setMfaEnabled] = useState(false);
     const [showMfaSetup, setShowMfaSetup] = useState(false);
     const [mfaData, setMfaData] = useState<any>(null);
@@ -58,20 +56,6 @@ export const AccountSettings = () => {
             metadata,
             user_agent: navigator.userAgent
         });
-    };
-
-    const fetchSecurityAudit = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data, error } = await supabase
-            .from('security_logs')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(10);
-
-        if (data) setSecurityAudit(data);
     };
 
     const getPasswordStrength = (password: string) => {
@@ -113,25 +97,6 @@ export const AccountSettings = () => {
                 if (mfaFactors?.all.some(f => f.status === 'verified')) {
                     setMfaEnabled(true);
                 }
-
-                await fetchSecurityAudit();
-
-                // Real-time listener for security logs
-                const channel = supabase
-                    .channel('security_logs_changes')
-                    .on('postgres_changes', {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'security_logs',
-                        filter: `user_id=eq.${user.id}`
-                    }, (payload) => {
-                        setSecurityAudit(prev => [payload.new, ...prev].slice(0, 10));
-                    })
-                    .subscribe();
-
-                return () => {
-                    supabase.removeChannel(channel);
-                };
             }
         };
         init();
@@ -430,54 +395,6 @@ export const AccountSettings = () => {
                             </div>
                         </EnhancedCard>
 
-                        <EnhancedCard>
-                            <div className="flex items-center justify-between mb-8">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-amber-600/20 rounded-2xl text-amber-400">
-                                        <History className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-black text-white tracking-tight uppercase italic">Security Audit</h3>
-                                        <p className="text-xs text-white/30 font-bold">Recent security events and login attempts</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={fetchSecurityAudit}
-                                    disabled={updating}
-                                    className="text-[10px] text-white/40 font-black uppercase tracking-widest hover:text-white transition-colors flex items-center gap-2 disabled:opacity-50"
-                                >
-                                    <RefreshCw className={cn("w-3 h-3", updating && "animate-spin")} /> Refresh
-                                </button>
-                            </div>
-
-                            <div className="space-y-3">
-                                {securityAudit.length === 0 ? (
-                                    <div className="text-center py-8">
-                                        <Activity className="w-8 h-8 text-white/10 mx-auto mb-2" />
-                                        <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">No recent security events</p>
-                                    </div>
-                                ) : (
-                                    securityAudit.map((item, i) => (
-                                        <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/[0.07] transition-all">
-                                            <div className="flex items-center gap-4">
-                                                <div className={cn(
-                                                    "w-2 h-2 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)] bg-green-500"
-                                                )} />
-                                                <div>
-                                                    <p className="text-sm font-bold text-white tracking-tight">{item.event_type}</p>
-                                                    <p className="text-[10px] text-white/30 font-bold uppercase">
-                                                        {new Date(item.created_at).toLocaleString()}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg italic text-white/20">
-                                                Verified
-                                            </span>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </EnhancedCard>
                     </div>
 
                     {/* Right Rail - Status & Quick Actions */}

@@ -13,9 +13,13 @@ import {
     AlertTriangle,
     ChevronRight,
     RefreshCw,
-    Cpu
+    Cpu,
+    Activity,
+    History
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
+import { useEffect } from 'react';
 import { EnhancedCard } from '../../components/dashboard/EnhancedCard';
 
 const SESSIONS = [
@@ -25,6 +29,55 @@ const SESSIONS = [
 ];
 
 export const DevicesSettings = () => {
+    const [securityAudit, setSecurityAudit] = useState<any[]>([]);
+    const [fetchingAudit, setFetchingAudit] = useState(false);
+
+    const fetchSecurityAudit = async () => {
+        setFetchingAudit(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data } = await supabase
+                .from('security_logs')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            if (data) setSecurityAudit(data);
+        } finally {
+            setFetchingAudit(false);
+        }
+    };
+
+    useEffect(() => {
+        const init = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                await fetchSecurityAudit();
+
+                // Real-time listener for security logs
+                const channel = supabase
+                    .channel('security_logs_changes')
+                    .on('postgres_changes', {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'security_logs',
+                        filter: `user_id=eq.${user.id}`
+                    }, (payload) => {
+                        setSecurityAudit(prev => [payload.new, ...prev].slice(0, 10));
+                    })
+                    .subscribe();
+
+                return () => {
+                    supabase.removeChannel(channel);
+                };
+            }
+        };
+        init();
+    }, []);
+
     return (
         <div className="max-w-5xl mx-auto space-y-10 pb-20">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -98,6 +151,56 @@ export const DevicesSettings = () => {
                                     IF YOU SEE A DEVICE OR LOCATION YOU DON'T RECOGNIZE, CHANGE YOUR PASSWORD IMMEDIATELY AND REVOKE ALL ACTIVE SESSIONS.
                                 </p>
                             </div>
+                        </div>
+                    </EnhancedCard>
+
+                    {/* Security Audit Section moved from Account Settings */}
+                    <EnhancedCard>
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-amber-600/20 rounded-2xl text-amber-400">
+                                    <History className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-white tracking-tight uppercase italic text-sm">Security Audit</h3>
+                                    <p className="text-xs text-white/30 font-bold">Recent security events and login attempts</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={fetchSecurityAudit}
+                                disabled={fetchingAudit}
+                                className="text-[10px] text-white/40 font-black uppercase tracking-widest hover:text-white transition-colors flex items-center gap-2 disabled:opacity-50"
+                            >
+                                <RefreshCw className={cn("w-3 h-3", fetchingAudit && "animate-spin")} /> Refresh
+                            </button>
+                        </div>
+
+                        <div className="space-y-3">
+                            {securityAudit.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <Activity className="w-8 h-8 text-white/10 mx-auto mb-2" />
+                                    <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">No recent security events</p>
+                                </div>
+                            ) : (
+                                securityAudit.map((item, i) => (
+                                    <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/[0.07] transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className={cn(
+                                                "w-2 h-2 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)] bg-green-500"
+                                            )} />
+                                            <div>
+                                                <p className="text-sm font-bold text-white tracking-tight italic uppercase">{item.event_type}</p>
+                                                <p className="text-[10px] text-white/30 font-bold uppercase">
+                                                    {new Date(item.created_at).toLocaleString()}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg italic text-white/20">
+                                            Verified
+                                        </span>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </EnhancedCard>
                 </div>
