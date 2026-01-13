@@ -76,7 +76,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard username={username} />} />
 
           {/* Settings & Profile Routes */}
-          <Route element={<SettingsLayout />}>
+          <Route element={<SettingsLayout username={username} />}>
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/achievements" element={<AchievementsPage />} />

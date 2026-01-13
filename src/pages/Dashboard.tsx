@@ -38,9 +38,11 @@ import { QuickActions } from "../components/dashboard/QuickActions";
 import { KeyboardHints } from "../components/dashboard/KeyboardHints";
 import { useTier } from "../lib/TierContext";
 import { Navbar } from "../components/navigation/Navbar";
-import { Lock } from 'lucide-react';
+import { Lock, ArrowRight } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
 
 export function Dashboard({ username = "Alex" }: { username?: string }) {
+  const navigate = useNavigate();
   const { tier, isFeatureLocked } = useTier();
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -149,6 +151,16 @@ export function Dashboard({ username = "Alex" }: { username?: string }) {
                     </div>
                   ))}
                 </div>
+
+                <div className="pt-6 border-t border-white/10">
+                  <button
+                    onClick={() => navigate('/exercises')}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest transition-all group"
+                  >
+                    Browse All Exercises
+                    <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
               </EnhancedCard>
             </div>
 
@@ -244,8 +256,11 @@ export function Dashboard({ username = "Alex" }: { username?: string }) {
                         <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex flex-col items-center gap-3 transform group-hover:scale-105 transition-all">
                           <Lock className="w-6 h-6 text-amber-400" />
                           <p className="text-sm font-bold text-white">Unlock Full History</p>
-                          <button className="px-6 py-2 bg-amber-400 text-slate-950 text-xs font-black rounded-lg uppercase tracking-wider">
-                            Upgrade to Pro
+                          <button
+                            onClick={() => navigate('/progress')}
+                            className="px-6 py-2 bg-amber-400 text-slate-950 text-xs font-black rounded-lg uppercase tracking-wider"
+                          >
+                            Unlock to View All
                           </button>
                         </div>
                       </div>

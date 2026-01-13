@@ -16,6 +16,11 @@ import {
 import { cn } from '../lib/utils';
 import { DashboardBackground } from '../components/dashboard/DashboardBackground';
 import { motion } from 'framer-motion';
+import { Navbar } from '../components/navigation/Navbar';
+
+interface SettingsLayoutProps {
+    username?: string;
+}
 
 const sidebarItems = [
     { icon: <User className="w-5 h-5" />, label: "My Profile", href: "/profile" },
@@ -30,17 +35,11 @@ const sidebarItems = [
     { icon: <HelpCircle className="w-5 h-5" />, label: "Help & Support", href: "/help" },
 ];
 
-export const SettingsLayout: React.FC = () => {
+export const SettingsLayout: React.FC<SettingsLayoutProps> = ({ username = "User" }) => {
     return (
         <DashboardBackground>
             <div className="flex flex-col min-h-screen">
-                {/* Simple Header for Settings */}
-                <header className="h-16 border-b border-white/10 bg-black/20 backdrop-blur-xl flex items-center px-6 sticky top-0 z-50">
-                    <NavLink to="/" className="flex items-center gap-2 text-white/60 hover:text-white transition-colors group">
-                        <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                        <span className="font-bold tracking-tight">Back to Dashboard</span>
-                    </NavLink>
-                </header>
+                <Navbar username={username} />
 
                 <div className="flex-grow max-w-[1400px] mx-auto w-full px-6 py-10 flex flex-col md:flex-row gap-10">
                     {/* Sidebar */}
