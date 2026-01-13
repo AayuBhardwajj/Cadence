@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Camera,
     MapPin,
@@ -32,6 +32,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
+import { ProfileDropdown } from "../../components/navigation/ProfileDropdown";
+import { ImageCropper } from "../../components/profile/ImageCropper";
 import { EnhancedCard } from '../../components/dashboard/EnhancedCard';
 import { AnimatedCounter } from '../../components/dashboard/AnimatedCounter';
 
@@ -52,7 +54,22 @@ export const ProfilePage = () => {
     const [latestAssessment, setLatestAssessment] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<string | null>(null);
+    const [croppingImage, setCroppingImage] = useState<{ src: string, type: 'avatar' | 'cover' } | null>(null);
     const [activeSection, setActiveSection] = useState('personal');
+    const [bannerAspect, setBannerAspect] = useState(4); // Default 4:1
+    const bannerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const updateAspect = () => {
+            if (bannerRef.current) {
+                const { width, height } = bannerRef.current.getBoundingClientRect();
+                setBannerAspect(width / height);
+            }
+        };
+        updateAspect();
+        window.addEventListener('resize', updateAspect);
+        return () => window.removeEventListener('resize', updateAspect);
+    }, [bannerRef.current]);
 
     useEffect(() => {
         const init = async () => {
@@ -182,21 +199,33 @@ export const ProfilePage = () => {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        const reader = new FileReader();
+        reader.onload = () => {
+            setCroppingImage({ src: reader.result as string, type });
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleCropComplete = async (croppedFile: File) => {
+        if (!croppingImage) return;
+        const { type } = croppingImage;
+        setCroppingImage(null);
+
         // Optimistic UI: Create local preview
-        const localUrl = URL.createObjectURL(file);
+        const localUrl = URL.createObjectURL(croppedFile);
         setProfile((prev: any) => ({ ...prev, [type === 'avatar' ? 'avatar_url' : 'cover_url']: localUrl }));
 
         setSaving(type === 'avatar' ? 'Uploading Photo...' : 'Uploading Banner...');
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const fileExt = file.name.split('.').pop();
+        const fileExt = 'webp'; // Our cropper outputs webp
         const filePath = `${user.id}/${type}_${Date.now()}.${fileExt}`;
 
         try {
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
-                .upload(filePath, file, {
+                .upload(filePath, croppedFile, {
                     upsert: true,
                     cacheControl: '3600'
                 });
@@ -232,7 +261,10 @@ export const ProfilePage = () => {
             {/* 🔹 1. Visual Identity Components */}
             <div className="relative">
                 {/* Banner / Cover Image */}
-                <div className="group relative h-72 rounded-[2rem] overflow-hidden bg-gradient-to-br from-indigo-900 via-blue-900 to-purple-900 border border-white/10 shadow-2xl">
+                <div
+                    ref={bannerRef}
+                    className="group relative h-72 rounded-[2rem] overflow-hidden bg-gradient-to-br from-indigo-900 via-blue-900 to-purple-900 border border-white/10 shadow-2xl"
+                >
                     {profile?.cover_url ? (
                         <img src={profile.cover_url} alt="Cover" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                     ) : (
@@ -796,6 +828,19 @@ export const ProfilePage = () => {
                     <Plus className="w-8 h-8" />
                 </button>
             </div>
+
+            {/* 8. Image Cropper Modal */}
+            <AnimatePresence>
+                {croppingImage && (
+                    <ImageCropper
+                        image={croppingImage.src}
+                        aspect={croppingImage.type === 'cover' ? bannerAspect : 1 / 1}
+                        title={croppingImage.type === 'cover' ? 'Adjust Banner' : 'Adjust Profile Photo'}
+                        onCropComplete={handleCropComplete}
+                        onCancel={() => setCroppingImage(null)}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 };
