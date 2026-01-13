@@ -74,6 +74,31 @@ export const AccountSettings = () => {
         if (data) setSecurityAudit(data);
     };
 
+    const getPasswordStrength = (password: string) => {
+        let score = 0;
+        if (password.length >= 8) score++;
+        if (/[A-Z]/.test(password)) score++;
+        if (/[0-9]/.test(password)) score++;
+        if (/[^A-Za-z0-9]/.test(password)) score++;
+        return score;
+    };
+
+    const passwordRequirements = [
+        { label: '8+ Characters', met: newPassword.length >= 8 },
+        { label: 'Uppercase Letter', met: /[A-Z]/.test(newPassword) },
+        { label: 'Number', met: /[0-9]/.test(newPassword) },
+        { label: 'Special Character', met: /[^A-Za-z0-9]/.test(newPassword) }
+    ];
+
+    const strength = getPasswordStrength(newPassword);
+    const strengthConfig = [
+        { label: 'Too Weak', color: 'bg-red-500/20 text-red-400 border-red-500/20' },
+        { label: 'Weak', color: 'bg-red-500/40 text-red-500 border-red-500/30' },
+        { label: 'Moderate', color: 'bg-amber-500/40 text-amber-500 border-amber-500/30' },
+        { label: 'Strong', color: 'bg-green-500/40 text-green-500 border-green-500/30' },
+        { label: 'Excellent', color: 'bg-green-500 text-white' }
+    ][strength] || { label: 'Waiting...', color: 'bg-white/5 text-white/20' };
+
     useEffect(() => {
         const init = async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -276,15 +301,67 @@ export const AccountSettings = () => {
                                             </div>
                                         </div>
                                     )}
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">New Password</label>
-                                        <input
-                                            type="password"
-                                            value={newPassword}
-                                            onChange={(e) => setNewPassword(e.target.value)}
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono"
-                                            placeholder="••••••••"
-                                        />
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">New Password</label>
+                                            <input
+                                                type="password"
+                                                value={newPassword}
+                                                onChange={(e) => setNewPassword(e.target.value)}
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono"
+                                                placeholder="••••••••"
+                                            />
+                                        </div>
+
+                                        {newPassword && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: 'auto' }}
+                                                className="space-y-4"
+                                            >
+                                                {/* Strength Meter */}
+                                                <div className="flex gap-1.5 h-1.5">
+                                                    {[1, 2, 3, 4].map((step) => (
+                                                        <div
+                                                            key={step}
+                                                            className={cn(
+                                                                "flex-1 rounded-full transition-all duration-500",
+                                                                strength >= step
+                                                                    ? (strength <= 2 ? 'bg-red-500' : strength === 3 ? 'bg-amber-500' : 'bg-green-500')
+                                                                    : 'bg-white/10'
+                                                            )}
+                                                        />
+                                                    ))}
+                                                </div>
+
+                                                <div className="flex items-center justify-between">
+                                                    <span className={cn(
+                                                        "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg border transition-all",
+                                                        strengthConfig.color
+                                                    )}>
+                                                        {strengthConfig.label}
+                                                    </span>
+                                                </div>
+
+                                                {/* Requirements Checklist */}
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {passwordRequirements.map((req, i) => (
+                                                        <div key={i} className="flex items-center gap-2">
+                                                            <div className={cn(
+                                                                "w-1 h-1 rounded-full",
+                                                                req.met ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-white/20"
+                                                            )} />
+                                                            <span className={cn(
+                                                                "text-[9px] font-bold uppercase tracking-tight transition-colors",
+                                                                req.met ? "text-green-400" : "text-white/20"
+                                                            )}>
+                                                                {req.label}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">Confirm New Password</label>
