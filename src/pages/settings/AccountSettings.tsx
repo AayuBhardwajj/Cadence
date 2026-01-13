@@ -150,10 +150,26 @@ export const AccountSettings = () => {
     const handleMfaSetup = async () => {
         setUpdating(true);
         try {
+            // First, check if there's an existing unverified factor with the same name
+            const { data: factors, error: listError } = await supabase.auth.mfa.listFactors();
+            if (listError) throw listError;
+
+            const friendlyName = `${user.email}'s Phone`;
+            const existingUnverifiedFactor = factors.all.find(
+                f => f.friendly_name === friendlyName && f.status === 'unverified'
+            );
+
+            if (existingUnverifiedFactor) {
+                const { error: unenrollError } = await supabase.auth.mfa.unenroll({
+                    factorId: existingUnverifiedFactor.id
+                });
+                if (unenrollError) console.warn('Could not unenroll existing factor:', unenrollError);
+            }
+
             const { data, error } = await supabase.auth.mfa.enroll({
                 factorType: 'totp',
                 issuer: 'Cadence AI',
-                friendlyName: `${user.email}'s Phone`
+                friendlyName
             });
             if (error) throw error;
             setMfaData(data);
@@ -371,7 +387,11 @@ export const AccountSettings = () => {
                                         </div>
                                         <div>
                                             <h4 className="text-white font-black uppercase italic tracking-tight">Two-Factor Auth</h4>
-                                            <p className="text-xs text-white/30 font-bold">Add an extra layer of security to your account</p>
+                                            <p className="text-xs text-white/30 font-bold">
+                                                {isOAuth
+                                                    ? "Recommended: Set a password above first for maximum security."
+                                                    : "Add an extra layer of security to your account"}
+                                            </p>
                                             {mfaEnabled && (
                                                 <div className="flex items-center gap-2 mt-1 text-[10px] font-black text-green-400 uppercase tracking-widest bg-green-400/10 px-2 py-0.5 rounded-md w-fit">
                                                     <CheckCircle2 className="w-3 h-3" /> Enabled
