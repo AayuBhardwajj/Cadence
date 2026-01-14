@@ -40,13 +40,16 @@ import { useTier } from "../lib/TierContext";
 import { Navbar } from "../components/navigation/Navbar";
 import { Lock, ArrowRight } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import { useProfile } from "../lib/ProfileContext";
 
-export function Dashboard({ username = "Alex" }: { username?: string }) {
+export function Dashboard() {
+  const { displayName } = useProfile();
   const navigate = useNavigate();
   const { tier, isFeatureLocked } = useTier();
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [greeting, setGreeting] = useState('');
+
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -73,7 +76,7 @@ export function Dashboard({ username = "Alex" }: { username?: string }) {
   return (
     <DashboardBackground>
       <div className="flex flex-col min-h-screen">
-        <Navbar username={username} />
+        <Navbar username={displayName} />
 
         {/* Main Content */}
         <main className="flex-grow max-w-[1400px] mx-auto w-full px-6 py-8">
@@ -177,7 +180,7 @@ export function Dashboard({ username = "Alex" }: { username?: string }) {
                     animate={{ opacity: 1, scale: 1 }}
                     className="text-4xl md:text-5xl font-black text-white tracking-tight"
                   >
-                    {greeting}, {username}!
+                    {greeting}, {displayName}!
                   </motion.h1>
 
                   <RotatingQuotes />

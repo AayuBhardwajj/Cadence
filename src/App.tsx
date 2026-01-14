@@ -31,16 +31,16 @@ import { ProgressPage } from "./pages/Progress";
 import { ExercisesPage } from "./pages/Exercises";
 import { CommunityPage } from "./pages/Community";
 
+import { ProfileProvider } from "./lib/ProfileContext";
+
 export default function App() {
   const [isLogin, setIsLogin] = useState(true);
   const [session, setSession] = useState<any>(null);
-  const [username, setUsername] = useState("User");
 
   useEffect(() => {
     // 1. Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session?.user?.email) setUsername(session.user.email.split('@')[0]);
     });
 
     // 2. Listen for auth changes
@@ -48,79 +48,74 @@ export default function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session?.user?.email) setUsername(session.user.email.split('@')[0]);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleLoginSuccess = (user: string) => {
-    // For manual non-supabase login (legacy fallback or if we keep the mock)
-    // But ideally we rely on Supabase session.
-    // For now, allow manual override if session is missing but we want to test "mock" flow?
-    // Actually, let's strictly use session if possible, but the Login page currently calls this with "User".
-    // We'll keep the session check as the primary source of truth.
-  };
-
   return (
-    <Router>
-      {session ? (
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/welcome" element={<Welcome />} />
-          <Route path="/pre-recording" element={<PreRecording />} />
-          <Route path="/practice" element={<PracticePage username={username} />} />
-          <Route path="/progress" element={<ProgressPage username={username} />} />
-          <Route path="/exercises" element={<ExercisesPage username={username} />} />
-          <Route path="/community" element={<CommunityPage username={username} />} />
-          <Route path="/dashboard" element={<Dashboard username={username} />} />
-
-          {/* Settings & Profile Routes */}
-          <Route element={<SettingsLayout username={username} />}>
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/achievements" element={<AchievementsPage />} />
-            <Route path="/history" element={<HistoryPage />} />
-            <Route path="/help" element={<HelpPage />} />
-
-            <Route path="/settings">
-              <Route path="account" element={<AccountSettings />} />
-              <Route path="goals" element={<GoalsSettings />} />
-              <Route path="billing" element={<BillingSettings />} />
-              <Route path="notifications" element={<NotificationSettings />} />
-              <Route path="language" element={<LanguageSettings />} />
-              <Route path="appearance" element={<AppearanceSettings />} />
-              <Route path="devices" element={<DevicesSettings />} />
-              <Route path="privacy" element={<PrivacySettings />} />
-            </Route>
-          </Route>
-
-          {/* Add Login/Signup as accessible routes too for testing */}
-          <Route path="/login" element={<LoginPage onSwitchToSignup={() => { }} onLoginSuccess={() => { }} />} />
-
-          {/* Default redirect */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      ) : (
-        <Box minH="100vh" bg="gray.50">
+    <ProfileProvider>
+      <Router>
+        {session ? (
           <Routes>
-            {/* Allow direct access to login/signup via URL if needed, or toggle */}
-            <Route path="*" element={
-              isLogin ? (
-                <LoginPage
-                  onSwitchToSignup={() => setIsLogin(false)}
-                  onLoginSuccess={(u) => { setUsername(u); }}
-                />
-              ) : (
-                <SignupPage
-                  onSwitchToLogin={() => setIsLogin(true)}
-                  onSignupSuccess={(u) => { setUsername(u); }}
-                />
-              )
-            } />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/welcome" element={<Welcome />} />
+            <Route path="/pre-recording" element={<PreRecording />} />
+            <Route path="/practice" element={<PracticePage />} />
+            <Route path="/progress" element={<ProgressPage />} />
+            <Route path="/exercises" element={<ExercisesPage />} />
+            <Route path="/community" element={<CommunityPage />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+
+            {/* Settings & Profile Routes */}
+            <Route element={<SettingsLayout />}>
+
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/achievements" element={<AchievementsPage />} />
+              <Route path="/history" element={<HistoryPage />} />
+              <Route path="/help" element={<HelpPage />} />
+
+              <Route path="/settings">
+                <Route path="account" element={<AccountSettings />} />
+                <Route path="goals" element={<GoalsSettings />} />
+                <Route path="billing" element={<BillingSettings />} />
+                <Route path="notifications" element={<NotificationSettings />} />
+                <Route path="language" element={<LanguageSettings />} />
+                <Route path="appearance" element={<AppearanceSettings />} />
+                <Route path="devices" element={<DevicesSettings />} />
+                <Route path="privacy" element={<PrivacySettings />} />
+              </Route>
+            </Route>
+
+            {/* Add Login/Signup as accessible routes too for testing */}
+            <Route path="/login" element={<LoginPage onSwitchToSignup={() => { }} onLoginSuccess={() => { }} />} />
+
+            {/* Default redirect */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
-        </Box>
-      )}
-    </Router>
+        ) : (
+          <Box minH="100vh" bg="gray.50">
+            <Routes>
+              {/* Allow direct access to login/signup via URL if needed, or toggle */}
+              <Route path="*" element={
+                isLogin ? (
+                  <LoginPage
+                    onSwitchToSignup={() => setIsLogin(false)}
+                    onLoginSuccess={() => { }}
+                  />
+                ) : (
+                  <SignupPage
+                    onSwitchToLogin={() => setIsLogin(true)}
+                    onSignupSuccess={() => { }}
+                  />
+                )
+              } />
+            </Routes>
+          </Box>
+        )}
+      </Router>
+    </ProfileProvider>
   );
 }
+

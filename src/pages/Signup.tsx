@@ -24,6 +24,8 @@ import {
 } from "@chakra-ui/react";
 import { Button } from "../components/ui/button";
 import { InfoIcon, ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
+import { supabase } from "../lib/supabase";
+import { useToast } from "@chakra-ui/react";
 
 interface FormData {
   username: string;
@@ -177,6 +179,8 @@ export function SignupPage({
     }
   };
 
+  const toast = useToast();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: FormErrors = {};
@@ -195,17 +199,61 @@ export function SignupPage({
     }
 
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setShowSuccess(true);
+    try {
+      // 1. Sign up user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName,
+            username: formData.username,
+          }
+        }
+      });
 
-    // Redirect after 2 seconds
-    setTimeout(() => {
-      // Call success callback with username
-      onSignupSuccess(formData.username || formData.fullName || "User");
-    }, 2000);
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // 2. Create profile entry (if not handled by trigger)
+        // Some setups use a DB trigger to create profiles automatically. 
+        // We'll attempt an upsert just in case, or let it fail if trigger exists.
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            username: formData.username,
+            full_name: formData.fullName,
+            native_languages: [formData.nativeLanguage],
+            learning_motivation: [formData.primaryGoal],
+            location_country: formData.region,
+          });
+
+        if (profileError && profileError.code !== '23505') { // Ignore duplicate key errors if trigger already created it
+          console.error('Profile creation error:', profileError);
+        }
+      }
+
+      setIsSubmitting(false);
+      setShowSuccess(true);
+
+      // Redirect after 2 seconds
+      setTimeout(() => {
+        onSignupSuccess(formData.username || formData.fullName || "User");
+      }, 2000);
+
+    } catch (error: any) {
+      toast({
+        title: "Signup failed",
+        description: error.message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      setIsSubmitting(false);
+    }
   };
+
 
   if (showSuccess) {
     return (
