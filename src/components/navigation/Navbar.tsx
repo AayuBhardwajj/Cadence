@@ -5,6 +5,8 @@ import { cn } from "../../lib/utils";
 import { useTier } from "../../lib/TierContext";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { supabase } from "../../lib/supabase";
+import { useLanguage } from "../../lib/LanguageContext";
+
 
 interface NavbarProps {
     username: string;
@@ -52,15 +54,18 @@ export function Navbar({ username: initialUsername }: NavbarProps) {
     const avatarUrl = profile?.avatar_url;
     const currentUsername = profile?.full_name || profile?.username || initialUsername;
 
+    const { t } = useLanguage();
+
     const navItems = [
-        { name: 'Home', path: '/dashboard' },
-        { name: 'Practice', path: '/practice' },
-        { name: 'Progress', path: '/progress' },
-        { name: 'Exercises', path: '/exercises' },
-        { name: 'Community', path: '/community' },
+        { name: t('nav.dashboard'), path: '/dashboard' },
+        { name: t('nav.practice'), path: '/practice' },
+        { name: t('nav.progress'), path: '/progress' },
+        { name: t('nav.exercises'), path: '/exercises' },
+        { name: t('nav.community'), path: '/community' },
     ];
 
-    const currentItem = navItems.find(item => location.pathname === item.path)?.name || 'Home';
+    const currentItem = navItems.find(item => location.pathname === item.path)?.name || t('nav.dashboard');
+
 
     return (
         <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/20 backdrop-blur-xl transition-all duration-300">
