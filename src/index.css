@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -189,7 +190,7 @@ html[data-text-size="XL"] {
 }
 
 /* Dyslexic Friendly Font */
-@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+
 
 .dyslexic-font * {
   font-family: 'Comic Neue', 'Comic Sans MS', 'Backwards', sans-serif !important;
