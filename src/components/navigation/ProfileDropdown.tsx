@@ -21,6 +21,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
+import { useLanguage } from '../../lib/LanguageContext';
 
 interface ProfileDropdownProps {
     user: {
@@ -34,21 +35,22 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ user }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+    const { t } = useLanguage();
 
     const menuItems = [
-        { icon: <User className="w-4 h-4" />, label: "My Profile", href: "/profile" },
-        { icon: <Settings className="w-4 h-4" />, label: "Account Settings", href: "/settings/account" },
-        { icon: <BarChart2 className="w-4 h-4" />, label: "Learning Analytics", href: "/analytics" },
-        { icon: <Target className="w-4 h-4" />, label: "Goals & Preferences", href: "/settings/goals" },
-        { icon: <Trophy className="w-4 h-4" />, label: "Achievements & Badges", href: "/achievements" },
-        { icon: <History className="w-4 h-4" />, label: "Learning History", href: "/history" },
-        { icon: <CreditCard className="w-4 h-4" />, label: "Subscription & Billing", href: "/settings/billing" },
-        { icon: <Bell className="w-4 h-4" />, label: "Notifications", href: "/settings/notifications" },
-        { icon: <Globe className="w-4 h-4" />, label: "Language & Region", href: "/settings/language" },
-        { icon: <Palette className="w-4 h-4" />, label: "Appearance", href: "/settings/appearance" },
-        { icon: <Smartphone className="w-4 h-4" />, label: "Connected Devices", href: "/settings/devices" },
-        { icon: <Lock className="w-4 h-4" />, label: "Privacy & Security", href: "/settings/privacy" },
-        { icon: <HelpCircle className="w-4 h-4" />, label: "Help & Support", href: "/help" },
+        { icon: <User className="w-4 h-4" />, label: t('menu.my_profile'), href: "/profile" },
+        { icon: <Settings className="w-4 h-4" />, label: t('menu.account_settings'), href: "/settings/account" },
+        { icon: <BarChart2 className="w-4 h-4" />, label: t('menu.learning_analytics'), href: "/analytics" },
+        { icon: <Target className="w-4 h-4" />, label: t('menu.goals_preferences'), href: "/settings/goals" },
+        { icon: <Trophy className="w-4 h-4" />, label: t('menu.achievements_badges'), href: "/achievements" },
+        { icon: <History className="w-4 h-4" />, label: t('menu.learning_history'), href: "/history" },
+        { icon: <CreditCard className="w-4 h-4" />, label: t('menu.subscription_billing'), href: "/settings/billing" },
+        { icon: <Bell className="w-4 h-4" />, label: t('menu.notifications'), href: "/settings/notifications" },
+        { icon: <Globe className="w-4 h-4" />, label: t('menu.language_region'), href: "/settings/language" },
+        { icon: <Palette className="w-4 h-4" />, label: t('menu.appearance'), href: "/settings/appearance" },
+        { icon: <Smartphone className="w-4 h-4" />, label: t('menu.connected_devices'), href: "/settings/devices" },
+        { icon: <Lock className="w-4 h-4" />, label: t('menu.privacy_security'), href: "/settings/privacy" },
+        { icon: <HelpCircle className="w-4 h-4" />, label: t('menu.help_support'), href: "/help" },
     ];
 
     useEffect(() => {
@@ -124,7 +126,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ user }) => {
                                     className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all group"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <span className="p-1.5 rounded-lg bg-white/5 text-white/50 group-hover:text-blue-400 group-hover:bg-blue-400/10 transition-colors">
+                                        <span className="p-1.5 rounded-lg bg-white/5 text-white/50 group-hover:text-primary group-hover:bg-primary/10 transition-colors">
                                             {item.icon}
                                         </span>
                                         <span className="font-medium">{item.label}</span>
@@ -143,7 +145,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ user }) => {
                                 <div className="p-1.5 rounded-lg bg-red-400/5 text-red-400/50 group-hover:text-red-400 group-hover:bg-red-400/10 transition-colors">
                                     <LogOut className="w-4 h-4" />
                                 </div>
-                                Log Out
+                                {t('menu.log_out')}
                             </button>
                         </div>
                     </motion.div>

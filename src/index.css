@@ -17,6 +17,37 @@ body {
   color: #1a202c;
 }
 
+:root {
+  --primary: #3b82f6;
+  /* Default Blue */
+}
+
+/* Layout Overrides */
+html[data-layout="compact"] .p-4,
+html[data-layout="compact"] .p-5,
+html[data-layout="compact"] .p-6,
+html[data-layout="compact"] .py-8,
+html[data-layout="compact"] .gap-8 {
+  padding: 0.75rem !important;
+  /* Force tighter padding */
+  gap: 1rem !important;
+}
+
+/* Glassmorphism Disable */
+html[data-glass="false"] .backdrop-blur-xl,
+html[data-glass="false"] .backdrop-blur-md,
+html[data-glass="false"] .backdrop-blur-2xl {
+  backdrop-filter: none !important;
+  background-color: rgb(15 23 42 / 0.95) !important;
+  /* Fallback opaque slate */
+}
+
+/* Micro-Animations Disable */
+html[data-animations="false"] * {
+  animation: none !important;
+  transition: transform 0s !important;
+}
+
 /* Retro animations */
 @keyframes blink {
 

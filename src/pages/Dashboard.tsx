@@ -41,6 +41,7 @@ import { Navbar } from "../components/navigation/Navbar";
 import { Lock, ArrowRight } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../lib/ProfileContext";
+import { useLanguage } from "../lib/LanguageContext";
 
 export function Dashboard() {
   const { displayName } = useProfile();
@@ -49,13 +50,14 @@ export function Dashboard() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [greeting, setGreeting] = useState('');
+  const { t } = useLanguage();
 
 
   useEffect(() => {
     const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Good morning');
-    else if (hour < 18) setGreeting('Good afternoon');
-    else setGreeting('Good evening');
+    if (hour < 12) setGreeting(t('dashboard.greeting_morning'));
+    else if (hour < 18) setGreeting(t('dashboard.greeting_afternoon'));
+    else setGreeting(t('dashboard.greeting_evening'));
 
     // Celebration on load for milestone reaching
     setTimeout(() => {
@@ -89,12 +91,12 @@ export function Dashboard() {
                   <div className="p-2 bg-blue-500/20 rounded-lg">
                     <Activity className="w-5 h-5 text-blue-400" />
                   </div>
-                  <h3 className="font-bold text-white tracking-tight">Today's Performance</h3>
+                  <h3 className="font-bold text-white tracking-tight">{t('dashboard.todays_performance')}</h3>
                 </div>
 
                 <div className="space-y-6">
                   <div className="p-4 rounded-xl bg-white/5 border border-white/10 group hover:border-blue-500/30 transition-all">
-                    <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">Fluency Score</p>
+                    <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">{t('dashboard.fluency_score')}</p>
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-black text-white">
                         <AnimatedCounter value={78} suffix="/100" />
@@ -104,7 +106,7 @@ export function Dashboard() {
                   </div>
 
                   <div className="p-4 rounded-xl bg-white/5 border border-white/10 group hover:border-green-500/30 transition-all">
-                    <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">Practice time</p>
+                    <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">{t('dashboard.practice_time')}</p>
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-black text-white">
                         <AnimatedCounter value={12} suffix="m" />
@@ -113,7 +115,7 @@ export function Dashboard() {
                   </div>
 
                   <div className="p-4 rounded-xl bg-white/5 border border-white/10 group hover:border-purple-500/30 transition-all">
-                    <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">Sessions today</p>
+                    <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-1">{t('dashboard.sessions_today')}</p>
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-black text-white">
                         <AnimatedCounter value={2} />
@@ -128,7 +130,7 @@ export function Dashboard() {
                   <div className="p-2 bg-emerald-500/20 rounded-lg">
                     <Target className="w-5 h-5 text-emerald-400" />
                   </div>
-                  <h3 className="font-bold text-white tracking-tight">Your Missions</h3>
+                  <h3 className="font-bold text-white tracking-tight">{t('dashboard.your_missions')}</h3>
                 </div>
 
                 <div className="space-y-4">
@@ -160,7 +162,7 @@ export function Dashboard() {
                     onClick={() => navigate('/exercises')}
                     className="w-full flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest transition-all group"
                   >
-                    Browse All Exercises
+                    {t('dashboard.browse_all_exercises')}
                     <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
@@ -189,25 +191,25 @@ export function Dashboard() {
                     <div className="space-y-1">
                       <p className="text-4xl font-black text-blue-400">7</p>
                       <p className="text-[10px] uppercase font-bold text-white/40 tracking-widest flex items-center justify-center gap-1">
-                        <Flame className="w-3 h-3 text-orange-500" /> Day Streak
+                        <Flame className="w-3 h-3 text-orange-500" /> {t('dashboard.day_streak')}
                       </p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-4xl font-black text-emerald-400">82%</p>
                       <p className="text-[10px] uppercase font-bold text-white/40 tracking-widest flex items-center justify-center gap-1">
-                        <TrendingUp className="w-3 h-3 text-emerald-500" /> Avg. Fluency
+                        <TrendingUp className="w-3 h-3 text-emerald-500" /> {t('dashboard.avg_fluency')}
                       </p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-4xl font-black text-purple-400">14</p>
                       <p className="text-[10px] uppercase font-bold text-white/40 tracking-widest flex items-center justify-center gap-1">
-                        <Trophy className="w-3 h-3 text-amber-500" /> Medals Won
+                        <Trophy className="w-3 h-3 text-amber-500" /> {t('dashboard.medals_won')}
                       </p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-4xl font-black text-indigo-400">Lv.8</p>
                       <p className="text-[10px] uppercase font-bold text-white/40 tracking-widest flex items-center justify-center gap-1">
-                        <Crown className="w-3 h-3 text-indigo-500" /> Speaker Rank
+                        <Crown className="w-3 h-3 text-indigo-500" /> {t('dashboard.speaker_rank')}
                       </p>
                     </div>
                   </div>
@@ -220,12 +222,12 @@ export function Dashboard() {
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                       <span className="relative z-10 group-hover:text-white flex items-center gap-3">
-                        <Mic className="w-6 h-6" /> START NEW ASSESSMENT
+                        <Mic className="w-6 h-6" /> {t('dashboard.start_new_assessment')}
                       </span>
                     </motion.button>
                     {tier === 'FREE' && (
                       <p className="mt-4 text-xs font-bold text-white/40 uppercase tracking-widest">
-                        Sessions Today: <span className="text-blue-400">1/1</span>
+                        {t('dashboard.sessions_today')}: <span className="text-blue-400">1/1</span>
                       </p>
                     )}
                   </div>
@@ -240,8 +242,8 @@ export function Dashboard() {
                         <Activity className="w-5 h-5 text-blue-400" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-white tracking-tight">Fluency Trend</h3>
-                        <p className="text-xs text-white/40 font-medium tracking-tight">Your progress over the last 7 days</p>
+                        <h3 className="font-bold text-white tracking-tight">{t('dashboard.fluency_trend')}</h3>
+                        <p className="text-xs text-white/40 font-medium tracking-tight">{t('dashboard.fluency_trend_desc')}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -258,12 +260,12 @@ export function Dashboard() {
                       <div className="absolute inset-x-0 bottom-0 top-[40%] bg-gradient-to-t from-slate-950 to-transparent flex flex-col items-center justify-end pb-8 group">
                         <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex flex-col items-center gap-3 transform group-hover:scale-105 transition-all">
                           <Lock className="w-6 h-6 text-amber-400" />
-                          <p className="text-sm font-bold text-white">Unlock Full History</p>
+                          <p className="text-sm font-bold text-white">{t('dashboard.unlock_full_history')}</p>
                           <button
                             onClick={() => navigate('/progress')}
                             className="px-6 py-2 bg-amber-400 text-slate-950 text-xs font-black rounded-lg uppercase tracking-wider"
                           >
-                            Unlock to View All
+                            {t('dashboard.unlock_to_view_all')}
                           </button>
                         </div>
                       </div>
@@ -280,14 +282,14 @@ export function Dashboard() {
                   <div className="p-2 bg-indigo-500/20 rounded-lg">
                     <Calendar className="w-5 h-5 text-indigo-400" />
                   </div>
-                  <h3 className="font-bold text-white tracking-tight">Weekly Goal</h3>
+                  <h3 className="font-bold text-white tracking-tight">{t('dashboard.weekly_goal')}</h3>
                 </div>
 
                 <RadialProgress progress={80} color="#6366f1" size={160} strokeWidth={12} />
 
                 <div className="mt-8 text-center">
-                  <p className="text-sm font-medium text-white/80">You're smashing it! 🚀</p>
-                  <p className="text-xs text-white/40 mt-1">Practice 1 more session to reach your weekly milestone.</p>
+                  <p className="text-sm font-medium text-white/80">{t('dashboard.smashing_it')}</p>
+                  <p className="text-xs text-white/40 mt-1">{t('dashboard.weekly_milestone_desc')}</p>
                 </div>
               </EnhancedCard>
 
@@ -296,20 +298,20 @@ export function Dashboard() {
                   <div className="p-2 bg-green-500/20 rounded-lg">
                     <Flame className="w-5 h-5 text-green-400" />
                   </div>
-                  <h3 className="font-bold text-white tracking-tight">Practice Streak</h3>
+                  <h3 className="font-bold text-white tracking-tight">{t('dashboard.practice_streak')}</h3>
                 </div>
 
                 <StreakHeatmap />
 
                 <div className="mt-6 pt-6 border-t border-white/10 flex justify-between items-center text-[10px] font-bold text-white/40 uppercase tracking-widest">
-                  <span>Less Active</span>
+                  <span>{t('dashboard.less_active')}</span>
                   <div className="flex gap-1">
                     <div className="w-2 h-2 rounded-[1px] bg-white/5" />
                     <div className="w-2 h-2 rounded-[1px] bg-green-500/30" />
                     <div className="w-2 h-2 rounded-[1px] bg-green-500/60" />
                     <div className="w-2 h-2 rounded-[1px] bg-green-500/90" />
                   </div>
-                  <span>Most Active</span>
+                  <span>{t('dashboard.most_active')}</span>
                 </div>
               </EnhancedCard>
 
@@ -318,11 +320,11 @@ export function Dashboard() {
                   <div className="p-2 bg-orange-500/20 rounded-lg">
                     <MessageSquare className="w-5 h-5 text-orange-400" />
                   </div>
-                  <h3 className="font-bold text-white tracking-tight">Tip of the Day</h3>
+                  <h3 className="font-bold text-white tracking-tight">{t('dashboard.tip_of_the_day')}</h3>
                 </div>
 
                 <p className="text-sm text-white/80 leading-relaxed italic">
-                  "Your 'v/w' confusion is improving. Focus on lip placement today: bite your lower lip gently for 'v' sounds."
+                  {t('dashboard.tip_content')}
                 </p>
               </EnhancedCard>
 
@@ -332,10 +334,10 @@ export function Dashboard() {
                     <Crown className="w-5 h-5 text-amber-400 animate-pulse" />
                   </div>
                   <div className="space-y-4">
-                    <h3 className="font-black text-white text-lg leading-tight">Unlock Your Full Potential ✨</h3>
-                    <p className="text-xs text-white/60 font-medium">Upgrade to Pro for unlimited practice sessions & advanced analytics.</p>
+                    <h3 className="font-black text-white text-lg leading-tight">{t('dashboard.unlock_full_potential')}</h3>
+                    <p className="text-xs text-white/60 font-medium">{t('dashboard.upgrade_desc')}</p>
                     <button className="w-full py-3 bg-amber-400 text-slate-950 font-black text-xs rounded-xl uppercase tracking-widest shadow-lg shadow-amber-400/20 hover:shadow-amber-400/40 transition-all">
-                      See Plans
+                      {t('dashboard.see_plans')}
                     </button>
                   </div>
                 </EnhancedCard>

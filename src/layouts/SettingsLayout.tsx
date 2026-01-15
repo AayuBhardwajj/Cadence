@@ -17,6 +17,7 @@ import { cn } from '../lib/utils';
 import { DashboardBackground } from '../components/dashboard/DashboardBackground';
 import { motion } from 'framer-motion';
 import { Navbar } from '../components/navigation/Navbar';
+import { useLanguage } from '../lib/LanguageContext';
 
 interface SettingsLayoutProps {
     username?: string;
@@ -35,7 +36,23 @@ const sidebarItems = [
     { icon: <HelpCircle className="w-5 h-5" />, label: "Help & Support", href: "/help" },
 ];
 
+
 export const SettingsLayout: React.FC<SettingsLayoutProps> = ({ username = "User" }) => {
+    const { t } = useLanguage();
+
+    const sidebarItems = [
+        { icon: <User className="w-5 h-5" />, label: t('menu.my_profile'), href: "/profile" },
+        { icon: <Settings className="w-5 h-5" />, label: t('menu.account_settings'), href: "/settings/account" },
+        { icon: <Target className="w-5 h-5" />, label: t('menu.goals_preferences'), href: "/settings/goals" },
+        { icon: <CreditCard className="w-5 h-5" />, label: t('menu.subscription_billing'), href: "/settings/billing" },
+        { icon: <Bell className="w-5 h-5" />, label: t('menu.notifications'), href: "/settings/notifications" },
+        { icon: <Globe className="w-5 h-5" />, label: t('menu.language_region'), href: "/settings/language" },
+        { icon: <Palette className="w-5 h-5" />, label: t('menu.appearance'), href: "/settings/appearance" },
+        { icon: <Smartphone className="w-5 h-5" />, label: t('menu.connected_devices'), href: "/settings/devices" },
+        { icon: <Lock className="w-5 h-5" />, label: t('menu.privacy_security'), href: "/settings/privacy" },
+        { icon: <HelpCircle className="w-5 h-5" />, label: t('menu.help_support'), href: "/help" },
+    ];
+
     return (
         <DashboardBackground>
             <div className="flex flex-col min-h-screen">
@@ -53,13 +70,13 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({ username = "User
                                     className={({ isActive }) => cn(
                                         "flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 group",
                                         isActive
-                                            ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                                            ? "bg-primary text-white shadow-lg shadow-primary/30"
                                             : "text-white/50 hover:text-white hover:bg-white/5"
                                     )}
                                 >
                                     <span className={cn(
                                         "transition-colors",
-                                        "group-hover:text-blue-400 group-[.active]:text-white"
+                                        "group-hover:text-primary group-[.active]:text-white"
                                     )}>
                                         {item.icon}
                                     </span>

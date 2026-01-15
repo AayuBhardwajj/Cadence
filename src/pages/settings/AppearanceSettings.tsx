@@ -16,30 +16,39 @@ import {
 import { cn } from '../../lib/utils';
 import { EnhancedCard } from '../../components/dashboard/EnhancedCard';
 
+import { useLanguage } from '../../lib/LanguageContext';
+import { useTheme } from '../../lib/ThemeContext';
+
 const THEMES = [
-    { id: 'dark', name: 'Midnight', icon: <Moon className="w-5 h-5" />, desc: 'Soft dark textures' },
-    { id: 'light', name: 'Solstice', icon: <Sun className="w-5 h-5" />, desc: 'Crisp light interface' },
-    { id: 'system', name: 'System', icon: <Monitor className="w-5 h-5" />, desc: 'Follow device settings' },
+    { id: 'dark', translationKey: 'midnight', icon: <Moon className="w-5 h-5" /> },
+    { id: 'light', translationKey: 'solstice', icon: <Sun className="w-5 h-5" /> },
+    { id: 'system', translationKey: 'system', icon: <Monitor className="w-5 h-5" /> },
 ];
 
 const ACCENTS = [
-    { id: 'blue', name: 'Ocean', color: '#3b82f6' },
-    { id: 'purple', name: 'Nebula', color: '#8b5cf6' },
-    { id: 'pink', name: 'Bloom', color: '#ec4899' },
-    { id: 'green', name: 'Emerald', color: '#10b981' },
-    { id: 'orange', name: 'Amber', color: '#f59e0b' },
+    { id: 'blue', translationKey: 'ocean', color: '#3b82f6' },
+    { id: 'purple', translationKey: 'nebula', color: '#8b5cf6' },
+    { id: 'pink', translationKey: 'bloom', color: '#ec4899' },
+    { id: 'green', translationKey: 'emerald', color: '#10b981' },
+    { id: 'orange', translationKey: 'amber', color: '#f59e0b' },
 ];
 
 export const AppearanceSettings = () => {
-    const [theme, setTheme] = useState('dark');
-    const [accent, setAccent] = useState('blue');
-    const [layout, setLayout] = useState('default');
+    const {
+        theme, setTheme,
+        accent, setAccent,
+        layout, setLayout,
+        glassmorphism, setGlassmorphism,
+        microAnimations, setMicroAnimations
+    } = useTheme();
+
+    const { t } = useLanguage();
 
     return (
         <div className="max-w-5xl mx-auto space-y-10 pb-20">
             <div>
-                <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">Appearance</h1>
-                <p className="text-white/40 font-bold text-sm mt-1 uppercase italic tracking-widest">Design your unique learning environment</p>
+                <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">{t('appearance.title')}</h1>
+                <p className="text-white/40 font-bold text-sm mt-1 uppercase italic tracking-widest">{t('appearance.subtitle')}</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -51,34 +60,34 @@ export const AppearanceSettings = () => {
                                 <Palette className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-black text-white tracking-tight uppercase italic">Color Theme</h3>
-                                <p className="text-xs text-white/30 font-bold uppercase tracking-widest">Choose the overall look of the app</p>
+                                <h3 className="text-xl font-black text-white tracking-tight uppercase italic">{t('appearance.color_theme')}</h3>
+                                <p className="text-xs text-white/30 font-bold uppercase tracking-widest">{t('appearance.color_theme_desc')}</p>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {THEMES.map((t) => (
+                            {THEMES.map((tItem) => (
                                 <button
-                                    key={t.id}
-                                    onClick={() => setTheme(t.id)}
+                                    key={tItem.id}
+                                    onClick={() => setTheme(tItem.id as any)}
                                     className={cn(
                                         "relative p-6 rounded-3xl border transition-all active:scale-95 group text-left",
-                                        theme === t.id
+                                        theme === tItem.id
                                             ? "bg-white border-white text-black shadow-2xl"
                                             : "bg-white/5 border-white/5 text-white/40 hover:bg-white/10 hover:border-white/20"
                                     )}
                                 >
-                                    {theme === t.id && (
+                                    {theme === tItem.id && (
                                         <div className="absolute top-4 right-4 text-black">
                                             <Check className="w-4 h-4" />
                                         </div>
                                     )}
-                                    <div className={cn("mb-4", theme === t.id ? "text-black" : "text-white/40")}>
-                                        {t.icon}
+                                    <div className={cn("mb-4", theme === tItem.id ? "text-black" : "text-white/40")}>
+                                        {tItem.icon}
                                     </div>
-                                    <h4 className="font-black uppercase italic tracking-tight">{t.name}</h4>
-                                    <p className={cn("text-[10px] font-bold mt-1 uppercase opacity-60", theme === t.id ? "text-black" : "text-white/40")}>
-                                        {t.desc}
+                                    <h4 className="font-black uppercase italic tracking-tight">{t(`appearance.${tItem.translationKey}`)}</h4>
+                                    <p className={cn("text-[10px] font-bold mt-1 uppercase opacity-60", theme === tItem.id ? "text-black" : "text-white/40")}>
+                                        {t(`appearance.${tItem.translationKey}_desc`)}
                                     </p>
                                 </button>
                             ))}
@@ -92,8 +101,8 @@ export const AppearanceSettings = () => {
                                 <Sparkles className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-black text-white tracking-tight uppercase italic">Accent Color</h3>
-                                <p className="text-xs text-white/30 font-bold uppercase tracking-widest">Personalize the highlights and buttons</p>
+                                <h3 className="text-xl font-black text-white tracking-tight uppercase italic">{t('appearance.accent_color')}</h3>
+                                <p className="text-xs text-white/30 font-bold uppercase tracking-widest">{t('appearance.accent_color_desc')}</p>
                             </div>
                         </div>
 
@@ -101,7 +110,7 @@ export const AppearanceSettings = () => {
                             {ACCENTS.map((a) => (
                                 <button
                                     key={a.id}
-                                    onClick={() => setAccent(a.id)}
+                                    onClick={() => setAccent(a.id as any)}
                                     className={cn(
                                         "flex flex-col items-center gap-3 p-4 rounded-3xl border transition-all active:scale-95 group min-w-[100px]",
                                         accent === a.id
@@ -119,7 +128,7 @@ export const AppearanceSettings = () => {
                                         "text-[10px] font-black uppercase tracking-widest",
                                         accent === a.id ? "text-white" : "text-white/40"
                                     )}>
-                                        {a.name}
+                                        {t(`appearance.${a.translationKey}`)}
                                     </span>
                                 </button>
                             ))}
@@ -127,22 +136,21 @@ export const AppearanceSettings = () => {
                     </EnhancedCard>
                 </div>
 
-                {/* Layout Preferences Sidebar */}
                 <div className="lg:col-span-4 space-y-6">
                     <EnhancedCard>
                         <h3 className="text-white font-black uppercase tracking-tighter mb-8 text-sm italic flex items-center gap-2">
-                            <Layout className="w-4 h-4 text-purple-400" /> Layout
+                            <Layout className="w-4 h-4 text-purple-400" /> {t('appearance.layout')}
                         </h3>
 
                         <div className="space-y-4">
                             {[
-                                { id: 'default', label: 'Classic View', icon: <Square className="w-4 h-4" /> },
-                                { id: 'split', label: 'Split Pane', icon: <Columns className="w-4 h-4" /> },
-                                { id: 'compact', label: 'Compact Mode', icon: <Maximize2 className="w-4 h-4 rotate-45" /> },
+                                { id: 'default', label: t('appearance.classic_view'), icon: <Square className="w-4 h-4" /> },
+                                { id: 'split', label: t('appearance.split_pane'), icon: <Columns className="w-4 h-4" /> },
+                                { id: 'compact', label: t('appearance.compact_mode'), icon: <Maximize2 className="w-4 h-4 rotate-45" /> },
                             ].map(ls => (
                                 <button
                                     key={ls.id}
-                                    onClick={() => setLayout(ls.id)}
+                                    onClick={() => setLayout(ls.id as any)}
                                     className={cn(
                                         "w-full flex items-center justify-between p-4 rounded-2xl border transition-all group",
                                         layout === ls.id
@@ -163,19 +171,37 @@ export const AppearanceSettings = () => {
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <Monitor className="w-4 h-4 text-white/20" />
-                                    <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest">Glassmorphism</span>
+                                    <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest">{t('appearance.glassmorphism')}</span>
                                 </div>
-                                <div className="w-10 h-5 bg-blue-600 rounded-full p-1 cursor-pointer">
-                                    <div className="w-3 h-3 bg-white rounded-full translate-x-5" />
+                                <div
+                                    className={cn(
+                                        "w-10 h-5 rounded-full p-1 cursor-pointer transition-colors",
+                                        glassmorphism ? "bg-blue-600" : "bg-white/10"
+                                    )}
+                                    onClick={() => setGlassmorphism(!glassmorphism)}
+                                >
+                                    <motion.div
+                                        className="w-3 h-3 bg-white rounded-full"
+                                        animate={{ x: glassmorphism ? 20 : 0 }}
+                                    />
                                 </div>
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <Zap className="w-4 h-4 text-white/20" />
-                                    <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest">Micro-Animations</span>
+                                    <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest">{t('appearance.micro_animations')}</span>
                                 </div>
-                                <div className="w-10 h-5 bg-blue-600 rounded-full p-1 cursor-pointer">
-                                    <div className="w-3 h-3 bg-white rounded-full translate-x-5" />
+                                <div
+                                    className={cn(
+                                        "w-10 h-5 rounded-full p-1 cursor-pointer transition-colors",
+                                        microAnimations ? "bg-blue-600" : "bg-white/10"
+                                    )}
+                                    onClick={() => setMicroAnimations(!microAnimations)}
+                                >
+                                    <motion.div
+                                        className="w-3 h-3 bg-white rounded-full"
+                                        animate={{ x: microAnimations ? 20 : 0 }}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -186,10 +212,10 @@ export const AppearanceSettings = () => {
                             <div className="w-16 h-16 bg-white/5 rounded-3xl mx-auto mb-4 flex items-center justify-center">
                                 <Sparkles className="w-8 h-8 text-indigo-400" />
                             </div>
-                            <h4 className="text-xs font-black text-white uppercase italic tracking-widest">Custom Themes</h4>
-                            <p className="text-[10px] text-white/20 font-bold mt-2 mb-6 uppercase tracking-tighter">Pro members can create and share custom UI themes.</p>
+                            <h4 className="text-xs font-black text-white uppercase italic tracking-widest">{t('appearance.custom_themes')}</h4>
+                            <p className="text-[10px] text-white/20 font-bold mt-2 mb-6 uppercase tracking-tighter">{t('appearance.custom_themes_desc')}</p>
                             <button className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-500/20 transition-all active:scale-95">
-                                Explore Marketplace
+                                {t('appearance.explore_marketplace')}
                             </button>
                         </div>
                     </EnhancedCard>
