@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { EnhancedCard } from '../../components/dashboard/EnhancedCard';
+import { useAccessibility } from '../../lib/AccessibilityContext';
+
 
 const LANGUAGES = [
     { code: 'en', name: 'English', native: 'English', flag: '🇺🇸' },
@@ -28,6 +30,13 @@ const LANGUAGES = [
 
 export const LanguageSettings = () => {
     const [selectedLang, setSelectedLang] = useState('en');
+    const {
+        textSize, setTextSize,
+        highContrast, setHighContrast,
+        reduceMotion, setReduceMotion,
+        dyslexicFont, setDyslexicFont
+    } = useAccessibility();
+
 
     return (
         <div className="max-w-5xl mx-auto space-y-10 pb-20">
@@ -126,14 +135,17 @@ export const LanguageSettings = () => {
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <span className="text-xs font-bold text-white tracking-tight">Text Size</span>
-                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Normal</span>
+                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{textSize === 'S' ? 'Small' : textSize === 'M' ? 'Default' : textSize === 'L' ? 'Large' : 'Extra Large'}</span>
                                 </div>
                                 <div className="flex gap-2">
-                                    {['S', 'M', 'L', 'XL'].map(s => (
-                                        <button key={s} className={cn(
-                                            "flex-grow py-2 rounded-xl text-[10px] font-black border transition-all",
-                                            s === 'M' ? "bg-white text-black border-white" : "bg-white/5 border-white/5 text-white/40 hover:bg-white/10"
-                                        )}>
+                                    {(['S', 'M', 'L', 'XL'] as const).map(s => (
+                                        <button
+                                            key={s}
+                                            onClick={() => setTextSize(s)}
+                                            className={cn(
+                                                "flex-grow py-2 rounded-xl text-[10px] font-black border transition-all",
+                                                textSize === s ? "bg-white text-black border-white" : "bg-white/5 border-white/5 text-white/40 hover:bg-white/10"
+                                            )}>
                                             {s}
                                         </button>
                                     ))}
@@ -142,17 +154,36 @@ export const LanguageSettings = () => {
 
                             <div className="pt-4 border-t border-white/5 space-y-4">
                                 {[
-                                    { icon: <Eye className="w-4 h-4" />, label: 'High Contrast Mode', active: false },
-                                    { icon: <Move className="w-4 h-4" />, label: 'Reduce Motion', active: true },
-                                    { icon: <Type className="w-4 h-4" />, label: 'Dyslexic Friendly Font', active: false },
+                                    {
+                                        icon: <Eye className="w-4 h-4" />,
+                                        label: 'High Contrast Mode',
+                                        active: highContrast,
+                                        toggle: () => setHighContrast(!highContrast)
+                                    },
+                                    {
+                                        icon: <Move className="w-4 h-4" />,
+                                        label: 'Reduce Motion',
+                                        active: reduceMotion,
+                                        toggle: () => setReduceMotion(!reduceMotion)
+                                    },
+                                    {
+                                        icon: <Type className="w-4 h-4" />,
+                                        label: 'Dyslexic Friendly Font',
+                                        active: dyslexicFont,
+                                        toggle: () => setDyslexicFont(!dyslexicFont)
+                                    },
                                 ].map((a, i) => (
-                                    <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                                    <div
+                                        key={i}
+                                        onClick={a.toggle}
+                                        className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-all"
+                                    >
                                         <div className="flex items-center gap-3">
                                             <div className="text-white/20">{a.icon}</div>
                                             <span className="text-[11px] font-bold text-white/60 tracking-tight">{a.label}</span>
                                         </div>
                                         <div className={cn(
-                                            "w-8 h-4 rounded-full p-1 cursor-pointer transition-all",
+                                            "w-8 h-4 rounded-full p-1 transition-all",
                                             a.active ? "bg-blue-600" : "bg-white/10"
                                         )}>
                                             <div className={cn(
@@ -181,3 +212,4 @@ export const LanguageSettings = () => {
         </div>
     );
 };
+

@@ -31,7 +31,10 @@ import { ProgressPage } from "./pages/Progress";
 import { ExercisesPage } from "./pages/Exercises";
 import { CommunityPage } from "./pages/Community";
 
+
 import { ProfileProvider } from "./lib/ProfileContext";
+import { AccessibilityProvider } from "./lib/AccessibilityContext";
+
 
 export default function App() {
   const [isLogin, setIsLogin] = useState(true);
@@ -54,68 +57,72 @@ export default function App() {
   }, []);
 
   return (
+
     <ProfileProvider>
-      <Router>
-        {session ? (
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/welcome" element={<Welcome />} />
-            <Route path="/pre-recording" element={<PreRecording />} />
-            <Route path="/practice" element={<PracticePage />} />
-            <Route path="/progress" element={<ProgressPage />} />
-            <Route path="/exercises" element={<ExercisesPage />} />
-            <Route path="/community" element={<CommunityPage />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-
-            {/* Settings & Profile Routes */}
-            <Route element={<SettingsLayout />}>
-
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/achievements" element={<AchievementsPage />} />
-              <Route path="/history" element={<HistoryPage />} />
-              <Route path="/help" element={<HelpPage />} />
-
-              <Route path="/settings">
-                <Route path="account" element={<AccountSettings />} />
-                <Route path="goals" element={<GoalsSettings />} />
-                <Route path="billing" element={<BillingSettings />} />
-                <Route path="notifications" element={<NotificationSettings />} />
-                <Route path="language" element={<LanguageSettings />} />
-                <Route path="appearance" element={<AppearanceSettings />} />
-                <Route path="devices" element={<DevicesSettings />} />
-                <Route path="privacy" element={<PrivacySettings />} />
-              </Route>
-            </Route>
-
-            {/* Add Login/Signup as accessible routes too for testing */}
-            <Route path="/login" element={<LoginPage onSwitchToSignup={() => { }} onLoginSuccess={() => { }} />} />
-
-            {/* Default redirect */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        ) : (
-          <Box minH="100vh" bg="gray.50">
+      <AccessibilityProvider>
+        <Router>
+          {session ? (
             <Routes>
-              {/* Allow direct access to login/signup via URL if needed, or toggle */}
-              <Route path="*" element={
-                isLogin ? (
-                  <LoginPage
-                    onSwitchToSignup={() => setIsLogin(false)}
-                    onLoginSuccess={() => { }}
-                  />
-                ) : (
-                  <SignupPage
-                    onSwitchToLogin={() => setIsLogin(true)}
-                    onSignupSuccess={() => { }}
-                  />
-                )
-              } />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/welcome" element={<Welcome />} />
+              <Route path="/pre-recording" element={<PreRecording />} />
+              <Route path="/practice" element={<PracticePage />} />
+              <Route path="/progress" element={<ProgressPage />} />
+              <Route path="/exercises" element={<ExercisesPage />} />
+              <Route path="/community" element={<CommunityPage />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+
+              {/* Settings & Profile Routes */}
+              <Route element={<SettingsLayout />}>
+
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/achievements" element={<AchievementsPage />} />
+                <Route path="/history" element={<HistoryPage />} />
+                <Route path="/help" element={<HelpPage />} />
+
+                <Route path="/settings">
+                  <Route path="account" element={<AccountSettings />} />
+                  <Route path="goals" element={<GoalsSettings />} />
+                  <Route path="billing" element={<BillingSettings />} />
+                  <Route path="notifications" element={<NotificationSettings />} />
+                  <Route path="language" element={<LanguageSettings />} />
+                  <Route path="appearance" element={<AppearanceSettings />} />
+                  <Route path="devices" element={<DevicesSettings />} />
+                  <Route path="privacy" element={<PrivacySettings />} />
+                </Route>
+              </Route>
+
+              {/* Add Login/Signup as accessible routes too for testing */}
+              <Route path="/login" element={<LoginPage onSwitchToSignup={() => { }} onLoginSuccess={() => { }} />} />
+
+              {/* Default redirect */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
-          </Box>
-        )}
-      </Router>
+          ) : (
+            <Box minH="100vh" bg="gray.50">
+              <Routes>
+                {/* Allow direct access to login/signup via URL if needed, or toggle */}
+                <Route path="*" element={
+                  isLogin ? (
+                    <LoginPage
+                      onSwitchToSignup={() => setIsLogin(false)}
+                      onLoginSuccess={() => { }}
+                    />
+                  ) : (
+                    <SignupPage
+                      onSwitchToLogin={() => setIsLogin(true)}
+                      onSignupSuccess={() => { }}
+                    />
+                  )
+                } />
+              </Routes>
+            </Box>
+          )}
+        </Router>
+      </AccessibilityProvider>
     </ProfileProvider>
+
   );
 }
 

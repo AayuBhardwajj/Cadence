@@ -18,18 +18,25 @@ body {
 
 /* Retro animations */
 @keyframes blink {
-  0%, 50% {
+
+  0%,
+  50% {
     opacity: 1;
   }
-  51%, 100% {
+
+  51%,
+  100% {
     opacity: 0;
   }
 }
 
 @keyframes glow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 5px rgba(204, 85, 0, 0.5);
   }
+
   50% {
     box-shadow: 0 0 20px rgba(204, 85, 0, 0.8), 0 0 30px rgba(204, 85, 0, 0.6);
   }
@@ -39,6 +46,7 @@ body {
   0% {
     transform: translateY(-100%);
   }
+
   100% {
     transform: translateY(100vh);
   }
@@ -64,14 +72,18 @@ body {
 
 /* Aurora animation enhancements */
 @keyframes aurora-float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate(0, 0) rotate(0deg);
     opacity: 0.8;
   }
+
   33% {
     transform: translate(30px, -30px) rotate(120deg);
     opacity: 1;
   }
+
   66% {
     transform: translate(-20px, 20px) rotate(240deg);
     opacity: 0.9;
@@ -79,15 +91,19 @@ body {
 }
 
 @keyframes aurora-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.6;
     transform: scale(1);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.1);
   }
 }
+
 
 /* Smooth transitions for glassmorphic cards */
 .glassmorphic-card {
@@ -99,4 +115,84 @@ body {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
+/* --- Accessibility Features --- */
 
+/* Text Size Scaling */
+html[data-text-size="S"] {
+  font-size: 87.5%;
+  /* 14px base if default is 16px */
+}
+
+html[data-text-size="M"] {
+  font-size: 100%;
+  /* Default 16px */
+}
+
+html[data-text-size="L"] {
+  font-size: 112.5%;
+  /* 18px base */
+}
+
+html[data-text-size="XL"] {
+  font-size: 125%;
+  /* 20px base */
+}
+
+/* High Contrast Mode */
+.high-contrast {
+  --aca-high-contrast-bg: #000000;
+  --aca-high-contrast-text: #ffffff;
+  --aca-high-contrast-accent: #ffff00;
+}
+
+.high-contrast body {
+  background-color: var(--aca-high-contrast-bg) !important;
+  color: var(--aca-high-contrast-text) !important;
+}
+
+.high-contrast * {
+  border-color: var(--aca-high-contrast-text) !important;
+}
+
+.high-contrast .text-white\/40,
+.high-contrast .text-white\/60,
+.high-contrast .text-white\/30,
+.high-contrast .text-white\/20,
+.high-contrast .text-white\/10 {
+  color: var(--aca-high-contrast-text) !important;
+  opacity: 1 !important;
+}
+
+.high-contrast .bg-white\/5,
+.high-contrast .bg-white\/10,
+.high-contrast .bg-white\/20,
+.high-contrast .bg-blue-600\/20,
+.high-contrast .bg-purple-600\/20 {
+  background-color: transparent !important;
+  border: 1px solid var(--aca-high-contrast-text) !important;
+}
+
+.high-contrast button.bg-blue-600 {
+  background-color: var(--aca-high-contrast-accent) !important;
+  color: var(--aca-high-contrast-bg) !important;
+  border: 1px solid var(--aca-high-contrast-accent) !important;
+}
+
+/* Reduce Motion */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.001s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001s !important;
+  scroll-behavior: auto !important;
+}
+
+/* Dyslexic Friendly Font */
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+
+.dyslexic-font * {
+  font-family: 'Comic Neue', 'Comic Sans MS', 'Backwards', sans-serif !important;
+  letter-spacing: 0.05em !important;
+  line-height: 1.6 !important;
+}
