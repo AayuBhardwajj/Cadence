@@ -16,7 +16,7 @@ import { SettingsLayout } from "./layouts/SettingsLayout";
 import { ProfilePage } from "./pages/profile/ProfilePage";
 import { AnalyticsPage } from "./pages/profile/AnalyticsPage";
 import { AchievementsPage } from "./pages/profile/AchievementsPage";
-import { HistoryPage } from "./pages/profile/HistoryPage";
+// HistoryPage removed
 import { AccountSettings } from "./pages/settings/AccountSettings";
 import { GoalsSettings } from "./pages/settings/GoalsSettings";
 import { BillingSettings } from "./pages/settings/BillingSettings";
@@ -87,7 +87,7 @@ export default function App() {
                       <Route path="/profile" element={<ProfilePage />} />
                       <Route path="/analytics" element={<AnalyticsPage />} />
                       <Route path="/achievements" element={<AchievementsPage />} />
-                      <Route path="/history" element={<HistoryPage />} />
+
                       <Route path="/help" element={<HelpPage />} />
 
                       <Route path="/settings">

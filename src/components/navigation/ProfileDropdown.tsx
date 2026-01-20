@@ -43,7 +43,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ user }) => {
         { icon: <BarChart2 className="w-4 h-4" />, label: t('menu.learning_analytics'), href: "/analytics" },
         { icon: <Target className="w-4 h-4" />, label: t('menu.goals_preferences'), href: "/settings/goals" },
         { icon: <Trophy className="w-4 h-4" />, label: t('menu.achievements_badges'), href: "/achievements" },
-        { icon: <History className="w-4 h-4" />, label: t('menu.learning_history'), href: "/history" },
+        { icon: <History className="w-4 h-4" />, label: t('menu.learning_history'), href: "/profile?section=history" },
         { icon: <CreditCard className="w-4 h-4" />, label: t('menu.subscription_billing'), href: "/settings/billing" },
         { icon: <Bell className="w-4 h-4" />, label: t('menu.notifications'), href: "/settings/notifications" },
         { icon: <Globe className="w-4 h-4" />, label: t('menu.language_region'), href: "/settings/language" },

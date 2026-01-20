@@ -11,7 +11,10 @@ import {
     Smartphone,
     Lock,
     HelpCircle,
-    ChevronLeft
+    ChevronLeft,
+    BarChart2,
+    Trophy,
+    History
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { DashboardBackground } from '../components/dashboard/DashboardBackground';
@@ -43,7 +46,9 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({ username = "User
     const sidebarItems = [
         { icon: <User className="w-5 h-5" />, label: t('menu.my_profile'), href: "/profile" },
         { icon: <Settings className="w-5 h-5" />, label: t('menu.account_settings'), href: "/settings/account" },
+        { icon: <BarChart2 className="w-5 h-5" />, label: t('menu.learning_analytics'), href: "/analytics" }, // Added
         { icon: <Target className="w-5 h-5" />, label: t('menu.goals_preferences'), href: "/settings/goals" },
+        { icon: <Trophy className="w-5 h-5" />, label: t('menu.achievements_badges'), href: "/achievements" }, // Added
         { icon: <CreditCard className="w-5 h-5" />, label: t('menu.subscription_billing'), href: "/settings/billing" },
         { icon: <Bell className="w-5 h-5" />, label: t('menu.notifications'), href: "/settings/notifications" },
         { icon: <Globe className="w-5 h-5" />, label: t('menu.language_region'), href: "/settings/language" },
