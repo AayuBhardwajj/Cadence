@@ -36,6 +36,7 @@ import { ProfileDropdown } from "../../components/navigation/ProfileDropdown";
 import { ImageCropper } from "../../components/profile/ImageCropper";
 import { EnhancedCard } from '../../components/dashboard/EnhancedCard';
 import { AnimatedCounter } from '../../components/dashboard/AnimatedCounter';
+import { MediaUtils } from '../../lib/MediaUtils';
 
 const PROFILE_SECTIONS = [
     { id: 'personal', label: 'Personal Info' },
@@ -215,19 +216,25 @@ export const ProfilePage = () => {
         const localUrl = URL.createObjectURL(croppedFile);
         setProfile((prev: any) => ({ ...prev, [type === 'avatar' ? 'avatar_url' : 'cover_url']: localUrl }));
 
-        setSaving(type === 'avatar' ? 'Uploading Photo...' : 'Uploading Banner...');
+        setSaving(type === 'avatar' ? 'Compressing & Uploading...' : 'Compressing & Uploading...');
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const fileExt = 'webp'; // Our cropper outputs webp
-        const filePath = `${user.id}/${type}_${Date.now()}.${fileExt}`;
-
         try {
+            // 1. Compress Image Client-Side
+            const compressedFile = await MediaUtils.compressImage(croppedFile, type);
+
+            // 2. Prepare Upload Path (Versioning with timestamp ensures CDN updates)
+            const fileExt = 'webp';
+            const filePath = `${user.id}/${type}_${Date.now()}.${fileExt}`;
+
+            // 3. Upload with Aggressive Caching
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
-                .upload(filePath, croppedFile, {
+                .upload(filePath, compressedFile, {
                     upsert: true,
-                    cacheControl: '3600'
+                    contentType: 'image/webp',
+                    cacheControl: '31536000' // 1 year cache
                 });
 
             if (uploadError) throw uploadError;
@@ -236,7 +243,7 @@ export const ProfilePage = () => {
                 .from('avatars')
                 .getPublicUrl(filePath);
 
-            // Perist to DB
+            // 4. Persist to DB
             await updateProfile({ [type === 'avatar' ? 'avatar_url' : 'cover_url']: publicUrl });
             setSaving(null);
         } catch (error) {
