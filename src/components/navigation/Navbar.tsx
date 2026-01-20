@@ -4,6 +4,7 @@ import { Mic, Bell, ChevronDown, Users, User, Shield } from 'lucide-react';
 import { cn } from "../../lib/utils";
 import { useTier } from "../../lib/TierContext";
 import { ProfileDropdown } from "./ProfileDropdown";
+import { NotificationBell } from "./NotificationBell";
 import { supabase } from "../../lib/supabase";
 import { useLanguage } from "../../lib/LanguageContext";
 
@@ -145,6 +146,8 @@ export function Navbar({ username: initialUsername }: NavbarProps) {
                     </button>
 
                     <div className="h-8 w-[1px] bg-white/10 mx-2" />
+
+                    <NotificationBell />
 
                     <ProfileDropdown user={{
                         username: currentUsername,

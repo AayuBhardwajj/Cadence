@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { EnhancedCard } from '../../components/dashboard/EnhancedCard';
+import { supabase } from '../../lib/supabase';
 
 const NOTIFICATION_CATEGORIES = [
     {
@@ -47,6 +48,79 @@ const NOTIFICATION_CATEGORIES = [
 ];
 
 export const NotificationSettings = () => {
+    const [preferences, setPreferences] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchPreferences = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data, error } = await supabase
+                    .from('notification_preferences')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (data) {
+                    setPreferences(data);
+                } else {
+                    // Initialize if not exists
+                    const defaultPrefs = {
+                        user_id: user.id,
+                        preferences: {
+                            daily_reminder: true,
+                            goal_milestones: true,
+                            weekly_report: true,
+                            login_alerts: true,
+                            billing_notif: true,
+                            security_audit: true,
+                            friend_activity: true,
+                            leaderboard: true,
+                            new_features: true
+                        }
+                    };
+                    const { data: newData } = await supabase
+                        .from('notification_preferences')
+                        .insert(defaultPrefs)
+                        .select()
+                        .single();
+                    setPreferences(newData);
+                }
+            }
+            setLoading(false);
+        };
+        fetchPreferences();
+    }, []);
+
+    const updatePreference = async (key: string, value: boolean, isChannel = false) => {
+        if (!preferences) return;
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        let updates: any = {};
+        if (isChannel) {
+            updates[key] = value;
+            setPreferences((prev: any) => ({ ...prev, [key]: value }));
+        } else {
+            const newPrefs = { ...preferences.preferences, [key]: value };
+            updates = { preferences: newPrefs };
+            setPreferences((prev: any) => ({ ...prev, preferences: newPrefs }));
+        }
+
+        await supabase
+            .from('notification_preferences')
+            .update({ ...updates, updated_at: new Date().toISOString() })
+            .eq('user_id', user.id);
+    };
+
+    if (loading) return <div className="p-10 text-center text-white">Loading settings...</div>;
+
+    const getToggle = (id: string) => {
+        // For individual items, check JSONB preferences
+        return preferences?.preferences?.[id] ?? false;
+    };
+
     return (
         <div className="max-w-5xl mx-auto space-y-10 pb-20">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -62,27 +136,30 @@ export const NotificationSettings = () => {
             {/* Global Channel Settings */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                    { icon: <Mail className="w-5 h-5" />, label: 'Email', status: 'Enabled', color: 'blue' },
-                    { icon: <Smartphone className="w-5 h-5" />, label: 'Push', status: 'Blocked', color: 'amber' },
-                    { icon: <MessageSquare className="w-5 h-5" />, label: 'SMS', status: 'Not Set', color: 'slate' },
-                ].map((channel) => (
-                    <EnhancedCard key={channel.label} className="flex items-center justify-between p-6">
-                        <div className="flex items-center gap-4">
-                            <div className={cn("p-3 rounded-2xl", channel.status === 'Enabled' ? `bg-${channel.color}-600/20 text-${channel.color}-400` : "bg-white/5 text-white/20")}>
-                                {channel.icon}
+                    { id: 'email_enabled', icon: <Mail className="w-5 h-5" />, label: 'Email', color: 'blue' },
+                    { id: 'push_enabled', icon: <Smartphone className="w-5 h-5" />, label: 'Push', color: 'amber' },
+                    { id: 'sms_enabled', icon: <MessageSquare className="w-5 h-5" />, label: 'SMS', color: 'slate' },
+                ].map((channel) => {
+                    const isEnabled = preferences?.[channel.id];
+                    return (
+                        <EnhancedCard key={channel.id} className="flex items-center justify-between p-6">
+                            <div className="flex items-center gap-4">
+                                <div className={cn("p-3 rounded-2xl", isEnabled ? `bg-${channel.color}-600/20 text-${channel.color}-400` : "bg-white/5 text-white/20")}>
+                                    {channel.icon}
+                                </div>
+                                <div>
+                                    <h4 className="font-black text-white uppercase italic tracking-tight">{channel.label}</h4>
+                                    <p className={cn("text-[10px] font-black uppercase tracking-widest", isEnabled ? "text-green-500" : "text-white/20")}>
+                                        {isEnabled ? 'Enabled' : 'Disabled'}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h4 className="font-black text-white uppercase italic tracking-tight">{channel.label}</h4>
-                                <p className={cn("text-[10px] font-black uppercase tracking-widest", channel.status === 'Enabled' ? "text-green-500" : "text-white/20")}>
-                                    {channel.status}
-                                </p>
+                            <div onClick={() => updatePreference(channel.id, !isEnabled, true)}>
+                                <Toggle active={isEnabled} />
                             </div>
-                        </div>
-                        <button className="text-[10px] font-black text-white/40 hover:text-white uppercase tracking-widest transition-colors">
-                            Configure
-                        </button>
-                    </EnhancedCard>
-                ))}
+                        </EnhancedCard>
+                    );
+                })}
             </div>
 
             {/* Detailed Categories */}
@@ -99,9 +176,7 @@ export const NotificationSettings = () => {
                                 <thead>
                                     <tr className="border-b border-white/5 text-[9px] font-black text-white/20 uppercase tracking-[0.2em] bg-white/[0.02]">
                                         <th className="py-4 pl-8">Notification Type</th>
-                                        <th className="py-4 text-center">Email</th>
-                                        <th className="py-4 text-center">Push</th>
-                                        <th className="py-4 text-center">SMS</th>
+                                        <th className="py-4 text-center">Alerts</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
@@ -111,13 +186,9 @@ export const NotificationSettings = () => {
                                                 <p className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors uppercase italic tracking-tight">{item.label}</p>
                                             </td>
                                             <td className="py-6 text-center">
-                                                <Toggle active={item.email} />
-                                            </td>
-                                            <td className="py-6 text-center">
-                                                <Toggle active={item.push} />
-                                            </td>
-                                            <td className="py-6 text-center">
-                                                <Toggle active={item.sms} />
+                                                <div onClick={() => updatePreference(item.id, !getToggle(item.id))}>
+                                                    <Toggle active={getToggle(item.id)} />
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
