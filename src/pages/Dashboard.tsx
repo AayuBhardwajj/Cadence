@@ -218,6 +218,7 @@ export function Dashboard() {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
+                      onClick={() => navigate('/assessment')}
                       className="group relative px-12 py-5 rounded-2xl bg-white text-slate-950 font-black text-lg shadow-2xl shadow-white/10 hover:shadow-white/20 transition-all overflow-hidden"
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" />

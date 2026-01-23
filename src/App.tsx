@@ -75,6 +75,7 @@ export default function App() {
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/welcome" element={<Welcome />} />
                     <Route path="/pre-recording" element={<PreRecording />} />
+                    <Route path="/assessment" element={<Assessment />} />
                     <Route path="/practice" element={<PracticePage />} />
                     <Route path="/progress" element={<ProgressPage />} />
                     <Route path="/exercises" element={<ExercisesPage />} />
