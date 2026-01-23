@@ -1,352 +1,144 @@
-import {
-    Box,
-    Container,
-    Heading,
-    Text,
-    VStack,
-    HStack,
-    Button,
-    Progress,
-    useColorModeValue,
-    Flex,
-    Icon,
-    Circle,
-    SimpleGrid,
-    Badge,
-} from "@chakra-ui/react";
-import { useState, useEffect, useRef } from "react";
-import { AuroraBackground } from "../components/arcenity/AuroraBackground";
-import { GlassmorphicCard } from "../components/arcenity/GlassmorphicCard";
-import { FloatingOrb } from "../components/animations/FloatingElements";
+import { useState, useEffect } from "react";
+import { Box, Button, useToast, Heading, VStack, Text, SimpleGrid, Badge, HStack, Container } from "@chakra-ui/react";
+import { AnimatePresence, motion } from "framer-motion";
+import { PreRecordingSetup } from "../components/assessment/PreRecordingSetup";
+import { RecordingInterface } from "../components/assessment/RecordingInterface";
+import { ProcessingScreen } from "../components/assessment/ProcessingScreen";
 import { uploadVideoForAnalysis, AnalysisResult } from "../services/api";
 import { supabase } from "../lib/supabase";
-import { useTier } from "../lib/TierContext";
-import { Lock, Crown } from 'lucide-react';
+import { AuroraBackground } from "../components/arcenity/AuroraBackground";
+import { GlassmorphicCard } from "../components/arcenity/GlassmorphicCard";
 
-// --- Types ---
-type AssessmentState = "instructions" | "recording" | "processing" | "results";
+// Results Component (Simple version for now, to complete the flow)
+const ResultsView = ({ result, onRetry }: { result: AnalysisResult; onRetry: () => void }) => (
+    <Container maxW="4xl" py={20}>
+        <GlassmorphicCard intensity="strong" p={10}>
+            <VStack spacing={8} align="stretch">
+                <HStack justify="space-between" align="center">
+                    <Heading size="lg">Assessment Results</Heading>
+                    <Badge colorScheme={result.overall_score >= 80 ? "green" : "orange"} fontSize="md" p={2} rounded="md">
+                        {result.overall_score >= 80 ? "Excellent" : "Good Attempt"}
+                    </Badge>
+                </HStack>
 
-// --- Components ---
+                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
+                    <Box p={4} bg="whiteAlpha.100" rounded="xl" border="1px solid white">
+                        <Text color="gray.500" fontSize="sm">Overall Score</Text>
+                        <Heading size="xl" color="blue.500">{result.overall_score}/100</Heading>
+                    </Box>
+                    <Box p={4} bg="whiteAlpha.100" rounded="xl" border="1px solid white">
+                        <Text color="gray.500" fontSize="sm">WPM</Text>
+                        <Heading size="xl" color="green.500">{result.breakdown.wpm}</Heading>
+                    </Box>
+                    <Box p={4} bg="whiteAlpha.100" rounded="xl" border="1px solid white">
+                        <Text color="gray.500" fontSize="sm">Fillers</Text>
+                        <Heading size="xl" color="purple.500">{result.breakdown.fillers}</Heading>
+                    </Box>
+                </SimpleGrid>
 
-const RecordingVisualizer = () => {
-    return (
-        <HStack spacing={1} h="60px" align="center" justify="center">
-            {[...Array(20)].map((_, i) => (
-                <Box
-                    key={i}
-                    w="4px"
-                    h="20px"
-                    bg="blue.400"
-                    borderRadius="full"
-                    sx={{
-                        animation: `wave 1s infinite ${i * 0.1}s ease-in-out`,
-                        "@keyframes wave": {
-                            "0%, 100%": { height: "20px", opacity: 0.5 },
-                            "50%": { height: "50px", opacity: 1 },
-                        },
-                    }}
-                />
-            ))}
-        </HStack>
-    );
-};
+                <Box p={6} bg="blue.50" rounded="xl" color="black">
+                    <Heading size="sm" mb={2}>Feedback</Heading>
+                    <Text>{result.feedback}</Text>
+                </Box>
+
+                <HStack justify="center">
+                    <Button onClick={onRetry}>Try Again</Button>
+                    <Button colorScheme="blue" onClick={() => window.location.href = '/dashboard'}>Dashboard</Button>
+                </HStack>
+            </VStack>
+        </GlassmorphicCard>
+    </Container>
+);
 
 export function Assessment() {
-    const { tier } = useTier();
-    const [state, setState] = useState<AssessmentState>("instructions");
-    const [timeLeft, setTimeLeft] = useState(60); // 60 seconds for recording
-    const [processingProgress, setProcessingProgress] = useState(0);
-    const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [step, setStep] = useState<'intro' | 'setup' | 'recording' | 'processing' | 'results'>('intro');
+    const [blob, setBlob] = useState<Blob | null>(null);
+    const [result, setResult] = useState<AnalysisResult | null>(null);
+    const [userName, setUserName] = useState("User");
+    const toast = useToast();
 
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const chunksRef = useRef<Blob[]>([]);
-    const videoRef = useRef<HTMLVideoElement | null>(null);
-
-    // Timer logic for recording state
     useEffect(() => {
-        let interval: any;
-        if (state === "recording" && timeLeft > 0) {
-            interval = setInterval(() => {
-                setTimeLeft((prev) => prev - 1);
-            }, 1000);
-        } else if (timeLeft === 0 && state === "recording") {
-            stopRecording();
-        }
-        return () => clearInterval(interval);
-    }, [state, timeLeft]);
+        supabase.auth.getUser().then(({ data }) => {
+            if (data.user?.user_metadata?.full_name) {
+                setUserName(data.user.user_metadata.full_name);
+            }
+        });
+    }, []);
 
-    // Setup Camera on Mount (if needed) or when entering recording state
-    // For now, we assume permission is handled in startRecording
+    const handleRecordingComplete = (recordedBlob: Blob) => {
+        setBlob(recordedBlob);
+        setStep('processing');
+        // Start upload immediately in background or wait for processing screen?
+        // The ProcessingScreen has a mock timer, but we should realistically sync it.
+        // For this UX, we let the orbital system play while we upload.
+        handleUpload(recordedBlob);
+    };
 
-    // Process Video and Upload
-    const processVideo = async () => {
-        if (chunksRef.current.length === 0) return;
-
-        const blob = new Blob(chunksRef.current, { type: "video/webm" });
-
+    const handleUpload = async (file: Blob) => {
         try {
-            // Fake progress for UX
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                progress += 10;
-                if (progress > 90) clearInterval(progressInterval);
-                setProcessingProgress(Math.min(progress, 90));
-            }, 500);
+            const res = await uploadVideoForAnalysis(file);
 
-            const result = await uploadVideoForAnalysis(blob);
-
-            // Save to Supabase
+            // Save to DB
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
-                const { error: dbError } = await supabase
-                    .from('assessments')
-                    .insert({
-                        user_id: session.user.id,
-                        overall_score: result.overall_score,
-                        wpm: result.breakdown.wpm,
-                        eye_contact_score: result.breakdown.eye_contact,
-                        filler_word_count: result.breakdown.fillers,
-                        feedback: result.feedback,
-                        transcription: result.transcription,
-                        // video_url: result.video_url // Handle if available
-                    });
-
-                if (dbError) {
-                    console.error("Error saving assessment:", dbError);
-                }
+                await supabase.from('assessments').insert({
+                    user_id: session.user.id,
+                    overall_score: res.overall_score,
+                    wpm: res.breakdown.wpm,
+                    eye_contact_score: res.breakdown.eye_contact,
+                    filler_word_count: res.breakdown.fillers,
+                    feedback: res.feedback,
+                    transcription: res.transcription,
+                });
             }
-
-            clearInterval(progressInterval);
-            setProcessingProgress(100);
-            setAnalysisResult(result);
-            setState("results");
-        } catch (err: any) {
-            setError("Analysis failed. Please try again.");
-            setState("instructions"); // Go back to start on error
-            alert("Failed to analyze video: " + err.message);
-        }
-    };
-
-    const startRecording = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-
-            // Connect stream to video element for preview (optional)
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-            }
-
-            const mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
-            // Daily limit check for FREE users
-            if (tier === 'FREE') {
-                const { data: assessments } = await supabase
-                    .from('assessments')
-                    .select('created_at')
-                    .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-                    .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString());
-
-                if (assessments && assessments.length >= 1) {
-                    setError("Daily assessment limit reached. Upgrade to Pro for unlimited sessions.");
-                    return;
-                }
-            }
-
-            mediaRecorderRef.current = mediaRecorder;
-            chunksRef.current = [];
-
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    chunksRef.current.push(event.data);
-                }
-            };
-
-            mediaRecorder.onstop = () => {
-                // Stop all tracks to turn off camera light
-                stream.getTracks().forEach(track => track.stop());
-                processVideo();
-            };
-
-            mediaRecorder.start();
-            setState("recording");
-            setTimeLeft(60);
-            setError(null);
+            setResult(res);
+            // We don't advance step immediately; ProcessingScreen calls onComplete
         } catch (err) {
-            console.error("Error accessing media devices", err);
-            alert("Could not access camera/microphone. Please allow permissions.");
+            console.error(err);
+            toast({ title: "Analysis Failed", status: "error" });
+            setStep('setup');
         }
-    };
-
-    const stopRecording = () => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-            mediaRecorderRef.current.stop();
-            setState("processing");
-        }
-    };
-
-    // Removed Mock processing logic since we are using real API now
-
-
-
-    const resetAssessment = () => {
-        setState("instructions");
-        setTimeLeft(60);
-        setProcessingProgress(0);
-        setAnalysisResult(null);
-        chunksRef.current = [];
     };
 
     return (
-        <AuroraBackground variant="mixed" minH="100vh">
-            <Box position="absolute" top={0} left={0} w="full" h="full" overflow="hidden" pointerEvents="none">
-                <FloatingOrb top="10%" left="5%" boxSize="100px" bg="blue.200" opacity={0.3} xRange={20} yRange={30} />
-                <FloatingOrb bottom="15%" right="10%" boxSize="150px" bg="purple.200" opacity={0.2} xRange={30} yRange={40} delay={1} />
-            </Box>
-            <Container maxW="4xl" py={20} position="relative" zIndex={10}>
-                <VStack spacing={8} align="stretch">
-                    {/* Header */}
-                    <VStack spacing={2} textAlign="center">
-                        <Heading size="2xl" color="gray.800" fontWeight="800">
-                            Speech Assessment
-                        </Heading>
-                        <Text fontSize="lg" color="gray.600">
-                            Analyze your communication skills with our advanced AI
-                        </Text>
-                    </VStack>
-
-                    {/* Main Content Card */}
-                    <GlassmorphicCard intensity="strong" p={10} minH="400px">
-                        {state === "instructions" && (
-                            <VStack spacing={8} align="center" justify="center" h="100%">
-                                <Circle size="80px" bg="blue.50" color="blue.500">
-                                    <Text fontSize="4xl">🎙️</Text>
-                                </Circle>
-                                <VStack spacing={4} textAlign="center" maxW="md">
-                                    <Heading size="md">Ready to begin?</Heading>
-                                    <Text color="gray.600">
-                                        You will have 60 seconds to introduce yourself and describe your perfect weekend.
-                                        Speak naturally and clearly.
-                                    </Text>
-                                </VStack>
-                                <Button
-                                    size="lg"
-                                    colorScheme="blue"
-                                    onClick={startRecording}
-                                    rounded="full"
-                                    px={12}
-                                    boxShadow="lg"
-                                    isDisabled={tier === 'FREE' && error !== null}
-                                    _hover={{ transform: "translateY(-2px)", boxShadow: "xl" }}
-                                >
-                                    Start Recording
-                                </Button>
-                                {error && (
-                                    <VStack spacing={4} mt={4} p={6} bg="amber.50" rounded="2xl" border="1px" borderColor="amber.200">
-                                        <HStack color="amber.600">
-                                            <Lock size={18} />
-                                            <Text fontWeight="bold" fontSize="sm">Daily limit reached</Text>
-                                        </HStack>
-                                        <Text fontSize="xs" color="gray.600">Want to continue practicing today? Pro users get unlimited assessments.</Text>
-                                        <Button size="sm" colorScheme="amber" leftIcon={<Crown size={14} />}>
-                                            Upgrade Now
-                                        </Button>
-                                    </VStack>
-                                )}
-                            </VStack>
-                        )}
-
-                        {state === "recording" && (
-                            <VStack spacing={8} align="center" justify="center" h="100%">
-                                <Text fontSize="sm" fontWeight="bold" color="red.500" letterSpacing="widest">
-                                    RECORDING IN PROGRESS
-                                </Text>
-                                <Heading size="3xl" fontFamily="monospace">
-                                    00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
-                                </Heading>
-                                <RecordingVisualizer />
-                                <Text color="gray.500" fontSize="sm">
-                                    Topic: Introduce yourself and describe your perfect weekend.
-                                </Text>
-                                <Button
-                                    colorScheme="red"
-                                    variant="outline"
-                                    onClick={stopRecording}
-                                    rounded="full"
-                                    px={8}
-                                >
-                                    Stop Recording
+        <Box h="100vh" w="full" overflow="hidden" position="relative" bg="black">
+            <AnimatePresence mode="wait">
+                {step === 'intro' && (
+                    <AuroraBackground key="intro">
+                        <Container centerContent h="100vh" justifyContent="center">
+                            <VStack spacing={8}>
+                                <Heading size="2xl">Ready to Improve?</Heading>
+                                <Button size="lg" colorScheme="blue" onClick={() => setStep('setup')}>
+                                    Start New Assessment
                                 </Button>
                             </VStack>
-                        )}
+                        </Container>
+                    </AuroraBackground>
+                )}
 
-                        {state === "processing" && (
-                            <VStack spacing={8} align="center" justify="center" h="100%">
-                                <Heading size="md" color="blue.600">
-                                    Analyzing Audio...
-                                </Heading>
-                                <Box w="full" maxW="md">
-                                    <Progress
-                                        value={processingProgress}
-                                        size="sm"
-                                        colorScheme="blue"
-                                        rounded="full"
-                                        isAnimated
-                                        hasStripe
-                                    />
-                                </Box>
-                                <Text color="gray.500" fontSize="sm">
-                                    Calculating fluency, checking pronunciation, and analyzing sentiment.
-                                </Text>
-                            </VStack>
-                        )}
+                {step === 'setup' && (
+                    <PreRecordingSetup key="setup" onReady={() => setStep('recording')} />
+                )}
 
-                        {state === "results" && analysisResult && (
-                            <VStack spacing={8} align="stretch">
-                                <HStack justify="space-between" align="center">
-                                    <Heading size="lg">Assessment Results</Heading>
-                                    <Badge colorScheme="green" fontSize="md" p={2} rounded="md">
-                                        {analysisResult.overall_score >= 80 ? "Excellent" : analysisResult.overall_score >= 60 ? "Good" : "Needs Improvement"}
-                                    </Badge>
-                                </HStack>
+                {step === 'recording' && (
+                    <RecordingInterface
+                        key="recording"
+                        userName={userName}
+                        onRecordingComplete={handleRecordingComplete}
+                        onCancel={() => setStep('setup')}
+                    />
+                )}
 
-                                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
-                                    <Box p={4} bg="whiteAlpha.500" rounded="xl" border="1px" borderColor="whiteAlpha.300">
-                                        <Text color="gray.500" fontSize="sm">Overall Score</Text>
-                                        <Heading size="xl" color="blue.500">{analysisResult.overall_score}/100</Heading>
-                                    </Box>
-                                    <Box p={4} bg="whiteAlpha.500" rounded="xl" border="1px" borderColor="whiteAlpha.300">
-                                        <Text color="gray.500" fontSize="sm">WPM (Pace)</Text>
-                                        <Heading size="xl" color="green.500">{analysisResult.breakdown.wpm}</Heading>
-                                    </Box>
-                                    <Box p={4} bg="whiteAlpha.500" rounded="xl" border="1px" borderColor="whiteAlpha.300">
-                                        <Text color="gray.500" fontSize="sm">Eye Contact</Text>
-                                        <Heading size="xl" color="purple.500">{analysisResult.breakdown.eye_contact}%</Heading>
-                                    </Box>
-                                </SimpleGrid>
+                {step === 'processing' && (
+                    <ProcessingScreen key="processing" onComplete={() => step === 'processing' && result && setStep('results')} />
+                )}
 
-                                <VStack align="start" spacing={3} bg="blue.50" p={6} rounded="xl">
-                                    <Heading size="sm" color="blue.700">AI Feedback</Heading>
-                                    <Text color="gray.700">
-                                        {analysisResult.feedback}
-                                    </Text>
-                                    <Text fontSize="sm" color="gray.500">
-                                        Filler Words Used: {analysisResult.breakdown.fillers}
-                                    </Text>
-                                </VStack>
-
-                                <HStack justify="center" pt={4}>
-                                    <Button onClick={resetAssessment} variant="ghost">
-                                        Try Again
-                                    </Button>
-                                    <Button colorScheme="blue" onClick={() => window.location.href = '/dashboard'}>
-                                        Go to Dashboard
-                                    </Button>
-                                </HStack>
-                            </VStack>
-                        )}
-                    </GlassmorphicCard>
-                </VStack>
-            </Container>
-        </AuroraBackground>
+                {step === 'results' && result && (
+                    <Box key="results" h="100vh" bgGradient="linear(to-b, #0a0e27, #1a0b2e)" overflow="auto">
+                        <ResultsView result={result} onRetry={() => setStep('setup')} />
+                    </Box>
+                )}
+            </AnimatePresence>
+        </Box>
     );
 }
