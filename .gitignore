@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+backend/venv/
+venv/
+
+# Build
+dist/
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# System
+.DS_Store
