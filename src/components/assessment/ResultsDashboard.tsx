@@ -1,18 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     Box, VStack, HStack, Heading, Text, SimpleGrid, Progress,
-    Badge, Icon, Button, Divider, Center
+    Badge, Icon, Button, Divider, Center, Modal, ModalOverlay,
+    ModalContent, ModalBody, ModalCloseButton, useDisclosure
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import {
     Award, TrendingUp, Zap, MessageSquare, CheckCircle2,
-    AlertCircle, Lock, LayoutDashboard, Share2, Download
+    AlertCircle, Lock, LayoutDashboard, Share2, Download, FileText
 } from 'lucide-react';
 import { AnalysisResult } from '../../services/api';
+import { AssessmentReport } from './AssessmentReport';
 
 interface ResultsDashboardProps {
     result: AnalysisResult;
     onRetry: () => void;
+    userName: string;
+    sessionId: string;
 }
 
 const MetricBar = ({ label, value, color }: { label: string, value: number, color: string }) => (
@@ -34,8 +38,9 @@ const MetricBar = ({ label, value, color }: { label: string, value: number, colo
     </VStack>
 );
 
-export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result, onRetry }) => {
+export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result, onRetry, userName, sessionId }) => {
     const { breakdown } = result;
+    const { isOpen, onOpen, onClose } = useDisclosure();
 
     return (
         <Box w="full" maxW="5xl" mx="auto" py={12} px={6}>
@@ -180,12 +185,36 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result, onRe
                         Back to Dashboard
                     </Button>
                     <HStack spacing={4}>
+                        <Button
+                            colorScheme="blue"
+                            variant="solid"
+                            leftIcon={<FileText size={18} />}
+                            onClick={onOpen}
+                            boxShadow="0 4px 14px 0 rgba(66, 153, 223, 0.39)"
+                        >
+                            View Full Performance Report
+                        </Button>
                         <Button variant="outline" leftIcon={<Share2 size={18} />}>Share</Button>
-                        <Button variant="outline" leftIcon={<Download size={18} />}>Export PDF</Button>
                         <Button colorScheme="blue" onClick={onRetry}>New Assessment</Button>
                     </HStack>
                 </HStack>
             </VStack>
+
+            {/* Performance Report Modal */}
+            <Modal isOpen={isOpen} onClose={onClose} size="full">
+                <ModalOverlay backdropFilter="blur(10px)" bg="gray.900/40" />
+                <ModalContent bg="gray.50" boxShadow="none" m={0} rounded={0}>
+                    <ModalCloseButton color="gray.600" zIndex={10} bg="white" rounded="full" mt={4} mr={4} />
+                    <ModalBody p={0} overflowY="auto">
+                        <AssessmentReport
+                            userName={userName}
+                            sessionId={sessionId}
+                            result={result}
+                            onClose={onClose}
+                        />
+                    </ModalBody>
+                </ModalContent>
+            </Modal>
         </Box>
     );
 };

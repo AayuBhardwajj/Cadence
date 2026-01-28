@@ -221,7 +221,12 @@ export function Assessment() {
 
                 {step === 'results' && result && (
                     <Box key="results" h="100vh" bgGradient="linear(to-b, #0a0e27, #1a0b2e)" overflow="auto">
-                        <ResultsDashboard result={result} onRetry={() => setStep('intro')} />
+                        <ResultsDashboard
+                            result={result}
+                            onRetry={() => setStep('intro')}
+                            userName={userName}
+                            sessionId={sessionId || 'CADENCE-AI-SESSION'}
+                        />
                     </Box>
                 )}
             </AnimatePresence>
