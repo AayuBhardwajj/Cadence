@@ -42,6 +42,7 @@ export interface Recommendation {
     personalization_context: {
         why: string;
         focus_items: string[];
+        dynamic_prompt?: string;
     };
     template: {
         title: string;
@@ -105,5 +106,20 @@ export const uploadVideoForAnalysis = async (videoBlob: Blob): Promise<AnalysisR
     formData.append("file", videoBlob, "recording.webm");
     const response = await fetch(`${API_URL}/analyze`, { method: "POST", body: formData });
     if (!response.ok) throw new Error("Analysis failed");
+    return await response.json();
+};
+export const completeExercise = async (
+    userId: string,
+    exerciseId: string,
+    category: string,
+    score: number,
+    issuesResolved: string[] = []
+): Promise<{ status: string; message: string }> => {
+    const response = await fetch(`${API_URL}/api/exercises/complete?user_id=${userId}&exercise_id=${exerciseId}&category=${category}&score=${score}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(issuesResolved)
+    });
+    if (!response.ok) throw new Error("Failed to complete exercise");
     return await response.json();
 };

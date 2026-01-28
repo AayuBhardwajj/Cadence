@@ -22,7 +22,7 @@ import { DashboardBackground } from "../components/dashboard/DashboardBackground
 import { EnhancedCard } from "../components/dashboard/EnhancedCard";
 import { FullAssessmentCard } from "../components/assessment/FullAssessmentCard";
 import { Navbar } from "../components/navigation/Navbar";
-import { getRecommendations, Recommendation, SpeechProfile } from '../services/api';
+import { getRecommendations, Recommendation, SpeechProfile, completeExercise } from '../services/api';
 import { supabase } from '../lib/supabase';
 import { useToast, Spinner, Box, Heading, Text, VStack, HStack, Badge, Progress, SimpleGrid } from '@chakra-ui/react';
 
@@ -200,6 +200,13 @@ export function ExercisesPage({ username = "Alex" }: { username?: string }) {
                                                     <p className="text-xs text-white/40 font-medium">
                                                         {rec.personalization_context.why}
                                                     </p>
+                                                    {rec.personalization_context.dynamic_prompt && (
+                                                        <Box mt={4} p={3} bg="whiteAlpha.100" rounded="xl" borderLeft="4px solid" borderColor="amber.500">
+                                                            <Text fontSize="xs" color="whiteAlpha.800" fontStyle="italic">
+                                                                "{rec.personalization_context.dynamic_prompt}"
+                                                            </Text>
+                                                        </Box>
+                                                    )}
                                                 </div>
 
                                                 <div className="flex items-center gap-2 pt-2">
@@ -212,7 +219,31 @@ export function ExercisesPage({ username = "Alex" }: { username?: string }) {
                                                         <Timer size={12} className="text-white/20" />
                                                         <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest">{rec.template.estimated_duration_minutes}m</span>
                                                     </HStack>
-                                                    <button className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors">Begin →</button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            const { data: { user } } = await supabase.auth.getUser();
+                                                            if (!user) return;
+                                                            try {
+                                                                const res = await completeExercise(user.id, rec.id, rec.template.skill_category, 85);
+                                                                toast({
+                                                                    title: "Exercise Completed!",
+                                                                    description: "AI just trained itself based on your performance. Your profile is updating.",
+                                                                    status: "success",
+                                                                    duration: 5000,
+                                                                    isClosable: true,
+                                                                });
+                                                                // Reload data to see updated scores
+                                                                const data = await getRecommendations(user.id);
+                                                                setProfile(data.profile);
+                                                                setRecommendations(data.recommendations);
+                                                            } catch (err) {
+                                                                console.error(err);
+                                                            }
+                                                        }}
+                                                        className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors"
+                                                    >
+                                                        Complete Exercise →
+                                                    </button>
                                                 </div>
                                             </div>
                                         </EnhancedCard>

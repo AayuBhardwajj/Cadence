@@ -141,30 +141,36 @@ async def analyze_video_endpoint(file: UploadFile = File(...)):
     # Keep legacy endpoint for compatibility if needed
     return await upload_assessment(file, userId="legacy-user")
 
-@app.get("/api/recommendations")
-async def get_recommendations(user_id: str):
+@app.post("/api/exercises/complete")
+async def complete_exercise(
+    user_id: str,
+    exercise_id: str,
+    category: str,
+    score: int,
+    issues_resolved: List[str] = []
+):
     """
-    Fetches personalized exercise recommendations for a user.
+    Records exercise completion and updates the user's speech profile (AI Training).
     """
     try:
-        # Fetch profile
-        profile = supabase.table('speech_profiles').select('*').eq('user_id', user_id).execute()
+        # 1. Update Profile (The self-training part)
+        # Assuming score > 70 is positive progress
+        score_delta = 5 if score > 80 else 2 if score > 60 else -1
+        await RecommendationService.update_profile_from_exercise(user_id, category, score_delta, issues_resolved)
         
-        # Fetch active recommendations with template data
-        # Note: join syntax in postgrest-py
-        recommendations = supabase.table('exercise_recommendations') \
-            .select('*, template:template_id(*)') \
-            .eq('user_id', user_id) \
-            .eq('is_active', True) \
-            .order('priority_rank') \
-            .execute()
-            
-        return {
-            "profile": profile.data[0] if profile.data else None,
-            "recommendations": recommendations.data
-        }
+        # 2. Save History
+        supabase.table('user_exercise_history').insert({
+            "user_id": user_id,
+            "recommendation_id": exercise_id,
+            "score": score
+        }).execute()
+
+        # 3. Trigger new recommendations if profile changed significantly (optional, for now just return success)
+        return {"status": "success", "message": "Profile updated based on performance"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/recommendations")
 
 if __name__ == "__main__":
     import uvicorn
