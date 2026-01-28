@@ -27,6 +27,32 @@ export interface EligibilityResponse {
     assessments_remaining: number;
 }
 
+export interface SpeechProfile {
+    weakness_priority_1: string;
+    weakness_priority_2: string;
+    weakness_priority_3: string;
+    current_scores: Record<string, number>;
+    identified_issues: Record<string, string[]>;
+    learning_pace: string;
+}
+
+export interface Recommendation {
+    id: string;
+    priority_rank: number;
+    personalization_context: {
+        why: string;
+        focus_items: string[];
+    };
+    template: {
+        title: string;
+        description: string;
+        skill_category: string;
+        difficulty_level: string;
+        estimated_duration_minutes: number;
+    };
+    status: 'not_started' | 'in_progress' | 'completed';
+}
+
 export const checkEligibility = async (userId: string): Promise<EligibilityResponse> => {
     const response = await fetch(`${API_URL}/api/assessment/eligibility?user_id=${userId}`);
     if (!response.ok) throw new Error("Failed to check eligibility");
@@ -38,6 +64,12 @@ export const startAssessment = async (userId: string): Promise<{ sessionId: stri
         method: "POST"
     });
     if (!response.ok) throw new Error("Failed to start assessment");
+    return await response.json();
+};
+
+export const getRecommendations = async (userId: string): Promise<{ profile: SpeechProfile; recommendations: Recommendation[] }> => {
+    const response = await fetch(`${API_URL}/api/recommendations?user_id=${userId}`);
+    if (!response.ok) throw new Error("Failed to fetch recommendations");
     return await response.json();
 };
 

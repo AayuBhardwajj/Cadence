@@ -10,6 +10,7 @@ from services.audio_service import analyze_audio
 from services.video_service import analyze_video
 from utils.scoring import calculate_score
 from utils.supabase_client import supabase
+from services.recommendation_service import RecommendationService
 from datetime import datetime, timedelta
 import json
 
@@ -102,7 +103,16 @@ async def upload_assessment(
             'last_full_assessment_at': datetime.now().isoformat()
         }).eq('id', userId).execute()
 
-        # 4. Cleanup
+        # 4. Integrate Adaptive Learning System
+        # Generate/Update Speech Profile
+        print(f"AdaptiveLearning: Generating profile for {userId}...")
+        await RecommendationService.generate_speech_profile(userId, sessionId, score_data, audio_data)
+        
+        # Generate New Recommendations
+        print(f"AdaptiveLearning: Generating recommendations for {userId}...")
+        await RecommendationService.generate_recommendations(userId)
+
+        # 5. Cleanup
         os.remove(temp_file_path)
         
         return {
@@ -130,6 +140,32 @@ async def get_results(sessionId: str):
 async def analyze_video_endpoint(file: UploadFile = File(...)):
     # Keep legacy endpoint for compatibility if needed
     return await upload_assessment(file, userId="legacy-user")
+
+@app.get("/api/recommendations")
+async def get_recommendations(user_id: str):
+    """
+    Fetches personalized exercise recommendations for a user.
+    """
+    try:
+        # Fetch profile
+        profile = supabase.table('speech_profiles').select('*').eq('user_id', user_id).execute()
+        
+        # Fetch active recommendations with template data
+        # Note: join syntax in postgrest-py
+        recommendations = supabase.table('exercise_recommendations') \
+            .select('*, template:template_id(*)') \
+            .eq('user_id', user_id) \
+            .eq('is_active', True) \
+            .order('priority_rank') \
+            .execute()
+            
+        return {
+            "profile": profile.data[0] if profile.data else None,
+            "recommendations": recommendations.data
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
