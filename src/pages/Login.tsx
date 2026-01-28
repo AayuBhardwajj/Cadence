@@ -156,10 +156,10 @@ export function LoginPage({
             </form>
 
             <Stack spacing={3}>
-              <Text fontSize="xs" color="gray.500" textAlign="center" position="relative">
-                <Box as="span" bg="white" px={2} position="relative" zIndex={1}>
+              <Box fontSize="xs" color="gray.500" textAlign="center" position="relative">
+                <Text as="span" bg="white" px={2} position="relative" zIndex={1}>
                   Or continue with
-                </Box>
+                </Text>
                 <Box
                   position="absolute"
                   top="50%"
@@ -169,7 +169,7 @@ export function LoginPage({
                   bg="gray.200"
                   zIndex={0}
                 />
-              </Text>
+              </Box>
 
               <Button
                 size="md"

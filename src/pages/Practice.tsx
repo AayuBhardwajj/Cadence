@@ -16,12 +16,15 @@ import { cn } from "../lib/utils";
 import { useTier } from "../lib/TierContext";
 import { DashboardBackground } from "../components/dashboard/DashboardBackground";
 import { EnhancedCard } from "../components/dashboard/EnhancedCard";
+import { FullAssessmentCard } from "../components/assessment/FullAssessmentCard";
+import { useNavigate } from "react-router-dom";
 
 import { Navbar } from "../components/navigation/Navbar";
 
 type PracticeMode = 'assessment' | 'quick' | 'realtime' | 'family';
 
 export function PracticePage({ username = "Alex" }: { username?: string }) {
+    const navigate = useNavigate();
     const { tier, isFeatureLocked } = useTier();
     const [selectedMode, setSelectedMode] = useState<PracticeMode | null>(null);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -93,8 +96,14 @@ export function PracticePage({ username = "Alex" }: { username?: string }) {
                     </div>
 
                     {/* Mode Selection */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {modes.filter(m => !m.familyOnly || tier === 'FAMILY' || tier === 'PRO').map((mode) => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {/* Featured Full Assessment Card */}
+                        <div className="md:col-span-2 lg:col-span-3">
+                            <FullAssessmentCard />
+                        </div>
+
+                        {/* Other Modes */}
+                        {modes.filter(m => m.id !== 'assessment' && (!m.familyOnly || tier === 'FAMILY' || tier === 'PRO')).map((mode) => (
                             <motion.div
                                 key={mode.id}
                                 whileHover={{ scale: mode.locked ? 1 : 1.02 }}

@@ -130,3 +130,6 @@ async def get_results(sessionId: str):
 async def analyze_video_endpoint(file: UploadFile = File(...)):
     # Keep legacy endpoint for compatibility if needed
     return await upload_assessment(file, userId="legacy-user")
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
