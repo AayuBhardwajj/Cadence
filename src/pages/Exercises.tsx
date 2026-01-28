@@ -15,6 +15,7 @@ import { cn } from "../lib/utils";
 import { useTier } from "../lib/TierContext";
 import { DashboardBackground } from "../components/dashboard/DashboardBackground";
 import { EnhancedCard } from "../components/dashboard/EnhancedCard";
+import { FullAssessmentCard } from "../components/assessment/FullAssessmentCard";
 
 import { Navbar } from "../components/navigation/Navbar";
 
@@ -78,6 +79,11 @@ export function ExercisesPage({ username = "Alex" }: { username?: string }) {
                                 {tab === 'AI Conversations' && <Zap size={10} className="inline ml-2 text-amber-400" />}
                             </button>
                         ))}
+                    </div>
+
+                    {/* Featured Section */}
+                    <div className="w-full">
+                        <FullAssessmentCard />
                     </div>
 
                     {/* Exercises Grid */}
