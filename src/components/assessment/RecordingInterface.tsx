@@ -7,11 +7,19 @@ interface RecordingInterfaceProps {
     onRecordingComplete: (blob: Blob) => void;
     onCancel: () => void;
     userName?: string;
+    topicId?: string;
 }
 
-export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({ onRecordingComplete, onCancel, userName = "User" }) => {
+export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
+    onRecordingComplete,
+    onCancel,
+    userName = "User",
+    topicId = "custom"
+}) => {
+    const isFullAssessment = topicId !== 'default'; // Assume 'default' is the old paragraph mode
+    const MAX_TIME = isFullAssessment ? 300 : 60;
     const [recordingState, setRecordingState] = useState<'idle' | 'countdown' | 'recording' | 'completed' | 'paused'>('idle');
-    const [timeLeft, setTimeLeft] = useState(60);
+    const [timeLeft, setTimeLeft] = useState(MAX_TIME);
     const [countdown, setCountdown] = useState(3);
     const videoRef = useRef<HTMLVideoElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -82,6 +90,17 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({ onRecord
 
     const paragraph = `My name is ${userName}. Communication skills are very important in the modern workplace. When we work with others, we need to express our thoughts clearly and listen carefully. The weather today feels wonderful with warmth and sunshine. I believe regular practice, along with the right techniques, can help anyone improve their speaking abilities. Whether you're preparing for an interview, presentation, or simply want to feel more confident, dedication and consistency make all the difference. Remember, every small step forward brings you closer to your goals.`;
 
+    const getTopicText = (id: string) => {
+        const topics: Record<string, string> = {
+            'workplace': 'Describe your ideal workplace and what makes it productive for you. Talk about the physical environment, culture, and tools.',
+            'tech': 'How has technology changed the way we communicate in daily life? Discuss both positive and negative impacts.',
+            'social': 'Discuss the impact of social media on modern relationships. How has it changed how we make and maintain connections?',
+            'language': 'The importance of learning multiple languages in a globalized world. Why should someone learn a new language today?',
+            'custom': 'Please speak on a topic of your choice. You may describe a recent experience, a book you read, or a project you are working on.'
+        };
+        return topics[id] || topics['custom'];
+    };
+
     return (
         <Flex
             position="fixed" top={0} left={0} w="full" h="100vh"
@@ -136,11 +155,12 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({ onRecord
                         {recordingState === 'recording' && (
                             <VStack>
                                 <Text fontSize="4xl" fontFamily="monospace" fontWeight="bold" color={timeLeft < 10 ? "red.400" : "white"}>
-                                    00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
+                                    {timeLeft === 0 ? "00:00" : `${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')}`}
                                 </Text>
-                                <Button colorScheme="red" leftIcon={<StopCircle />} onClick={stopRecording}>
-                                    Stop Recording
+                                <Button colorScheme="red" leftIcon={<StopCircle />} onClick={stopRecording} rounded="full" px={8}>
+                                    Finish Recording
                                 </Button>
+                                <Text fontSize="xs" color="whiteAlpha.400">Aim for at least 2:00 for a better score</Text>
                             </VStack>
                         )}
                         {recordingState === 'completed' && (
@@ -164,20 +184,40 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({ onRecord
                     position="relative"
                 >
                     <Text fontSize="sm" textTransform="uppercase" letterSpacing="widest" opacity={0.7} mb={6}>
-                        Read the following paragraph aloud
+                        {isFullAssessment ? "Discuss the following topic" : "Read the following paragraph aloud"}
                     </Text>
 
-                    <Text fontSize="3xl" lineHeight="1.8" fontFamily="sans-serif">
-                        {paragraph}
-                    </Text>
+                    <Box
+                        p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200"
+                        minH="300px" display="flex" alignItems="center" justifyContent="center"
+                    >
+                        <Text fontSize={isFullAssessment ? "4xl" : "3xl"} lineHeight="1.8" fontFamily="sans-serif" textAlign="center" fontWeight="bold">
+                            {isFullAssessment
+                                ? getTopicText(topicId)
+                                : paragraph
+                            }
+                        </Text>
+                    </Box>
+
+                    {/* Hints */}
+                    {isFullAssessment && (
+                        <VStack mt={10} align="start" spacing={4} color="whiteAlpha.500">
+                            <Text fontSize="xs" fontWeight="bold">TIPS FOR A HIGH SCORE:</Text>
+                            <HStack spacing={6}>
+                                <Text fontSize="xs">• Use transition words</Text>
+                                <Text fontSize="xs">• VARY your vocabulary</Text>
+                                <Text fontSize="xs">• Maintain steady pace</Text>
+                            </HStack>
+                        </VStack>
+                    )}
 
                     {/* Progress Bar */}
                     <Box mt={10}>
                         <HStack justify="space-between" mb={2}>
-                            <Text fontSize="sm">Time Remaining</Text>
-                            <Text fontSize="sm">{timeLeft}s</Text>
+                            <Text fontSize="sm">Session Progress</Text>
+                            <Text fontSize="sm">{Math.floor((MAX_TIME - timeLeft) / 60)}:{(MAX_TIME - timeLeft) % 60}</Text>
                         </HStack>
-                        <Progress value={(60 - timeLeft) / 60 * 100} size="sm" colorScheme="blue" rounded="full" />
+                        <Progress value={(MAX_TIME - timeLeft) / MAX_TIME * 100} size="sm" colorScheme="blue" rounded="full" />
                     </Box>
                 </Box>
             </HStack>

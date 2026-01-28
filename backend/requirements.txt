@@ -6,3 +6,5 @@ mediapipe
 openai-whisper
 moviepy
 numpy
+supabase
+python-dotenv

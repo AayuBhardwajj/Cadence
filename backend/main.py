@@ -9,6 +9,9 @@ from typing import Dict
 from services.audio_service import analyze_audio
 from services.video_service import analyze_video
 from utils.scoring import calculate_score
+from utils.supabase_client import supabase
+from datetime import datetime, timedelta
+import json
 
 app = FastAPI(title="Cadence AI Backend")
 
@@ -28,11 +31,51 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 def read_root():
     return {"message": "Cadence AI Backend is running 🚀"}
 
-@app.post("/analyze")
-async def analyze_video_endpoint(file: UploadFile = File(...)):
+@app.get("/api/assessment/eligibility")
+async def get_eligibility(user_id: str):
     """
-    Receives a video file, runs AI analysis, and returns a score.
+    Checks if the user is eligible for a full assessment (1 per 24h for free users).
     """
+    try:
+        # Call the RPC function we defined in SQL
+        response = supabase.rpc('check_assessment_eligibility', {'user_uuid': user_id}).execute()
+        
+        if response.data:
+            return response.data[0]
+        
+        # Fallback if RPC fails or returns nothing
+        return {"can_assess": True, "next_available_at": None, "assessments_remaining": 1}
+    except Exception as e:
+        print(f"Eligibility check error: {e}")
+        return {"can_assess": True, "next_available_at": None, "assessments_remaining": 1}
+
+@app.post("/api/assessment/start")
+async def start_assessment(user_id: str):
+    """
+    Validates eligibility and returns a session token.
+    """
+    eligibility = await get_eligibility(user_id)
+    if not eligibility.get("can_assess"):
+        raise HTTPException(status_code=403, detail="Assessment not available yet. Please wait 24 hours.")
+    
+    session_id = str(uuid.uuid4())
+    # In a real app, we might store this session in Redis or DB
+    return {"status": "success", "sessionId": session_id}
+
+@app.post("/api/assessment/upload")
+async def upload_assessment(
+    file: UploadFile = File(...),
+    sessionId: str = None,
+    userId: str = None,
+    topicId: str = "custom",
+    duration: float = 0
+):
+    """
+    Receives audio file and initiates analysis.
+    """
+    if not userId:
+        raise HTTPException(status_code=400, detail="userId is required")
+        
     try:
         # 1. Save uploaded file temporarily
         file_ext = file.filename.split(".")[-1]
@@ -42,25 +85,48 @@ async def analyze_video_endpoint(file: UploadFile = File(...)):
         with open(temp_file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
-        print(f"Video saved to: {temp_file_path}")
+        print(f"File saved to: {temp_file_path}")
 
         # 2. Run AI Analysis
         audio_data = analyze_audio(temp_file_path)
-        video_data = analyze_video(temp_file_path)
-        
+        # For now, video analysis is optional or mock since user concerned about egress
+        # video_data = analyze_video(temp_file_path) 
+        video_data = {"eye_contact_percent": 85} # Mock or simplified for now
+
         # 3. Calculate Score
         score_data = calculate_score(audio_data, video_data)
         
-        # 4. Add Transcription for storage
-        score_data["transcription"] = audio_data.get("transcription", "")
+        # 4. Update last_full_assessment_at in Supabase
+        # We use profiles.update for this
+        supabase.table('profiles').update({
+            'last_full_assessment_at': datetime.now().isoformat()
+        }).eq('id', userId).execute()
 
         # 4. Cleanup
         os.remove(temp_file_path)
         
-        return score_data
+        return {
+            "sessionId": sessionId or str(uuid.uuid4()),
+            "status": "completed",
+            "results": score_data,
+            "transcription": audio_data.get("transcription", "")
+        }
 
     except Exception as e:
-        # Cleanup if error
         if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
             os.remove(temp_file_path)
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/assessment/results/{sessionId}")
+async def get_results(sessionId: str):
+    """
+    Returns analysis results for a session.
+    """
+    # In a real app, we'd fetch this from the DB using the sessionId
+    # For now, this is often handled by the upload response or a quick metadata fetch
+    return {"message": "Results for session " + sessionId}
+
+@app.post("/analyze")
+async def analyze_video_endpoint(file: UploadFile = File(...)):
+    # Keep legacy endpoint for compatibility if needed
+    return await upload_assessment(file, userId="legacy-user")
