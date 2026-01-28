@@ -11,6 +11,7 @@ from services.video_service import analyze_video
 from utils.scoring import calculate_score
 from utils.supabase_client import supabase
 from services.recommendation_service import RecommendationService
+from services.analysis_service import deep_analyze_speech
 from datetime import datetime, timedelta
 import json
 
@@ -97,6 +98,11 @@ async def upload_assessment(
         # 3. Calculate Score
         score_data = calculate_score(audio_data, video_data)
         
+        # 3.5 Deep Speech Analysis (New)
+        print(f"AdaptiveLearning: Performing deep analysis for {userId}...")
+        deep_analysis = await deep_analyze_speech(audio_data.get("transcription", ""), score_data)
+        score_data["deep_analysis"] = deep_analysis
+
         # 4. Update last_full_assessment_at in Supabase
         # We use profiles.update for this
         supabase.table('profiles').update({

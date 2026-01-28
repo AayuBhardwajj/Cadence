@@ -2,12 +2,13 @@ import React from 'react';
 import {
     Box, VStack, HStack, Text, Heading, SimpleGrid,
     Divider, Center, Button, Icon, Badge, Table,
-    Thead, Tbody, Tr, Th, Td, Progress
+    Thead, Tbody, Tr, Th, Td, Progress, List, ListItem, ListIcon
 } from '@chakra-ui/react';
 import {
     Download, Globe, ShieldCheck, User, Calendar,
-    FileText, Award, BarChart3, Target, Briefcase,
-    CheckCircle2, AlertCircle, Info
+    FileText, Award, BarChart3, Target,
+    CheckCircle2, AlertCircle, Info, Mic2, MessageSquare,
+    Zap, Volume2, Activity, Edit3
 } from 'lucide-react';
 import {
     Radar, RadarChart, PolarGrid, PolarAngleAxis,
@@ -34,6 +35,8 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
         year: 'numeric'
     });
 
+    const { deep_analysis } = result;
+
     const radarData = [
         { subject: 'Fluency', A: result.breakdown.fluency, fullMark: 100 },
         { subject: 'Pronunciation', A: result.breakdown.pronunciation, fullMark: 100 },
@@ -41,13 +44,6 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
         { subject: 'Vocabulary', A: result.breakdown.vocabulary, fullMark: 100 },
         { subject: 'Clarity', A: result.breakdown.clarity, fullMark: 100 },
         { subject: 'Confidence', A: result.breakdown.confidence, fullMark: 100 },
-    ];
-
-    const jobMatches = [
-        { role: 'Business Consultant', match: Math.min(100, result.overall_score + 5), status: 'High' },
-        { role: 'Sales Executive', match: Math.min(100, result.breakdown.confidence + 10), status: 'High' },
-        { role: 'Technical Lead', match: Math.min(100, result.breakdown.clarity + 5), status: 'Medium' },
-        { role: 'Customer Success', match: Math.min(100, result.breakdown.fluency + 8), status: 'High' },
     ];
 
     const handlePrint = () => {
@@ -59,7 +55,7 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
             {/* Control Bar */}
             <HStack justify="space-between" mb={8} className="no-print" maxW="1000px" mx="auto">
                 <Button variant="ghost" onClick={onClose} color="gray.600">
-                    Close Report
+                    Back to Results
                 </Button>
                 <Button
                     leftIcon={<Download size={18} />}
@@ -69,7 +65,7 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                     px={10}
                     boxShadow="lg"
                 >
-                    Download Comprehensive PDF
+                    Download Speech Report (PDF)
                 </Button>
             </HStack>
 
@@ -77,13 +73,13 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
             <Box
                 id="report-content"
                 w="1000px"
-                minH="1414px" // A4 Ratio
+                minH="1414px"
                 mx="auto"
                 bg="white"
                 color="slate.900"
                 position="relative"
                 boxShadow="2xl"
-                p="40px"
+                p="50px"
                 sx={{
                     '@media print': {
                         margin: '0',
@@ -93,220 +89,198 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                     }
                 }}
             >
-                {/* Header Context */}
-                <HStack justify="space-between" borderBottom="2px solid" borderColor="gray.100" pb={6} mb={8}>
+                {/* Formal Header */}
+                <HStack justify="space-between" borderBottom="3px solid" borderColor="blue.800" pb={6} mb={8}>
                     <VStack align="start" spacing={0}>
-                        <HStack spacing={2} mb={1}>
-                            <Globe size={24} color="#1a365d" />
-                            <Heading size="md" color="#1a365d" letterSpacing="tight" fontWeight="black">
-                                CADENCE AI
-                            </Heading>
+                        <HStack spacing={3} mb={1}>
+                            <Box bg="blue.800" p={2} rounded="md">
+                                <Globe size={28} color="white" />
+                            </Box>
+                            <VStack align="start" spacing={0}>
+                                <Heading size="lg" color="blue.800" letterSpacing="tight" fontWeight="900">
+                                    CADENCE AI
+                                </Heading>
+                                <Text fontSize="xs" fontWeight="bold" color="blue.600" textTransform="uppercase" letterSpacing="2px">
+                                    Speech & Communication Audit
+                                </Text>
+                            </VStack>
                         </HStack>
-                        <Text fontSize="10px" fontWeight="black" color="blue.600" textTransform="uppercase" letterSpacing="1px">
-                            Comprehensive Speech Performance Report
-                        </Text>
                     </VStack>
-                    <SimpleGrid columns={2} spacingX={8} spacingY={1}>
-                        <VStack align="start" spacing={0}>
-                            <Text fontSize="8px" fontWeight="bold" color="gray.400">REPORT ID</Text>
-                            <Text fontSize="10px" fontWeight="bold">{sessionId.substring(0, 12).toUpperCase()}</Text>
-                        </VStack>
-                        <VStack align="start" spacing={0}>
-                            <Text fontSize="8px" fontWeight="bold" color="gray.400">DATE</Text>
-                            <Text fontSize="10px" fontWeight="bold">{today}</Text>
-                        </VStack>
-                    </SimpleGrid>
+                    <VStack align="end" spacing={1}>
+                        <Badge colorScheme="blue" variant="subtle" px={3} py={1} rounded="md">
+                            CONFIDENTIAL ANALYSIS
+                        </Badge>
+                        <Text fontSize="10px" fontWeight="bold" color="gray.400">SESSION: {sessionId.substring(0, 18).toUpperCase()}</Text>
+                        <Text fontSize="10px" fontWeight="bold" color="gray.400">ISSUED: {today}</Text>
+                    </VStack>
                 </HStack>
 
-                {/* Candidate Info */}
-                <Box bg="gray.50" p={6} rounded="xl" mb={10} border="1px solid" borderColor="gray.100">
-                    <HStack spacing={12}>
-                        <VStack align="start" spacing={1}>
-                            <Text fontSize="xs" fontWeight="bold" color="gray.500">CANDIDATE NAME</Text>
-                            <Heading size="md" color="slate.800">{userName}</Heading>
-                        </VStack>
-                        <Divider orientation="vertical" h="40px" borderColor="gray.200" />
-                        <VStack align="start" spacing={1}>
-                            <Text fontSize="xs" fontWeight="bold" color="gray.500">ASSESSMENT TYPE</Text>
-                            <Text fontSize="md" fontWeight="bold" color="slate.700">Full AI Communication Audit</Text>
-                        </VStack>
-                        <Divider orientation="vertical" h="40px" borderColor="gray.200" />
-                        <VStack align="start" spacing={1}>
-                            <Text fontSize="xs" fontWeight="bold" color="gray.500">OVERALL SCORE</Text>
-                            <HStack>
-                                <Heading size="md" color="blue.600">{result.overall_score}</Heading>
-                                <Badge colorScheme="blue" variant="solid" fontSize="10px">LEVEL: {result.cefr_level}</Badge>
-                            </HStack>
-                        </VStack>
-                    </HStack>
-                </Box>
+                {/* Candidate Summary */}
+                <SimpleGrid columns={3} spacing={10} mb={12} bg="gray.50" p={8} rounded="2xl" border="1px solid" borderColor="gray.100">
+                    <VStack align="start" spacing={1}>
+                        <Text fontSize="xs" fontWeight="black" color="gray.500" textTransform="uppercase">Speaker</Text>
+                        <Heading size="md" color="slate.800">{userName}</Heading>
+                    </VStack>
+                    <VStack align="start" spacing={1}>
+                        <Text fontSize="xs" fontWeight="black" color="gray.500" textTransform="uppercase">Overall Proficiency</Text>
+                        <HStack spacing={3}>
+                            <Text fontSize="2xl" fontWeight="900" color="blue.700">{result.overall_score}</Text>
+                            <Badge colorScheme="blue" variant="solid" px={3} py={1} rounded="lg">CEFR: {result.cefr_level}</Badge>
+                        </HStack>
+                    </VStack>
+                    <VStack align="start" spacing={1}>
+                        <Text fontSize="xs" fontWeight="black" color="gray.500" textTransform="uppercase">Assessment Focus</Text>
+                        <Text fontSize="md" fontWeight="bold">Linguistic & Vocal Quality</Text>
+                    </VStack>
+                </SimpleGrid>
 
-                <SimpleGrid columns={12} spacing={10} mb={10}>
-                    {/* Left Column: Performance Chakra */}
+                {/* Primary Analysis: Chakra & Metrics */}
+                <SimpleGrid columns={12} spacing={12} mb={14}>
                     <Box gridColumn="span 5">
                         <VStack align="start" spacing={6}>
-                            <Box w="full">
-                                <HStack mb={4}>
-                                    <Icon as={Award} color="blue.500" />
-                                    <Heading size="sm">Performance Chakra</Heading>
-                                </HStack>
-                                <Box h="300px" w="full" bg="gray.50" rounded="2xl" p={4} border="1px solid" borderColor="gray.100">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                                            <PolarGrid stroke="#e2e8f0" />
-                                            <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 'bold', fill: '#4a5568' }} />
-                                            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                            <Radar
-                                                name="You"
-                                                dataKey="A"
-                                                stroke="#3182ce"
-                                                fill="#3182ce"
-                                                fillOpacity={0.6}
-                                            />
-                                        </RadarChart>
-                                    </ResponsiveContainer>
-                                </Box>
-                                <Text fontSize="xs" mt={3} color="gray.500" textAlign="center" fontStyle="italic">
-                                    Visual mapping of your core communication competencies.
-                                </Text>
+                            <Heading size="sm" display="flex" alignItems="center" gap={2} color="blue.800">
+                                <Activity size={18} /> Performance Chakra
+                            </Heading>
+                            <Box h="320px" w="full" position="relative">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                                        <PolarGrid stroke="#e2e8f0" />
+                                        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 'bold', fill: '#4a5568' }} />
+                                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                                        <Radar
+                                            name="Score"
+                                            dataKey="A"
+                                            stroke="#2c5282"
+                                            fill="#2c5282"
+                                            fillOpacity={0.5}
+                                        />
+                                    </RadarChart>
+                                </ResponsiveContainer>
                             </Box>
                         </VStack>
                     </Box>
 
-                    {/* Right Column: Module Breakdown */}
                     <Box gridColumn="span 7">
-                        <HStack mb={4}>
-                            <Icon as={BarChart3} color="blue.500" />
-                            <Heading size="sm">Module Proficiency Breakdown</Heading>
-                        </HStack>
-                        <VStack align="stretch" spacing={5}>
+                        <Heading size="sm" display="flex" alignItems="center" gap={2} mb={6} color="blue.800">
+                            <BarChart3 size={18} /> Module Proficiency Breakdown
+                        </Heading>
+                        <VStack align="stretch" spacing={6}>
                             {radarData.map(metric => (
                                 <Box key={metric.subject}>
-                                    <HStack justify="space-between" mb={1.5}>
-                                        <Text fontSize="xs" fontWeight="bold" color="gray.600">{metric.subject}</Text>
-                                        <Text fontSize="xs" fontWeight="black" color="blue.600">{metric.A}/100</Text>
+                                    <HStack justify="space-between" mb={2}>
+                                        <Text fontSize="xs" fontWeight="900" color="gray.700" textTransform="uppercase" letterSpacing="wide">
+                                            {metric.subject}
+                                        </Text>
+                                        <Text fontSize="sm" fontWeight="900" color="blue.700">{metric.A}%</Text>
                                     </HStack>
-                                    <Progress value={metric.A} size="xs" colorScheme="blue" rounded="full" bg="gray.100" />
-                                    <Text fontSize="9px" mt={1} color="gray.400">
-                                        Comparison to baseline global average: <Text as="span" color="green.500" fontWeight="bold">+{Math.floor(metric.A / 4)}%</Text>
-                                    </Text>
+                                    <Progress value={metric.A} size="sm" colorScheme="blue" rounded="full" bg="gray.100" />
                                 </Box>
                             ))}
                         </VStack>
                     </Box>
                 </SimpleGrid>
 
-                {/* Job Match Summary */}
-                <Box mb={10}>
-                    <HStack mb={4}>
-                        <Icon as={Briefcase} color="blue.500" />
-                        <Heading size="sm">Employability & Job Match Summary</Heading>
-                    </HStack>
-                    <Table size="sm" variant="simple" border="1px solid" borderColor="gray.100" bg="white">
-                        <Thead bg="gray.50">
-                            <Tr>
-                                <Th fontSize="9px">Job Role</Th>
-                                <Th fontSize="9px">Suitability Index</Th>
-                                <Th fontSize="9px">Match Status</Th>
-                                <Th fontSize="9px">Recommendation</Th>
-                            </Tr>
-                        </Thead>
-                        <Tbody>
-                            {jobMatches.map((job, idx) => (
-                                <Tr key={idx}>
-                                    <Td fontSize="xs" fontWeight="bold" color="gray.700">{job.role}</Td>
-                                    <Td>
-                                        <HStack spacing={2}>
-                                            <Box w="60px" h="4px" bg="gray.100" rounded="full" overflow="hidden">
-                                                <Box w={`${job.match}%`} h="full" bg={job.match > 80 ? 'green.400' : 'blue.400'} />
-                                            </Box>
-                                            <Text fontSize="10px" fontWeight="bold">{job.match}%</Text>
-                                        </HStack>
-                                    </Td>
-                                    <Td>
-                                        <Badge variant="subtle" colorScheme={job.status === 'High' ? 'green' : 'blue'} fontSize="9px">
-                                            {job.status} MATCH
-                                        </Badge>
-                                    </Td>
-                                    <Td fontSize="xs" color="gray.500">
-                                        {job.match > 85 ? 'Highly recommended for this role.' : 'Good potential with practice.'}
-                                    </Td>
-                                </Tr>
-                            ))}
-                        </Tbody>
-                    </Table>
-                </Box>
-
-                <SimpleGrid columns={2} spacing={10} mb={10}>
-                    {/* Strengths */}
-                    <Box p={6} bg="green.50" rounded="xl" border="1px solid" borderColor="green.100">
-                        <HStack mb={4} color="green.700">
-                            <Icon as={CheckCircle2} />
-                            <Heading size="xs" textTransform="uppercase" letterSpacing="1px">Core Strengths</Heading>
-                        </HStack>
-                        <VStack align="start" spacing={2}>
-                            {result.strengths.slice(0, 3).map((s, i) => (
-                                <HStack key={i} align="start" spacing={2}>
-                                    <Box w="4px" h="4px" rounded="full" bg="green.400" mt="6px" />
-                                    <Text fontSize="xs" color="green.800" fontWeight="medium">{s}</Text>
-                                </HStack>
-                            ))}
-                        </VStack>
-                    </Box>
-
-                    {/* Opportunities */}
-                    <Box p={6} bg="orange.50" rounded="xl" border="1px solid" borderColor="orange.100">
-                        <HStack mb={4} color="orange.700">
-                            <Icon as={AlertCircle} />
-                            <Heading size="xs" textTransform="uppercase" letterSpacing="1px">Growth Opportunities</Heading>
-                        </HStack>
-                        <VStack align="start" spacing={2}>
-                            {result.focus_areas.slice(0, 3).map((f, i) => (
-                                <HStack key={i} align="start" spacing={2}>
-                                    <Box w="4px" h="4px" rounded="full" bg="orange.400" mt="6px" />
-                                    <Text fontSize="xs" color="orange.800" fontWeight="medium">{f}</Text>
-                                </HStack>
-                            ))}
-                        </VStack>
-                    </Box>
-                </SimpleGrid>
-
-                {/* AI Detailed Feedback */}
-                <Box p={8} bg="blue.900" color="white" rounded="2xl" position="relative" overflow="hidden">
-                    <Box position="absolute" top="-10px" right="-10px" opacity={0.1}>
-                        <FileText size={100} />
-                    </Box>
-                    <VStack align="start" spacing={4}>
-                        <HStack>
-                            <Icon as={ShieldCheck} />
-                            <Heading size="sm">AI Lead Analysis & Feedback</Heading>
-                        </HStack>
-                        <Text fontSize="sm" lineHeight="tall" opacity={0.9}>
-                            "{result.feedback}"
+                {/* Deep Speech Insights (New Sections) */}
+                <VStack align="stretch" spacing={10} mb={12}>
+                    <Box borderLeft="4px solid" borderColor="blue.500" pl={6}>
+                        <Heading size="md" mb={3}>Speech Clarity & Fluency</Heading>
+                        <Text fontSize="sm" color="gray.700" lineHeight="tall">
+                            {deep_analysis?.clarity_fluency || "Analyzing the smoothness and articulation of your delivery..."}
                         </Text>
-                        <Divider borderColor="whiteAlpha.300" />
-                        <HStack w="full" justify="space-between">
-                            <VStack align="start" spacing={0}>
-                                <Text fontSize="10px" fontWeight="bold" opacity={0.5}>TRANSCRIPTION SLICE</Text>
-                                <Text fontSize="xs" fontStyle="italic" noOfLines={1} maxW="400px">
-                                    "{result.transcription.substring(0, 80)}..."
+                    </Box>
+
+                    <SimpleGrid columns={2} spacing={10}>
+                        <VStack align="stretch" spacing={4} bg="blue.50" p={6} rounded="xl">
+                            <Heading size="sm" color="blue.800" display="flex" alignItems="center" gap={2}>
+                                <Volume2 size={18} /> Confidence & Tone
+                            </Heading>
+                            <Text fontSize="xs" color="blue.900" lineHeight="tall">
+                                {deep_analysis?.confidence_tone || "Evaluating vocal variety, steadiness, and emotional resonance."}
+                            </Text>
+                        </VStack>
+
+                        <VStack align="stretch" spacing={4} bg="purple.50" p={6} rounded="xl">
+                            <Heading size="sm" color="purple.800" display="flex" alignItems="center" gap={2}>
+                                <Mic2 size={18} /> Pronunciation Details
+                            </Heading>
+                            <VStack align="start" spacing={3}>
+                                <Box>
+                                    <Text fontSize="10px" fontWeight="black" color="purple.600" textTransform="uppercase">Mispronounced Words</Text>
+                                    <HStack wrap="wrap" mt={1}>
+                                        {deep_analysis?.pronunciation_details.mispronounced_words.map(w => (
+                                            <Badge key={w} colorScheme="purple" variant="outline" size="sm">{w}</Badge>
+                                        )) || <Text fontSize="xs">Observing phoneme accuracy...</Text>}
+                                    </HStack>
+                                </Box>
+                                <Box>
+                                    <Text fontSize="10px" fontWeight="black" color="purple.600" textTransform="uppercase">Target Sounds</Text>
+                                    <Text fontSize="xs" color="purple.900">
+                                        {deep_analysis?.pronunciation_details.struggled_sounds.join(", ") || "Identifying phonetic clusters for improvement."}
+                                    </Text>
+                                </Box>
+                            </VStack>
+                        </VStack>
+                    </SimpleGrid>
+
+                    <Box borderLeft="4px solid" borderColor="green.500" pl={6}>
+                        <Heading size="md" mb={3}>Pacing & Control</Heading>
+                        <Text fontSize="sm" color="gray.700" lineHeight="tall">
+                            {deep_analysis?.pacing_control || "Analyzing your use of pauses, filler words, and rhythmic consistency."}
+                        </Text>
+                    </Box>
+
+                    <Box borderLeft="4px solid" borderColor="orange.500" pl={6}>
+                        <Heading size="md" mb={3}>Grammar & Vocabulary Usage</Heading>
+                        <Text fontSize="sm" color="gray.700" lineHeight="tall">
+                            {deep_analysis?.grammar_vocabulary || "Evaluating your lexicon choices and structural accuracy."}
+                        </Text>
+                    </Box>
+                </VStack>
+
+                {/* Action Plan Section */}
+                <Box mb={12} border="2px solid" borderColor="blue.100" p={8} rounded="2xl">
+                    <Heading size="md" mb={6} display="flex" alignItems="center" gap={3} color="blue.800">
+                        <Zap size={22} fill="#2c5282" /> Actionable Improvement Plan
+                    </Heading>
+                    <VStack align="stretch" spacing={8}>
+                        {deep_analysis?.action_plan.map((item, idx) => (
+                            <Box key={idx}>
+                                <HStack mb={2}>
+                                    <Badge colorScheme="blue" variant="solid" px={2}>AREA {idx + 1}</Badge>
+                                    <Text fontWeight="black" fontSize="sm" color="blue.900">{item.weakness}</Text>
+                                </HStack>
+                                <Text fontSize="xs" bg="gray.50" p={3} rounded="md" borderLeft="3px solid" borderColor="gray.300" fontStyle="italic" mb={3}>
+                                    " {item.example} "
                                 </Text>
-                            </VStack>
-                            <VStack align="end" spacing={0}>
-                                <Text fontSize="10px" fontWeight="bold" opacity={0.5}>ANALYSIS ENGINE</Text>
-                                <Text fontSize="xs" fontWeight="black">CADENCE-V4 (GPT/CLAUDE HYBRID)</Text>
-                            </VStack>
-                        </HStack>
+                                <HStack align="start" spacing={3}>
+                                    <Icon as={Award} color="green.500" mt={1} />
+                                    <Text fontSize="xs" color="gray.700">
+                                        <Text as="span" fontWeight="bold" color="green.700">TIP: </Text>
+                                        {item.tip}
+                                    </Text>
+                                </HStack>
+                            </Box>
+                        )) || (
+                                <Center py={10}>
+                                    <VStack>
+                                        <Info size={30} color="#e2e8f0" />
+                                        <Text color="gray.400" fontSize="sm">AI is drafting your personalized roadmap...</Text>
+                                    </VStack>
+                                </Center>
+                            )}
                     </VStack>
                 </Box>
 
-                {/* Footer */}
-                <Center mt={12} flexDirection="column">
-                    <Text fontSize="10px" color="gray.400" fontWeight="bold" textTransform="uppercase" letterSpacing="2px">
-                        Generated by Cadence AI Assessment Platform
-                    </Text>
-                    <Text fontSize="8px" color="gray.300">
-                        This report is system generated based on AI analysis of audio and visual data and does not require a physical signature.
+                {/* Footer Disclaimer */}
+                <Center mt={10} flexDirection="column" borderTop="1px solid" borderColor="gray.100" pt={8}>
+                    <HStack spacing={2} mb={4}>
+                        <ShieldCheck size={20} color="#2c5282" />
+                        <Text fontSize="10px" fontWeight="black" color="blue.800" textTransform="uppercase" letterSpacing="2px">
+                            Verified AI Linguistic Audit
+                        </Text>
+                    </HStack>
+                    <Text fontSize="8px" color="gray.400" textAlign="center" maxW="500px">
+                        This report is an automated linguistic analysis generated by the Cadence AI Engine. It evaluates communication proficiency through acoustic and textual data patterns and is intended for self-improvement and educational purposes only.
                     </Text>
                 </Center>
             </Box>
@@ -317,7 +291,7 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                     body { background: white !important; }
                     .no-print { display: none !important; }
                     .report-container { padding: 0 !important; background: white !important; }
-                    #report-content { box-shadow: none !important; border: none !important; }
+                    #report-content { box-shadow: none !important; border: none !important; margin: 0 !important; width: 100% !important; padding: 40px !important; }
                 }
             `}} />
         </Box>

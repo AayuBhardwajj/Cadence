@@ -19,6 +19,21 @@ export interface AnalysisResult {
     focus_areas: string[];
     feedback: string;
     transcription: string;
+    deep_analysis?: {
+        clarity_fluency: string;
+        confidence_tone: string;
+        pronunciation_details: {
+            mispronounced_words: string[];
+            struggled_sounds: string[];
+        };
+        grammar_vocabulary: string;
+        pacing_control: string;
+        action_plan: Array<{
+            weakness: string;
+            example: string;
+            tip: string;
+        }>;
+    };
 }
 
 export interface EligibilityResponse {
