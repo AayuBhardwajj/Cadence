@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
 import uuid
-from typing import Dict
+from typing import Dict, List
 
 # Import services
 from services.audio_service import analyze_audio
@@ -171,6 +171,11 @@ async def complete_exercise(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/recommendations")
+async def get_recommendations(user_id: str):
+    """
+    Fetches personalized exercise recommendations for a user.
+    """
+    return await RecommendationService.generate_recommendations(user_id)
 
 if __name__ == "__main__":
     import uvicorn

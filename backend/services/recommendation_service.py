@@ -1,6 +1,6 @@
 import google.generativeai as genai
 import os
-from .supabase_client import supabase
+from utils.supabase_client import supabase
 from datetime import datetime
 from typing import Dict, List, Any
 import json
