@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Text, VStack, HStack, Button, Flex, Progress, IconButton } from '@chakra-ui/react';
+import { Box, Text, VStack, HStack, Button, Flex, Progress, IconButton, Tabs, TabList, TabPanels, Tab, TabPanel } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { StopCircle, RefreshCw, UploadCloud, PlayCircle, PauseCircle } from 'lucide-react';
 
@@ -28,10 +28,18 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
 
     // Initial Setup
     useEffect(() => {
+        let activeStream: MediaStream | null = null;
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {
+                activeStream = stream;
                 if (videoRef.current) videoRef.current.srcObject = stream;
-            });
+            }).catch(console.error);
+
+        return () => {
+            if (activeStream) {
+                activeStream.getTracks().forEach(track => track.stop());
+            }
+        };
     }, []);
 
     // Countdown Logic
@@ -88,18 +96,38 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
         if (recordedBlob) onRecordingComplete(recordedBlob);
     };
 
-    const paragraph = `My name is ${userName}. Communication skills are very important in the modern workplace. When we work with others, we need to express our thoughts clearly and listen carefully. The weather today feels wonderful with warmth and sunshine. I believe regular practice, along with the right techniques, can help anyone improve their speaking abilities. Whether you're preparing for an interview, presentation, or simply want to feel more confident, dedication and consistency make all the difference. Remember, every small step forward brings you closer to your goals.`;
-
-    const getTopicText = (id: string) => {
-        const topics: Record<string, string> = {
-            'workplace': 'Describe your ideal workplace and what makes it productive for you. Talk about the physical environment, culture, and tools.',
-            'tech': 'How has technology changed the way we communicate in daily life? Discuss both positive and negative impacts.',
-            'social': 'Discuss the impact of social media on modern relationships. How has it changed how we make and maintain connections?',
-            'language': 'The importance of learning multiple languages in a globalized world. Why should someone learn a new language today?',
-            'custom': 'Please speak on a topic of your choice. You may describe a recent experience, a book you read, or a project you are working on.'
-        };
-        return topics[id] || topics['custom'];
+    const topicData: Record<string, { prompt: string, text: string, twister: string }> = {
+        'workplace': {
+            prompt: 'Describe your ideal workplace and what makes it productive for you. Talk about the physical environment, culture, and tools.',
+            text: `My ideal workplace is one that fosters collaboration while respecting the need for focused, uninterrupted work. A comfortable environment, equipped with ergonomic furniture and natural lighting, significantly contributes to overall productivity and well-being. Open communication channels and supportive leadership are essential for a thriving team culture.`,
+            twister: `A proper copper coffee pot is placed properly in the peaceful productivity pod.`
+        },
+        'tech': {
+            prompt: 'How has technology changed the way we communicate in daily life? Discuss both positive and negative impacts.',
+            text: `Technology has revolutionized daily communication, making it instantaneous and globally accessible. While smartphones and social networks keep us connected across vast distances, they also introduce challenges like digital fatigue and reduced face-to-face interactions. Balancing screen time with genuine in-person connections is a modern necessity.`,
+            twister: `Seventy-seven benevolent elephants sent digital telegrams through the telecommunication tether.`
+        },
+        'social': {
+            prompt: 'Discuss the impact of social media on modern relationships. How has it changed how we make and maintain connections?',
+            text: `Social media profoundly impacts modern relationships by altering how we form and maintain connections. It allows us to easily stay in touch with distant friends and family, yet it can also create unrealistic expectations through curated portrayals of life. Navigating this digital landscape requires intentionality and a focus on authentic interactions.`,
+            twister: `She sells social media strategies by the seamlessly scrolling silver screen.`
+        },
+        'language': {
+            prompt: 'The importance of learning multiple languages in a globalized world. Why should someone learn a new language today?',
+            text: `In our increasingly interconnected world, learning multiple languages is an invaluable asset. Bilingualism not only enhances cognitive abilities and cultural empathy but also opens doors to diverse career opportunities and global networking. It bridges cultural divides, fostering mutual understanding and collaboration across international borders.`,
+            twister: `Lively language learners literally love learning lovely linguistic lessons locally.`
+        },
+        'custom': {
+            prompt: 'Please speak on a topic of your choice. You may describe a recent experience, a book you read, or a project you are working on.',
+            text: `Communication is the bridge between confusion and clarity. When we take the time to articulate our thoughts precisely and listen actively to others, we build stronger relationships and solve complex problems more effectively. Every conversation is an opportunity to learn something new and connect on a deeper level.`,
+            twister: `Unique New York, you know you need unique New York correctly communicated.`
+        }
     };
+
+    const currentTopic = topicData[topicId] || topicData['custom'];
+
+    // For standard reading (not full assessment)
+    const paragraph = `My name is ${userName}. Communication skills are very important in the modern workplace. When we work with others, we need to express our thoughts clearly and listen carefully. The weather today feels wonderful with warmth and sunshine. I believe regular practice, along with the right techniques, can help anyone improve their speaking abilities. Whether you're preparing for an interview, presentation, or simply want to feel more confident, dedication and consistency make all the difference. Remember, every small step forward brings you closer to your goals.`;
 
     return (
         <Flex
@@ -182,31 +210,67 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
                     border="1px solid rgba(255, 255, 255, 0.08)"
                     rounded="2xl" p={10}
                     position="relative"
+                    display="flex"
+                    flexDirection="column"
                 >
-                    <Text fontSize="sm" textTransform="uppercase" letterSpacing="widest" opacity={0.7} mb={6}>
-                        {isFullAssessment ? "Discuss the following topic" : "Read the following paragraph aloud"}
-                    </Text>
-
-                    <Box
-                        p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200"
-                        minH="300px" display="flex" alignItems="center" justifyContent="center"
-                    >
-                        <Text fontSize={isFullAssessment ? "4xl" : "3xl"} lineHeight="1.8" fontFamily="sans-serif" textAlign="center" fontWeight="bold">
-                            {isFullAssessment
-                                ? getTopicText(topicId)
-                                : paragraph
-                            }
-                        </Text>
-                    </Box>
+                    {!isFullAssessment ? (
+                        <>
+                            <Text fontSize="sm" textTransform="uppercase" letterSpacing="widest" opacity={0.7} mb={6}>
+                                Read the following paragraph aloud
+                            </Text>
+                            <Box
+                                p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200"
+                                flex={1} display="flex" alignItems="center" justifyContent="center"
+                            >
+                                <Text fontSize="3xl" lineHeight="1.8" fontFamily="sans-serif" textAlign="center" fontWeight="bold">
+                                    {paragraph}
+                                </Text>
+                            </Box>
+                        </>
+                    ) : (
+                        <Tabs variant="soft-rounded" colorScheme="blue" flex={1} display="flex" flexDirection="column">
+                            <TabList mb={4}>
+                                <Tab color="whiteAlpha.700" _selected={{ color: 'white', bg: 'blue.600' }}>Topic Prompt</Tab>
+                                <Tab color="whiteAlpha.700" _selected={{ color: 'white', bg: 'blue.600' }}>Reading Passage</Tab>
+                                <Tab color="whiteAlpha.700" _selected={{ color: 'white', bg: 'blue.600' }}>Tongue Twisters</Tab>
+                            </TabList>
+                            <TabPanels flex={1}>
+                                <TabPanel h="full" p={0}>
+                                    <Box p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200" h="full" display="flex" alignItems="center" justifyContent="center">
+                                        <Text fontSize="4xl" lineHeight="1.8" fontFamily="sans-serif" textAlign="center" fontWeight="bold">
+                                            {currentTopic.prompt}
+                                        </Text>
+                                    </Box>
+                                </TabPanel>
+                                <TabPanel h="full" p={0}>
+                                    <Box p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200" h="full" display="flex" alignItems="center" justifyContent="center">
+                                        <Text fontSize="3xl" lineHeight="1.8" fontFamily="sans-serif" textAlign="center">
+                                            {currentTopic.text}
+                                        </Text>
+                                    </Box>
+                                </TabPanel>
+                                <TabPanel h="full" p={0}>
+                                    <Box p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200" h="full" display="flex" flexDir="column" alignItems="center" justifyContent="center">
+                                        <Text fontSize="sm" color="whiteAlpha.600" textTransform="uppercase" letterSpacing="widest" mb={8}>
+                                            Warm up your articulation
+                                        </Text>
+                                        <Text fontSize="4xl" lineHeight="1.8" fontFamily="serif" textAlign="center" fontStyle="italic" color="blue.200" fontWeight="bold">
+                                            "{currentTopic.twister}"
+                                        </Text>
+                                    </Box>
+                                </TabPanel>
+                            </TabPanels>
+                        </Tabs>
+                    )}
 
                     {/* Hints */}
                     {isFullAssessment && (
-                        <VStack mt={10} align="start" spacing={4} color="whiteAlpha.500">
+                        <VStack mt={6} align="start" spacing={4} color="whiteAlpha.500">
                             <Text fontSize="xs" fontWeight="bold">TIPS FOR A HIGH SCORE:</Text>
                             <HStack spacing={6}>
-                                <Text fontSize="xs">• Use transition words</Text>
-                                <Text fontSize="xs">• VARY your vocabulary</Text>
-                                <Text fontSize="xs">• Maintain steady pace</Text>
+                                <Text fontSize="xs">• Speak continuously and clearly</Text>
+                                <Text fontSize="xs">• Use the tabs above if you run out of things to say</Text>
+                                <Text fontSize="xs">• Maintain a steady pace</Text>
                             </HStack>
                         </VStack>
                     )}

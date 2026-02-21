@@ -39,14 +39,13 @@ async def get_eligibility(user_id: str):
     Checks if the user is eligible for a full assessment (1 per 24h for free users).
     """
     try:
-        # Call the RPC function we defined in SQL
-        response = supabase.rpc('check_assessment_eligibility', {'user_uuid': user_id}).execute()
+        # Bypassed for testing purposes:
+        # response = supabase.rpc('check_assessment_eligibility', {'user_uuid': user_id}).execute()
+        # if response.data:
+        #     return response.data[0]
         
-        if response.data:
-            return response.data[0]
-        
-        # Fallback if RPC fails or returns nothing
-        return {"can_assess": True, "next_available_at": None, "assessments_remaining": 1}
+        # Fallback/Test if RPC fails or returns nothing
+        return {"can_assess": True, "next_available_at": None, "assessments_remaining": 999}
     except Exception as e:
         print(f"Eligibility check error: {e}")
         return {"can_assess": True, "next_available_at": None, "assessments_remaining": 1}

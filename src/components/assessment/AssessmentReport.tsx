@@ -51,10 +51,16 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
 
     return (
         <Box className="report-container" p={8} bg="gray.100" minH="100vh">
-            <style dangerouslySetInnerHTML={{ __html: `
+            <style dangerouslySetInnerHTML={{
+                __html: `
                 @media print {
                     @page { size: A4; margin: 15mm; }
-                    body { background: white !important; }
+                    html, body, #root, .chakra-layout, [data-reactroot], div[style*="overflow: auto"] { 
+                        height: auto !important; 
+                        min-height: auto !important;
+                        overflow: visible !important; 
+                        background: white !important;
+                    }
                     .no-print { display: none !important; }
                     .report-container { padding: 0 !important; background: white !important; }
                     .page-break { page-break-after: always; clear: both; }
@@ -185,19 +191,19 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                 {/* ======================= PAGE 2 ======================= */}
                 <Box minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">1 | Introduction</Heading>
-                    
+
                     <Box bg="gray.50" p={8} rounded="md" border="1px solid" borderColor="gray.200" mb={8}>
                         <Heading size="md" mb={4}>About This Report</Heading>
                         <Text fontSize="md" color="gray.700" lineHeight="tall">
-                            This report provides a detailed phonetic and fluency analysis of the candidate's spoken English. 
-                            The candidate was assessed through a read-aloud task in which standardized paragraphs were displayed on screen. 
+                            This report provides a detailed phonetic and fluency analysis of the candidate's spoken English.
+                            The candidate was assessed through a read-aloud task in which standardized paragraphs were displayed on screen.
                             Analysis was performed across five core dimensions of spoken English quality.
                         </Text>
                     </Box>
 
                     <Heading size="md" mb={4}>Score Interpretation</Heading>
                     <Text mb={4} color="gray.600">All scores are on a scale of 0–100.</Text>
-                    
+
                     <VStack align="stretch" spacing={4}>
                         <HStack bg="green.50" p={4} border="1px solid" borderColor="green.200" rounded="md">
                             <Text fontSize="2xl">🟢</Text>
@@ -316,18 +322,18 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                     <Heading size="sm" color="gray.800">{item.pattern}</Heading>
                                     <Badge colorScheme={item.score > 60 ? "red" : (item.score > 30 ? "yellow" : "green")}>Score: {item.score}</Badge>
                                 </HStack>
-                                
+
                                 <Box position="relative" h="8px" bg="gray.200" rounded="full" mb={2} mt={4}>
                                     <Box position="absolute" top="-20px" left="0" fontSize="xs" color="gray.500">Rare</Box>
                                     <Box position="absolute" top="-20px" right="0" fontSize="xs" color="gray.500">Frequent</Box>
-                                    <Box 
-                                        position="absolute" top="-4px" 
-                                        left={item.score + "%"} 
-                                        w="16px" h="16px" bg="gray.800" rounded="full" 
+                                    <Box
+                                        position="absolute" top="-4px"
+                                        left={item.score + "%"}
+                                        w="16px" h="16px" bg="gray.800" rounded="full"
                                         transform="translateX(-50%)"
                                     />
-                                    <Box 
-                                        position="absolute" top="4px" 
+                                    <Box
+                                        position="absolute" top="4px"
                                         w="100%" h="1px" bg="gray.400" zIndex={0}
                                     />
                                 </Box>
@@ -417,25 +423,25 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">Word-Level Error Log</Heading>
 
                     {[
-                        { 
-                            cat: "Pronunciation & MTI Errors", 
-                            color: "red.100", 
+                        {
+                            cat: "Pronunciation & MTI Errors",
+                            color: "red.100",
                             headerColor: "red.800",
                             items: [
                                 { t: "0:14", w: "pronunciation", s: "pro-nun-see-AY-shun", c: "prə-ˌnʌn-si-ˈeɪ-ʃən", e: "Vowel shift", sev: "Moderate" },
                                 { t: "0:31", w: "the", s: "de", c: "ðə", e: "th→d substitution", sev: "Major" },
                                 { t: "0:35", w: "the", s: "de", c: "ðə", e: "th→d substitution", sev: "Major" },
-                            ] 
+                            ]
                         },
-                        { 
-                            cat: "Fluency & Rhythm Variations", 
-                            color: "yellow.100", 
+                        {
+                            cat: "Fluency & Rhythm Variations",
+                            color: "yellow.100",
                             headerColor: "yellow.800",
                             items: [
                                 { t: "0:25", w: "over", s: "ower", c: "ˈoʊvər", e: "Consonant softening", sev: "Minor" },
                                 { t: "0:42", w: "approximately", s: "approx-mately", c: "ə-ˈprɑk-sə-mət-li", e: "Syllable omission", sev: "Minor" },
                                 { t: "1:02", w: "comfortable", s: "com-for-ta-bull", c: "ˈkʌmf-tər-bəl", e: "Syllable insertion", sev: "Minor" },
-                            ] 
+                            ]
                         }
                     ].map((group, gIdx) => (
                         <Box key={gIdx} mb={8}>
@@ -584,7 +590,7 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                 </HStack>
                             </VStack>
                         </Box>
-                        
+
                         <Box>
                             <Heading size="sm" mb={3} color="gray.800">MTI Reduction — Hindi/Punjabi Speakers</Heading>
                             <VStack align="stretch" spacing={2}>
@@ -600,7 +606,7 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                         </Box>
                     </VStack>
                 </Box>
-                
+
                 <Center mt={12} borderTop="1px solid" borderColor="gray.200" pt={8} className="no-print">
                     <Text fontSize="xs" color="gray.400">--- END OF REPORT ---</Text>
                 </Center>
