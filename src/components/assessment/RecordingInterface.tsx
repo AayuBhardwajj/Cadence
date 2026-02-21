@@ -92,7 +92,16 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
         setRecordingState('countdown');
     };
 
+    const cleanupStream = () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+            videoRef.current.srcObject = null;
+        }
+    };
+
     const handleSubmit = () => {
+        cleanupStream();
         if (recordedBlob) onRecordingComplete(recordedBlob);
     };
 

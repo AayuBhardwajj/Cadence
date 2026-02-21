@@ -1,4 +1,4 @@
-import google.generativeai as genai
+from google import genai
 import os
 from utils.supabase_client import supabase
 from datetime import datetime
@@ -11,8 +11,7 @@ class RecommendationService:
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
             return None
-        genai.configure(api_key=api_key)
-        return genai.GenerativeModel('gemini-1.5-flash')
+        return genai.Client(api_key=api_key)
 
     @staticmethod
     async def generate_speech_profile(user_id: str, assessment_id: str, scores: Dict[str, int], metrics: Dict[str, Any]):
@@ -132,7 +131,10 @@ class RecommendationService:
                 if model and issues:
                     try:
                         prompt = f"Generate a short, engaging 3-sentence speaking exercise for a user struggling with {category}. Specific issues: {', '.join(issues)}. Style: Encouraging."
-                        response = model.generate_content(prompt)
+                        response = model.models.generate_content(
+                            model='gemini-2.5-flash',
+                            contents=prompt,
+                        )
                         dynamic_content = response.text
                     except Exception as e:
                         print(f"Gemini error: {e}")

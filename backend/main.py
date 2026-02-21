@@ -4,6 +4,9 @@ import shutil
 import os
 import uuid
 from typing import Dict, List
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Import services
 from services.audio_service import analyze_audio

@@ -1,4 +1,4 @@
-import google.generativeai as genai
+from google import genai
 import os
 import json
 from typing import Dict, Any
@@ -7,8 +7,7 @@ def _get_gemini_model():
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         return None
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel('gemini-1.5-flash')
+    return genai.Client(api_key=api_key)
 
 async def deep_analyze_speech(transcription: str, metrics: Dict[str, Any], words_data: list = [], topic_id: str = "custom", topic_prompt: str = "") -> Dict[str, Any]:
     """
@@ -106,7 +105,10 @@ async def deep_analyze_speech(transcription: str, metrics: Dict[str, Any], words
     """
 
     try:
-        response = model.generate_content(prompt)
+        response = model.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+        )
         content = response.text.strip()
         if content.startswith("```json"):
             content = content[7:-3].strip()

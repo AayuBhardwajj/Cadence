@@ -6,6 +6,8 @@ import {
 } from '@chakra-ui/react';
 import { Download, CheckCircle, AlertTriangle, MonitorPlay } from 'lucide-react';
 import { AnalysisResult } from '../../services/api';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface AssessmentReportProps {
     userName: string;
@@ -38,17 +40,58 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
 }) => {
     const today = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 
-    // Mock data fallbacks in case the API hasn't been fully updated yet to return the exact AMCAT structure
+    // Strict dynamic data mapping (no more mock fallbacks)
     const m = result.amcat_metrics || {
-        pronunciation: { score: 62, consonant: 58, vowel: 65, stress: 62 },
-        fluency: { score: 75, rate: 80, pause: 70, fillers: 75 },
-        intonation: { score: 45, sentence: 50, rise_fall: 40, pitch: 45 },
-        clarity: { score: 82, end_consonants: 80, enunciation: 85, pace: 81 },
-        mti: { score: 28, l1_interference: 20, retroflex: 30, vowel_shift: 35 },
-        relevancy: { score: 85, feedback: "The candidate answered the prompt well and stayed on topic." }
+        pronunciation: { score: 0, consonant: 0, vowel: 0, stress: 0 },
+        fluency: { score: 0, rate: 0, pause: 0, fillers: 0 },
+        intonation: { score: 0, sentence: 0, rise_fall: 0, pitch: 0 },
+        clarity: { score: 0, end_consonants: 0, enunciation: 0, pace: 0 },
+        mti: { score: 0, l1_interference: 0, retroflex: 0, vowel_shift: 0 },
+        relevancy: { score: 0, feedback: "No topic relevancy feedback provided." }
     };
+    const insights = result.amcat_insights || [];
+    const mti_deep_dive = result.amcat_mti_deep_dive || { detected_accent: "None detected", patterns: [] };
+    const transcript = result.amcat_transcript || {
+        reference_text: "", user_text: "", error_words: [],
+        stats: { total_words: 0, speech_rate_wpm: 0, ideal_wpm_range: "130-150", total_sentences: 0, avg_sentence_duration: 0, longest_pause: 0, filler_count: 0 },
+        error_summary: { mispronunciation: 0, stutters: 0, unnatural_pauses: 0, filler_words: 0, mti_substitutions: 0 }
+    };
+    const error_log = result.amcat_error_log || [];
+    const sentences = result.amcat_sentences || [];
+    const summary = result.amcat_summary || { top_strengths: [], top_improvements: [], learning_resources: [] };
 
-    const handlePrint = () => window.print();
+    const handleDownloadPdf = async () => {
+        const reportContent = document.getElementById('assessment-report-content');
+        if (!reportContent) return;
+
+        const pages = reportContent.querySelectorAll('.pdf-page');
+        if (pages.length === 0) return;
+
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+
+        for (let i = 0; i < pages.length; i++) {
+            const pageEl = pages[i] as HTMLElement;
+            // Capture each page block
+            const canvas = await html2canvas(pageEl, { scale: 2, useCORS: true } as any);
+            const imgData = canvas.toDataURL('image/png');
+
+            // Calculate scaled dimensions to fit the PDF
+            const imgProps = pdf.getImageProperties(imgData);
+            const ratio = imgProps.width / imgProps.height;
+            let drawHeight = pdfWidth / ratio;
+
+            // If the chunk height exceeds the A4 page height, scale it down (or cap it) 
+            // but standard A4 aspect matches roughly the 950px height mapping
+            if (drawHeight > pdfHeight) drawHeight = pdfHeight;
+
+            if (i > 0) pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, drawHeight);
+        }
+
+        pdf.save(`${userName.replace(/\s+/g, '_')}_Assessment_Report.pdf`);
+    };
 
     return (
         <Box className="report-container" p={8} bg="gray.100" minH="100vh">
@@ -71,15 +114,15 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
 
             <HStack justify="space-between" mb={8} className="no-print" maxW="900px" mx="auto">
                 <Button variant="ghost" onClick={onClose} color="gray.600">Back to Results</Button>
-                <Button leftIcon={<Download size={18} />} colorScheme="blue" onClick={handlePrint} shadow="md">
+                <Button leftIcon={<Download size={18} />} colorScheme="blue" onClick={handleDownloadPdf} shadow="md">
                     Download Assessment Report (PDF)
                 </Button>
             </HStack>
 
-            <Box className="print-box" w="100%" maxW="900px" mx="auto" bg="white" p={12} shadow="2xl" color="gray.800">
+            <Box id="assessment-report-content" className="print-box" w="100%" maxW="900px" mx="auto" bg="white" p={12} shadow="2xl" color="gray.800">
 
                 {/* ======================= PAGE 1 ======================= */}
-                <Box minH="950px">
+                <Box className="pdf-page" minH="950px">
                     <VStack align="stretch" spacing={2} mb={8} borderBottom="4px solid" borderColor="gray.800" pb={4}>
                         <Heading size="xl" textTransform="uppercase" color="gray.800">CADENCE SPEECH ASSESSMENT REPORT</Heading>
                         <HStack justify="space-between">
@@ -191,7 +234,7 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                 <PageBreak />
 
                 {/* ======================= PAGE 2 ======================= */}
-                <Box minH="950px">
+                <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">1 | Introduction</Heading>
 
                     <Box bg="gray.50" p={8} rounded="md" border="1px solid" borderColor="gray.200" mb={8}>
@@ -234,97 +277,41 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                 <PageBreak />
 
                 {/* ======================= PAGE 3 ======================= */}
-                <Box minH="950px">
+                <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">2 | Insights</Heading>
 
                     <VStack align="stretch" spacing={6}>
-                        {[
-                            {
-                                dim: "Topic Relevancy",
-                                score: m.relevancy?.score || 100,
-                                def: "Focuses on whether the candidate successfully comprehended and responded to the specific prompt given.",
-                                feedback: m.relevancy?.feedback || "No topic relevancy feedback provided."
-                            },
-                            {
-                                dim: "Pronunciation Accuracy",
-                                score: m.pronunciation.score,
-                                def: "This dimension measures how accurately the candidate produces individual sounds, words, and syllables in standard spoken English.",
-                                feedback: "The candidate demonstrated adequate pronunciation for most common vocabulary. However, consistent difficulty was observed with dental fricatives — the 'th' sound in words such as 'the', 'that', and 'through' was regularly produced as 'd' or 't'. Multisyllabic words such as 'approximately' and 'professional' showed stress placement errors."
-                            },
-                            {
-                                dim: "MTI / Accent Neutrality",
-                                score: m.mti.score,
-                                def: "Measures the extent to which the candidate's first language (L1) phonology influences their English, impacting global intelligibility.",
-                                feedback: "Significant Mother Tongue Influence (MTI) was detected. Retroflex consonants (like hard 'r' or 't') frequently bled into English output. Vowel elongation was notably present, where short vowels in words like 'bit' were stretched closer to 'beat'. Overall intelligibility is maintained but noticeable deviation from neutral accent is present."
-                            },
-                            {
-                                dim: "Fluency & Rhythm",
-                                score: m.fluency.score,
-                                def: "Evaluates the smoothness, pace, and natural flow of speech without excessive hesitations or unnatural pauses.",
-                                feedback: "Speech rate was well within the ideal range (around 130 WPM). The candidate maintained a relatively steady pace but exhibited unnatural pauses mid-sentence, notably before complex clauses (e.g., pausing for 1.8 seconds after 'environment' before continuing). Filler words were largely controlled, demonstrating fair cognitive processing speed."
-                            },
-                            {
-                                dim: "Intonation & Stress",
-                                score: m.intonation.score,
-                                def: "Analyzes pitch variation and the emphasis placed on content words versus grammatical words to convey meaning.",
-                                feedback: "Delivery was largely monotone, resulting in a low Intonation score. The candidate failed to place natural stress on key content words like 'quick' or 'lazy' during the read-aloud task. Furthermore, statements occasionally ended with a rising pitch, confusing declarative sentences with questions."
-                            },
-                            {
-                                dim: "Clarity & Articulation",
-                                score: m.clarity.score,
-                                def: "Focuses on the crispness of speech, particularly word endings and separation between consecutive words.",
-                                feedback: "Strong performance in general enunciation. Word endings, particularly plural 's' and past-tense 'ed' sounds, were distinctly articulated. Pacing was controlled well enough to prevent word-slurring, ensuring that individual words remained distinct and crisp throughout."
-                            }
-                        ].map((insight, idx) => (
+                        {insights.length > 0 ? insights.map((insight, idx) => (
                             <Box key={idx} border="1px solid" borderColor="gray.200" rounded="md" p={6} bg="white" shadow="sm">
                                 <HStack justify="space-between" mb={3}>
-                                    <Heading size="md" color="gray.800">{insight.dim}</Heading>
+                                    <Heading size="md" color="gray.800">{insight.dimension}</Heading>
                                     <HStack>
                                         <Text fontWeight="bold">Score:</Text>
                                         <Text fontWeight="bold" color={getColor(insight.score)} fontSize="lg">{insight.score}/100 {getDot(insight.score)}</Text>
                                     </HStack>
                                 </HStack>
-                                <Text fontSize="sm" color="gray.600" mb={3} fontStyle="italic">{insight.def}</Text>
+                                <Text fontSize="sm" color="gray.600" mb={3} fontStyle="italic">{insight.definition}</Text>
                                 <Divider mb={3} />
                                 <Text fontSize="sm" color="gray.800" lineHeight="tall">{insight.feedback}</Text>
                             </Box>
-                        ))}
+                        )) : (
+                            <Text color="gray.500" fontStyle="italic">Detailed insights are currently being generated or unavailable for this session.</Text>
+                        )}
                     </VStack>
                 </Box>
 
                 <PageBreak />
 
                 {/* ======================= PAGE 4 ======================= */}
-                <Box minH="950px">
+                <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">MTI Deep Dive</Heading>
 
                     <Box bg="red.50" borderLeft="4px solid" borderColor="red.500" p={4} mb={8}>
-                        <Text fontWeight="bold" color="red.900" fontSize="lg">Detected L1 Influence: Punjabi-Influenced Hindi → English</Text>
+                        <Text fontWeight="bold" color="red.900" fontSize="lg">Detected L1 Influence: {mti_deep_dive.detected_accent || "No obvious accent detected"}</Text>
                     </Box>
 
                     <VStack align="stretch" spacing={8}>
-                        {[
-                            {
-                                pattern: "'th' → 'd/t' substitution", score: 85, freqText: "Frequent",
-                                bullets: ["Consistently substituted dental fricatives with alveolar stops.", "Observed in function words: 'the', 'there', 'that'.", "Impacts formal professional clarity."]
-                            },
-                            {
-                                pattern: "Retroflex consonants bleeding into English", score: 70, freqText: "Frequent",
-                                bullets: ["Rolled 'r' sounds applied to standard English words.", "Hardened 't' and 'd' sounds (retroflex instead of alveolar).", "Strongest effect observed in words like 'brown', 'water'."]
-                            },
-                            {
-                                pattern: "Vowel elongation (short vowels stretched)", score: 40, freqText: "Moderate",
-                                bullets: ["Short vowels dragged out slightly.", "Example: 'ship' produced closer to 'sheep'.", "Occurred mostly in stressed syllables."]
-                            },
-                            {
-                                pattern: "Word-final consonant dropping", score: 20, freqText: "Rare",
-                                bullets: ["Mostly articulated word endings clearly.", "Rarely omitted trailing 's' or 't' sounds.", "Does not significantly impede intelligibility."]
-                            },
-                            {
-                                pattern: "Rising intonation on statements", score: 65, freqText: "Frequent",
-                                bullets: ["Statements sound like questions due to rising pitch at the end.", "Creates a perception of uncertainty.", "Particularly noticeable at ends of paragraphs."]
-                            }
-                        ].map((item, idx) => (
+                        {mti_deep_dive.patterns.length > 0 ? mti_deep_dive.patterns.map((item: any, idx: number) => (
                             <Box key={idx} borderBottom="1px solid" borderColor="gray.100" pb={6}>
                                 <HStack justify="space-between" mb={2}>
                                     <Heading size="sm" color="gray.800">{item.pattern}</Heading>
@@ -348,18 +335,20 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
 
                                 <Box mt={4} pl={4}>
                                     <ul style={{ color: "#4A5568", fontSize: "14px", lineHeight: "1.6" }}>
-                                        {item.bullets.map((b, i) => <li key={i}>{b}</li>)}
+                                        {item.behaviors?.map((b: string, i: number) => <li key={i}>{b}</li>)}
                                     </ul>
                                 </Box>
                             </Box>
-                        ))}
+                        )) : (
+                            <Text color="gray.500" fontStyle="italic">No specific MTI patterns detected.</Text>
+                        )}
                     </VStack>
                 </Box>
 
                 <PageBreak />
 
                 {/* ======================= PAGE 5 ======================= */}
-                <Box minH="950px">
+                <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">3 | Response</Heading>
 
                     <Grid templateColumns="3fr 1fr" gap={8}>
@@ -367,14 +356,14 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                             <Box mb={8}>
                                 <Text fontWeight="bold" color="gray.600" fontSize="xs" textTransform="uppercase" mb={2}>Paragraph Displayed to Candidate:</Text>
                                 <Box bg="gray.50" p={6} border="1px solid" borderColor="gray.200" rounded="md" fontStyle="italic" color="gray.700">
-                                    "The quick brown fox jumps over the lazy dog. It was a comfortable environment for everyone involved. We aim to provide professional services approximately twice a year. Understanding pronunciation is key to success."
+                                    "{transcript.reference_text || 'Reference text unavailable.'}"
                                 </Box>
                             </Box>
 
                             <Box>
                                 <Text fontWeight="bold" color="gray.600" fontSize="xs" textTransform="uppercase" mb={2}>Candidate's Transcription (Auto-generated):</Text>
                                 <Box bg="white" p={6} border="1px solid" borderColor="gray.200" rounded="md" color="gray.800" lineHeight="tall">
-                                    <Text as="span" bg="red.100" px={1} rounded="sm">De</Text> quick brown fox jumps <Text as="span" bg="yellow.100" px={1} rounded="sm">ower</Text> <Text as="span" bg="red.100" px={1} rounded="sm">de</Text> lazy dog. It was a comfortable environment... for everyone involved. We aim to provide professional services <Text as="span" bg="yellow.100" px={1} rounded="sm">approx-mately</Text> twice a year. Understanding <Text as="span" bg="red.100" px={1} rounded="sm">pro-nun-see-ay-shun</Text> is key to success.
+                                    {transcript.user_text || 'Transcription unavailable.'}
                                 </Box>
                             </Box>
                         </GridItem>
@@ -386,11 +375,11 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                 </Box>
                                 <VStack align="stretch" spacing={0}>
                                     {[
-                                        { label: "Mispronunciation", val: 3 },
-                                        { label: "Stutters/Repetitions", val: 1 },
-                                        { label: "Unnatural Pauses", val: 2 },
-                                        { label: "Filler Words", val: 0 },
-                                        { label: "MTI Substitutions", val: 4 }
+                                        { label: "Mispronunciation", val: transcript.error_summary?.mispronunciation || 0 },
+                                        { label: "Stutters/Repetitions", val: transcript.error_summary?.stutters || 0 },
+                                        { label: "Unnatural Pauses", val: transcript.error_summary?.unnatural_pauses || 0 },
+                                        { label: "Filler Words", val: transcript.error_summary?.filler_words || 0 },
+                                        { label: "MTI Substitutions", val: transcript.error_summary?.mti_substitutions || 0 }
                                     ].map((row, idx) => (
                                         <HStack key={idx} justify="space-between" p={3} borderBottom="1px solid" borderColor="gray.700">
                                             <Text fontSize="sm">{row.label}</Text>
@@ -406,12 +395,12 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                 </Box>
                                 <VStack align="stretch" spacing={0}>
                                     {[
-                                        { label: "Total Words Spoken", val: "34" },
-                                        { label: "Speech Rate", val: "98 WPM" },
-                                        { label: "Ideal Range", val: "120–150" },
-                                        { label: "Total Sentences", val: "4" },
-                                        { label: "Avg Sentence", val: "4.2 sec" },
-                                        { label: "Longest Pause", val: "1.8 sec" }
+                                        { label: "Total Words Spoken", val: transcript.stats?.total_words || "N/A" },
+                                        { label: "Speech Rate", val: (transcript.stats?.speech_rate_wpm || "N/A") + " WPM" },
+                                        { label: "Ideal Range", val: transcript.stats?.ideal_wpm_range || "130-150" },
+                                        { label: "Total Sentences", val: transcript.stats?.total_sentences || "N/A" },
+                                        { label: "Avg Sentence Length", val: (transcript.stats?.avg_sentence_duration || "N/A") + " sec" },
+                                        { label: "Longest Pause", val: (transcript.stats?.longest_pause || "N/A") + " sec" }
                                     ].map((row, idx) => (
                                         <HStack key={idx} justify="space-between" p={3} borderBottom="1px solid" borderColor="gray.100">
                                             <Text fontSize="xs" color="gray.600">{row.label}</Text>
@@ -427,35 +416,18 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                 <PageBreak />
 
                 {/* ======================= PAGE 6 ======================= */}
-                <Box minH="950px">
+                <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">Word-Level Error Log</Heading>
 
-                    {[
-                        {
-                            cat: "Pronunciation & MTI Errors",
-                            color: "red.100",
-                            headerColor: "red.800",
-                            items: [
-                                { t: "0:14", w: "pronunciation", s: "pro-nun-see-AY-shun", c: "prə-ˌnʌn-si-ˈeɪ-ʃən", e: "Vowel shift", sev: "Moderate" },
-                                { t: "0:31", w: "the", s: "de", c: "ðə", e: "th→d substitution", sev: "Major" },
-                                { t: "0:35", w: "the", s: "de", c: "ðə", e: "th→d substitution", sev: "Major" },
-                            ]
-                        },
-                        {
-                            cat: "Fluency & Rhythm Variations",
-                            color: "yellow.100",
-                            headerColor: "yellow.800",
-                            items: [
-                                { t: "0:25", w: "over", s: "ower", c: "ˈoʊvər", e: "Consonant softening", sev: "Minor" },
-                                { t: "0:42", w: "approximately", s: "approx-mately", c: "ə-ˈprɑk-sə-mət-li", e: "Syllable omission", sev: "Minor" },
-                                { t: "1:02", w: "comfortable", s: "com-for-ta-bull", c: "ˈkʌmf-tər-bəl", e: "Syllable insertion", sev: "Minor" },
-                            ]
-                        }
-                    ].map((group, gIdx) => (
-                        <Box key={gIdx} mb={8}>
-                            <Box bg={group.color} p={3} borderTopRadius="md" borderBottom="2px solid" borderColor="gray.300">
-                                <Text fontWeight="bold" color={group.headerColor} textTransform="uppercase">{group.cat}</Text>
+                    <VStack align="stretch" spacing={6}>
+                        {error_log.length > 0 ? (
+                            <Box bg="red.50" p={2} borderTopRadius="md" borderBottom="2px solid" borderColor="red.300">
+                                <Text fontWeight="bold" color="red.800" textTransform="uppercase">Speech & Error Log</Text>
                             </Box>
+                        ) : (
+                            <Text color="gray.500" fontStyle="italic">No specific word-level errors were heavily detected.</Text>
+                        )}
+                        {error_log.length > 0 && (
                             <Table size="sm" variant="simple" bg="white" border="1px solid" borderColor="gray.200" borderTop="none">
                                 <Thead bg="gray.50">
                                     <Tr>
@@ -468,75 +440,52 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                     </Tr>
                                 </Thead>
                                 <Tbody>
-                                    {group.items.map((err, i) => (
+                                    {error_log.map((err: any, i: number) => (
                                         <Tr key={i}>
-                                            <Td fontSize="xs" color="gray.500">{err.t}</Td>
-                                            <Td fontSize="sm" fontWeight="bold">"{err.w}"</Td>
-                                            <Td fontSize="sm" color="red.600">"{err.s}"</Td>
-                                            <Td fontSize="sm" color="green.600">"{err.c}"</Td>
-                                            <Td fontSize="sm">{err.e}</Td>
+                                            <Td fontSize="xs" color="gray.500">{err.timestamp}</Td>
+                                            <Td fontSize="sm" fontWeight="bold">"{err.word}"</Td>
+                                            <Td fontSize="sm" color="red.600">"{err.said_as}"</Td>
+                                            <Td fontSize="sm" color="green.600">"{err.correct_ipa}"</Td>
+                                            <Td fontSize="sm">{err.error_type} ({err.category})</Td>
                                             <Td>
-                                                <Badge colorScheme={err.sev === 'Major' ? 'red' : (err.sev === 'Moderate' ? 'yellow' : 'gray')}>{err.sev}</Badge>
+                                                <Badge colorScheme={err.severity === 'major' ? 'red' : (err.severity === 'moderate' ? 'yellow' : 'gray')}>{err.severity}</Badge>
                                             </Td>
                                         </Tr>
                                     ))}
                                 </Tbody>
                             </Table>
-                        </Box>
-                    ))}
+                        )}
+                    </VStack>
                 </Box>
 
                 <PageBreak />
 
                 {/* ======================= PAGE 7 ======================= */}
-                <Box minH="950px">
+                <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">Sentence-by-Sentence Breakdown</Heading>
 
                     <VStack align="stretch" spacing={8}>
-                        {[
-                            {
-                                text: "The quick brown fox jumps over the lazy dog.",
-                                pron: "'the' → 'de' (×2), 'over' → 'ower'",
-                                flu: "1 unnatural pause after 'fox' (1.8 sec)",
-                                mti: "Retroflex /r/ in 'brown' and 'over'",
-                                rhy: "Sentence delivered at 98 WPM — slightly slow",
-                                int: "Flat delivery, no natural stress on 'quick' or 'lazy'"
-                            },
-                            {
-                                text: "It was a comfortable environment for everyone involved.",
-                                pron: "'comfortable' syllables articulated as written rather than correctly elided.",
-                                flu: "Seamless flow, no hesitations.",
-                                mti: "None detected.",
-                                rhy: "Pace increased to 110 WPM, very natural.",
-                                int: "Appropriate falling tone at the end."
-                            },
-                            {
-                                text: "Understanding pronunciation is key to success.",
-                                pron: "'pronunciation' vowel shifted from 'shun' to 'a-shun'.",
-                                flu: "Minor stutter on 'Understanding'.",
-                                mti: "Slurred ending on 'success'.",
-                                rhy: "Steady.",
-                                int: "Question-like rising intonation on 'success'."
-                            }
-                        ].map((sentence, idx) => (
+                        {sentences.length > 0 ? sentences.map((sentence: any, idx: number) => (
                             <Box key={idx} borderLeft="4px solid" borderColor="blue.500" bg="gray.50" pl={4} py={3} pr={4} roundedRight="md">
                                 <Text fontWeight="bold" fontSize="md" mb={3} color="gray.800">Sentence {idx + 1}: "{sentence.text}"</Text>
                                 <SimpleGrid columns={1} spacing={2} pl={4}>
-                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">Pronunciation Issues:</Text> {sentence.pron}</Text>
-                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">Fluency:</Text> {sentence.flu}</Text>
-                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">MTI Detected:</Text> {sentence.mti}</Text>
-                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">Rhythm:</Text> {sentence.rhy}</Text>
-                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">Intonation:</Text> {sentence.int}</Text>
+                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">Pronunciation Issues:</Text> {sentence.pronunciation_issues}</Text>
+                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">Fluency:</Text> {sentence.fluency}</Text>
+                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">MTI Detected:</Text> {sentence.mti_detected}</Text>
+                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">Rhythm:</Text> {sentence.rhythm}</Text>
+                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">Intonation:</Text> {sentence.intonation}</Text>
                                 </SimpleGrid>
                             </Box>
-                        ))}
+                        )) : (
+                            <Text color="gray.500" fontStyle="italic">Sentence-level analysis is not available for this session.</Text>
+                        )}
                     </VStack>
                 </Box>
 
                 <PageBreak />
 
                 {/* ======================= PAGE 8 ======================= */}
-                <Box minH="950px">
+                <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">4 | Learning Resources</Heading>
 
                     <HStack mb={8} justify="center" spacing={10} bg="blue.50" p={6} rounded="md" border="1px solid" borderColor="blue.100">
@@ -555,12 +504,12 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                         <Box bg="green.50" p={6} rounded="md" border="1px solid" borderColor="green.200">
                             <HStack mb={4}>
                                 <CheckCircle color="#38A169" />
-                                <Heading size="md" color="green.900">Top 3 Strengths</Heading>
+                                <Heading size="md" color="green.900">Top Strengths</Heading>
                             </HStack>
                             <VStack align="start" spacing={3}>
-                                <Text fontSize="sm" color="green.800">• <b>Vowel Enunciation:</b> Crisp distinction of standard vowel sounds.</Text>
-                                <Text fontSize="sm" color="green.800">• <b>Pacing:</b> Controlled speech rate with no rushing.</Text>
-                                <Text fontSize="sm" color="green.800">• <b>Word Endings:</b> Consonant pluralization clearly pronounced.</Text>
+                                {summary.top_strengths?.map((str: string, i: number) => (
+                                    <Text key={i} fontSize="sm" color="green.800">• {str}</Text>
+                                )) || <Text fontSize="sm" color="green.800">No defined strengths collected.</Text>}
                             </VStack>
                         </Box>
 
@@ -570,9 +519,9 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                 <Heading size="md" color="red.900">Priority Improvements</Heading>
                             </HStack>
                             <VStack align="start" spacing={3}>
-                                <Text fontSize="sm" color="red.800">• <b>"th" Fricative:</b> Stop substituting "d" for "th".</Text>
-                                <Text fontSize="sm" color="red.800">• <b>Sentence Stress:</b> Needs to emphasize content words.</Text>
-                                <Text fontSize="sm" color="red.800">• <b>MTI Reduction:</b> Target retroflex consonants.</Text>
+                                {summary.top_improvements?.map((imp: string, i: number) => (
+                                    <Text key={i} fontSize="sm" color="red.800">• {imp}</Text>
+                                )) || <Text fontSize="sm" color="red.800">No priority improvements derived.</Text>}
                             </VStack>
                         </Box>
                     </SimpleGrid>
@@ -581,37 +530,21 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                     <Text fontSize="sm" color="gray.600" mb={6}>Based on detected weaknesses, we recommend the following resources:</Text>
 
                     <VStack align="stretch" spacing={6}>
-                        <Box>
-                            <Heading size="sm" mb={3} color="gray.800">Pronunciation — Transcription & "th" Sound</Heading>
-                            <VStack align="stretch" spacing={2}>
-                                <HStack justify="space-between" bg="white" p={3} border="1px solid" borderColor="gray.200" rounded="md">
-                                    <HStack><MonitorPlay size={16} color="gray" /><Text fontSize="sm">Practice the dental fricative with mirror exercises</Text></HStack>
-                                    <Badge>Free | Web</Badge>
-                                </HStack>
-                                <HStack justify="space-between" bg="white" p={3} border="1px solid" borderColor="gray.200" rounded="md">
-                                    <HStack><MonitorPlay size={16} color="gray" /><Text fontSize="sm">Watch BBC Learning English: "th" sounds</Text></HStack>
-                                    <Badge colorScheme="red">YouTube</Badge>
-                                </HStack>
-                                <HStack justify="space-between" bg="white" p={3} border="1px solid" borderColor="gray.200" rounded="md">
-                                    <HStack><MonitorPlay size={16} color="gray" /><Text fontSize="sm">Minimal pairs drill: "den/then", "day/they"</Text></HStack>
-                                    <Badge>Free | Web</Badge>
-                                </HStack>
-                            </VStack>
-                        </Box>
-
-                        <Box>
-                            <Heading size="sm" mb={3} color="gray.800">MTI Reduction — Hindi/Punjabi Speakers</Heading>
-                            <VStack align="stretch" spacing={2}>
-                                <HStack justify="space-between" bg="white" p={3} border="1px solid" borderColor="gray.200" rounded="md">
-                                    <HStack><MonitorPlay size={16} color="gray" /><Text fontSize="sm">Cadence Deep-Dive: Flattening Retroflex Consonants</Text></HStack>
-                                    <Badge colorScheme="blue">Paid | App</Badge>
-                                </HStack>
-                                <HStack justify="space-between" bg="white" p={3} border="1px solid" borderColor="gray.200" rounded="md">
-                                    <HStack><MonitorPlay size={16} color="gray" /><Text fontSize="sm">Shadowing Exercise: Imitating Native Sentence Stress</Text></HStack>
-                                    <Badge>Free | Web</Badge>
-                                </HStack>
-                            </VStack>
-                        </Box>
+                        {summary.learning_resources?.map((res: any, idx: number) => (
+                            <Box key={idx}>
+                                <Heading size="sm" mb={3} color="gray.800">{res.area}</Heading>
+                                <VStack align="stretch" spacing={2}>
+                                    {res.items?.map((item: any, i: number) => (
+                                        <HStack key={i} justify="space-between" bg="white" p={3} border="1px solid" borderColor="gray.200" rounded="md">
+                                            <HStack><MonitorPlay size={16} color="gray" /><Text fontSize="sm">{item.title}</Text></HStack>
+                                            <Badge colorScheme={item.type === 'YouTube' ? 'red' : item.type === 'Paid | App' ? 'blue' : undefined}>{item.type}</Badge>
+                                        </HStack>
+                                    ))}
+                                </VStack>
+                            </Box>
+                        )) || (
+                                <Text color="gray.500" fontStyle="italic">No specific learning resources matched yet.</Text>
+                            )}
                     </VStack>
                 </Box>
 
@@ -619,6 +552,6 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                     <Text fontSize="xs" color="gray.400">--- END OF REPORT ---</Text>
                 </Center>
             </Box>
-        </Box>
+        </Box >
     );
 };
