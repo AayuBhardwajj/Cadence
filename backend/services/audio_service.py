@@ -25,10 +25,22 @@ def analyze_audio(video_path: str):
         audio = whisper.load_audio(video_path)
         duration_seconds = len(audio) / 16000.0  # Whisper resamples to 16kHz
         
-        # 2. Transcribe
-        result = model.transcribe(audio)
+        # 2. Transcribe with Word-Level Timestamps
+        result = model.transcribe(audio, word_timestamps=True)
         text = result["text"]
         
+        # Extract word-level timing data for AMCAT error log mappings
+        words_data = []
+        if "segments" in result:
+            for segment in result["segments"]:
+                if "words" in segment:
+                    for word_info in segment["words"]:
+                        words_data.append({
+                            "word": word_info["word"].strip(),
+                            "start": word_info["start"],
+                            "end": word_info["end"]
+                        })
+
         # 3. Analyze Text (Simple Logic)
         words = text.split()
         word_count = len(words)
@@ -43,7 +55,8 @@ def analyze_audio(video_path: str):
             "transcription": text.strip(),
             "wpm": wpm,
             "filler_count": filler_count,
-            "duration": round(duration_seconds, 2)
+            "duration": round(duration_seconds, 2),
+            "words_data": words_data
         }
         
     except Exception as e:

@@ -100,8 +100,15 @@ async def upload_assessment(
         
         # 3.5 Deep Speech Analysis (New)
         print(f"AdaptiveLearning: Performing deep analysis for {userId}...")
-        deep_analysis = await deep_analyze_speech(audio_data.get("transcription", ""), score_data)
-        score_data["deep_analysis"] = deep_analysis
+        deep_analysis = await deep_analyze_speech(
+            audio_data.get("transcription", ""), 
+            score_data, 
+            audio_data.get("words_data", [])
+        )
+        
+        # Merge the complex AMCAT structure into the root scoring data for frontend API compliance
+        if isinstance(deep_analysis, dict):
+            score_data.update(deep_analysis)
 
         # 4. Update last_full_assessment_at in Supabase
         # We use profiles.update for this

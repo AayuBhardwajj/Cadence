@@ -10,45 +10,99 @@ def _get_gemini_model():
     genai.configure(api_key=api_key)
     return genai.GenerativeModel('gemini-1.5-flash')
 
-async def deep_analyze_speech(transcription: str, metrics: Dict[str, Any]) -> Dict[str, Any]:
+async def deep_analyze_speech(transcription: str, metrics: Dict[str, Any], words_data: list = []) -> Dict[str, Any]:
     """
     Expert speech analysis using Gemini 1.5.
-    Focuses exclusively on speech quality, clarity, and control.
+    Returns the rigorous AMCAT-style nested JSON schema.
     """
     model = _get_gemini_model()
     if not model:
         print("Gemini API key missing, skipping deep analysis.")
         return {}
 
+    # Truncate words_data if it's too massive, just to be safe, but typically it's fine for a 5 min speech
+    words_json = json.dumps(words_data[:300]) 
+
     prompt = f"""
-    You are an expert Speech-Language Pathologist and Communication Coach.
-    Analyze the following speech transcription and metrics from a user's speaking assessment.
+    You are an expert Speech-Language Pathologist and SHL/AMCAT Assessment Evaluator.
+    Analyze the following speech transcription, phonetic word-timing data, and basic metrics from a candidate's reading assessment.
     
     Transcription: "{transcription}"
-    Metrics: {json.dumps(metrics)}
+    Word Timing Data: {words_json}
+    Basic Metrics: {json.dumps(metrics)}
     
-    Provide a comprehensive evaluation focusing ONLY on speech delivery and quality. 
-    Strictly avoid ANY mention of job roles, hiring, or career suitability.
+    You must return a rigorous, deep-analyzed JSON object exactly matching the following schema.
+    Strictly avoid ANY mention of job roles; focus solely on linguistic, phonetic, and speech mechanics.
+    All scores must be integers between 0 and 100. Calculate sub-dimensions thoughtfully based on the data.
     
-    Return the analysis in JSON format with the following keys:
-    1. "clarity_fluency": (string) Evaluation of how clear and smooth the speech is.
-    2. "confidence_tone": (string) Analysis of confidence, tone, and modulation.
-    3. "pronunciation_details": (dict) 
-        - "mispronounced_words": (list of strings) Words the user likely mispronounced.
-        - "struggled_sounds": (list of strings) Specific phonetic sounds or clusters they struggle with.
-    4. "grammar_vocabulary": (string) Critique of sentence construction and word choice.
-    5. "pacing_control": (string) Analysis of fillers, pauses, and consistency in speed.
-    6. "action_plan": (list of dicts) 
-        - "weakness": (string) A specific weak area.
-        - "example": (string) An example from the transcription.
-        - "tip": (string) An actionable improvement suggestion.
-
-    Ensure language is simple, professional, and encouraging.
+    REQUIRED EXACT JSON SCHEMA:
+    {{
+        "amcat_metrics": {{
+            "pronunciation": {{ "score": 0-100, "consonant": 0-100, "vowel": 0-100, "stress": 0-100 }},
+            "fluency": {{ "score": 0-100, "rate": 0-100, "pause": 0-100, "fillers": 0-100 }},
+            "intonation": {{ "score": 0-100, "sentence": 0-100, "rise_fall": 0-100, "pitch": 0-100 }},
+            "clarity": {{ "score": 0-100, "end_consonants": 0-100, "enunciation": 0-100, "pace": 0-100 }},
+            "mti": {{ "score": 0-100, "l1_interference": 0-100, "retroflex": 0-100, "vowel_shift": 0-100 }}
+        }},
+        "amcat_insights": [
+             // Exactly 5 objects here, one for each dimension above
+            {{ "dimension": "Pronunciation Accuracy", "score": 0-100, "definition": "...", "feedback": "Must cite specific words from the transcript" }},
+            {{ "dimension": "MTI / Accent Neutrality", "score": 0-100, "definition": "...", "feedback": "..." }},
+            {{ "dimension": "Fluency & Rhythm", "score": 0-100, "definition": "...", "feedback": "..." }},
+            {{ "dimension": "Intonation & Stress", "score": 0-100, "definition": "...", "feedback": "..." }},
+            {{ "dimension": "Clarity & Articulation", "score": 0-100, "definition": "...", "feedback": "..." }}
+        ],
+        "amcat_mti_deep_dive": {{
+            "detected_accent": "e.g., Punjabi-Influenced Hindi -> English",
+            "patterns": [
+                // 3 to 5 objects detailing specific phonetic shifts
+                {{ "name": "e.g., 'th' -> 'd/t' substitution", "frequency": 0-100, "behaviors": ["bullet 1", "bullet 2"] }}
+            ]
+        }},
+        "amcat_transcript": {{
+            "reference_text": "Assuming a standard business reading passage, reconstruct what the likely reference text was based on the transcription.",
+            "user_text": "The verbatim transcription.",
+            "error_words": [
+                // Array of words the user messed up. Severity can only be "minor", "moderate", or "major".
+                {{ "word": "example", "severity": "moderate", "type": "Vowel shift" }}
+            ],
+            "stats": {{
+                "total_words": int,
+                "speech_rate_wpm": int,
+                "ideal_wpm_range": "130-150",
+                "total_sentences": int,
+                "avg_sentence_duration": float,
+                "longest_pause": float,
+                "filler_count": int
+            }},
+            "error_summary": {{
+                "mispronunciation": int, "stutters": int, "unnatural_pauses": int, "filler_words": int, "mti_substitutions": int
+            }}
+        }},
+        "amcat_error_log": [
+            // Exact tabular data mapping to specific words in the audio.
+            {{ "timestamp": "MM:SS", "word": "word", "said_as": "wurd", "correct_ipa": "wɜːd", "error_type": "type", "severity": "minor|moderate|major", "category": "Pronunciation|Fluency|MTI|Grammar|Style" }}
+        ],
+        "amcat_sentences": [
+            // Break the text down sentence by sentence.
+            {{ "text": "Sentence 1.", "pronunciation_issues": "...", "fluency": "...", "mti_detected": "...", "rhythm": "...", "intonation": "..." }}
+        ],
+        "amcat_summary": {{
+            "top_strengths": ["str1", "str2", "str3"],
+            "top_improvements": ["imp1", "imp2", "imp3"],
+            "learning_resources": [
+                {{ "area": "Pronunciation", "items": [
+                    {{ "title": "Resource Name", "type": "Free" }} // Type must be "Free", "Paid", "YouTube", or "Web"
+                ]}}
+            ]
+        }}
+    }}
+    
+    Ensure you ONLY output valid, stringified JSON meeting this exact schema. No markdown wrapping.
     """
 
     try:
         response = model.generate_content(prompt)
-        # Handle potential markdown formatting in response
         content = response.text.strip()
         if content.startswith("```json"):
             content = content[7:-3].strip()
@@ -58,12 +112,4 @@ async def deep_analyze_speech(transcription: str, metrics: Dict[str, Any]) -> Di
         return json.loads(content)
     except Exception as e:
         print(f"Error in deep speech analysis: {e}")
-        return {
-            "error": "Detailed analysis currently unavailable.",
-            "clarity_fluency": "Self-assessment recommended for flow and clarity.",
-            "confidence_tone": "Analyze your recording for tone and modulation.",
-            "pronunciation_details": {"mispronounced_words": [], "struggled_sounds": []},
-            "grammar_vocabulary": "Review your transcription for sentence structure.",
-            "pacing_control": "Monitor your use of fillers and pacing.",
-            "action_plan": []
-        }
+        return {}
