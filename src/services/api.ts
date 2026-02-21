@@ -42,6 +42,7 @@ export interface AnalysisResult {
         intonation: { score: number; sentence: number; rise_fall: number; pitch: number; };
         clarity: { score: number; end_consonants: number; enunciation: number; pace: number; };
         mti: { score: number; l1_interference: number; retroflex: number; vowel_shift: number; };
+        relevancy?: { score: number; feedback: string; };
     };
     amcat_insights?: Array<{
         dimension: string;

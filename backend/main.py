@@ -97,12 +97,22 @@ async def upload_assessment(
         # 3. Calculate Score
         score_data = calculate_score(audio_data, video_data)
         
+        TOPIC_PROMPTS = {
+            'workplace': 'An ideal workplace is more than just a physical space. It reflects values like collaboration, respect, productivity, and innovation. Describe the environment, culture, leadership style, and tools that help you perform at your best.',
+            'tech': 'Technology has transformed communication, relationships, education, and work. Discuss how digital tools influence daily interactions, both positively and negatively.',
+            'social': 'Social media influences friendships, relationships, identity, and self-expression. Discuss its advantages, psychological impact, and long-term consequences.',
+            'language': 'Learning multiple languages improves communication, cultural awareness, and career opportunities in a globalized world.',
+            'custom': 'Please speak on a topic of your choice. You may describe a recent experience, a book you read, or a project you are working on.'
+        }
+        
         # 3.5 Deep Speech Analysis (New)
         print(f"AdaptiveLearning: Performing deep analysis for {userId}...")
         deep_analysis = await deep_analyze_speech(
             audio_data.get("transcription", ""), 
             score_data, 
-            audio_data.get("words_data", [])
+            audio_data.get("words_data", []),
+            topic_id=topicId,
+            topic_prompt=TOPIC_PROMPTS.get(topicId, TOPIC_PROMPTS['custom'])
         )
         
         # Merge the complex AMCAT structure into the root scoring data for frontend API compliance

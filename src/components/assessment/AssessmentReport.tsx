@@ -44,7 +44,8 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
         fluency: { score: 75, rate: 80, pause: 70, fillers: 75 },
         intonation: { score: 45, sentence: 50, rise_fall: 40, pitch: 45 },
         clarity: { score: 82, end_consonants: 80, enunciation: 85, pace: 81 },
-        mti: { score: 28, l1_interference: 20, retroflex: 30, vowel_shift: 35 }
+        mti: { score: 28, l1_interference: 20, retroflex: 30, vowel_shift: 35 },
+        relevancy: { score: 85, feedback: "The candidate answered the prompt well and stayed on topic." }
     };
 
     const handlePrint = () => window.print();
@@ -117,6 +118,7 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                     {/* Tile Grid */}
                     <SimpleGrid columns={3} spacing={4} mb={10}>
                         {[
+                            { name: "Topic Relevancy", score: m.relevancy?.score || 100 },
                             { name: "Pronunciation Accuracy", score: m.pronunciation.score },
                             { name: "MTI / Accent Neutrality", score: m.mti.score },
                             { name: "Fluency & Rhythm", score: m.fluency.score },
@@ -237,6 +239,12 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
 
                     <VStack align="stretch" spacing={6}>
                         {[
+                            {
+                                dim: "Topic Relevancy",
+                                score: m.relevancy?.score || 100,
+                                def: "Focuses on whether the candidate successfully comprehended and responded to the specific prompt given.",
+                                feedback: m.relevancy?.feedback || "No topic relevancy feedback provided."
+                            },
                             {
                                 dim: "Pronunciation Accuracy",
                                 score: m.pronunciation.score,

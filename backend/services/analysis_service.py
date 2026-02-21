@@ -10,7 +10,7 @@ def _get_gemini_model():
     genai.configure(api_key=api_key)
     return genai.GenerativeModel('gemini-1.5-flash')
 
-async def deep_analyze_speech(transcription: str, metrics: Dict[str, Any], words_data: list = []) -> Dict[str, Any]:
+async def deep_analyze_speech(transcription: str, metrics: Dict[str, Any], words_data: list = [], topic_id: str = "custom", topic_prompt: str = "") -> Dict[str, Any]:
     """
     Expert speech analysis using Gemini 1.5.
     Returns the rigorous AMCAT-style nested JSON schema.
@@ -30,10 +30,13 @@ async def deep_analyze_speech(transcription: str, metrics: Dict[str, Any], words
     Transcription: "{transcription}"
     Word Timing Data: {words_json}
     Basic Metrics: {json.dumps(metrics)}
+    Topic ID: "{topic_id}"
+    Original Topic Prompt given to user: "{topic_prompt}"
     
     You must return a rigorous, deep-analyzed JSON object exactly matching the following schema.
     Strictly avoid ANY mention of job roles; focus solely on linguistic, phonetic, and speech mechanics.
     All scores must be integers between 0 and 100. Calculate sub-dimensions thoughtfully based on the data.
+    Critically: Analyze how well the user's transcription actually addressed the original "Original Topic Prompt". If they just said random things, give a low relevancy score.
     
     REQUIRED EXACT JSON SCHEMA:
     {{
@@ -42,7 +45,8 @@ async def deep_analyze_speech(transcription: str, metrics: Dict[str, Any], words
             "fluency": {{ "score": 0-100, "rate": 0-100, "pause": 0-100, "fillers": 0-100 }},
             "intonation": {{ "score": 0-100, "sentence": 0-100, "rise_fall": 0-100, "pitch": 0-100 }},
             "clarity": {{ "score": 0-100, "end_consonants": 0-100, "enunciation": 0-100, "pace": 0-100 }},
-            "mti": {{ "score": 0-100, "l1_interference": 0-100, "retroflex": 0-100, "vowel_shift": 0-100 }}
+            "mti": {{ "score": 0-100, "l1_interference": 0-100, "retroflex": 0-100, "vowel_shift": 0-100 }},
+            "relevancy": {{ "score": 0-100, "feedback": "Detailed feedback on how well they answered the prompt or if they went off-topic" }}
         }},
         "amcat_insights": [
              // Exactly 5 objects here, one for each dimension above

@@ -96,31 +96,90 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
         if (recordedBlob) onRecordingComplete(recordedBlob);
     };
 
-    const topicData: Record<string, { prompt: string, text: string, twister: string }> = {
+    const topicData: Record<string, { prompt: string, text: string }> = {
         'workplace': {
-            prompt: 'Describe your ideal workplace and what makes it productive for you. Talk about the physical environment, culture, and tools.',
-            text: `My ideal workplace is one that fosters collaboration while respecting the need for focused, uninterrupted work. A comfortable environment, equipped with ergonomic furniture and natural lighting, significantly contributes to overall productivity and well-being. Open communication channels and supportive leadership are essential for a thriving team culture.`,
-            twister: `A proper copper coffee pot is placed properly in the peaceful productivity pod.`
+            prompt: `An ideal workplace is more than just a physical space. It reflects values like collaboration, respect, productivity, and innovation. Describe the environment, culture, leadership style, and tools that help you perform at your best.`,
+            text: `An ideal workplace, in my opinion, is a balanced environment where productivity and personal well-being coexist harmoniously. It is not defined solely by infrastructure or salary, but by culture, communication, and clarity of purpose. A truly productive workplace fosters collaboration, creativity, and continuous learning.
+
+First and foremost, I value a workplace that promotes mutual respect and psychological safety. Employees should feel comfortable expressing ideas, asking questions, and even making mistakes without fear of humiliation. As the saying goes, “A smooth sea never made a skilled sailor.” Growth requires experimentation, and experimentation sometimes includes failure.
+
+Secondly, leadership plays a crucial role. A good leader listens actively, communicates transparently, and sets realistic expectations. Clear communication prevents confusion and conflict. After all, clear communication creates confident collaboration. In contrast, poor communication produces procrastination and frustration.
+
+The physical environment also influences productivity. Natural lighting, organized workspaces, and minimal distractions enhance concentration. A cluttered desk can create a cluttered mind. I prefer structured systems where priorities are defined and deadlines are reasonable.
+
+Technology integration is equally important. Efficient tools, fast systems, and secure platforms enable seamless workflow. However, excessive meetings and unnecessary notifications reduce deep focus. Productive professionals prioritize purposeful performance over pointless pressure.
+
+Work-life balance cannot be ignored. Burnout diminishes creativity and motivation. Flexible schedules, remote options, and understanding management contribute to long-term sustainability.
+
+Let me include a short articulation exercise:
+“Busy brains build better businesses.”
+“Professional people perform productive projects precisely.”
+“Creative colleagues collaborate carefully and confidently.”
+
+In conclusion, my ideal workplace is respectful, technologically equipped, growth-oriented, and emotionally intelligent. It supports ambition without sacrificing well-being. A productive workplace is not just where we work — it is where we evolve.`
         },
         'tech': {
-            prompt: 'How has technology changed the way we communicate in daily life? Discuss both positive and negative impacts.',
-            text: `Technology has revolutionized daily communication, making it instantaneous and globally accessible. While smartphones and social networks keep us connected across vast distances, they also introduce challenges like digital fatigue and reduced face-to-face interactions. Balancing screen time with genuine in-person connections is a modern necessity.`,
-            twister: `Seventy-seven benevolent elephants sent digital telegrams through the telecommunication tether.`
+            prompt: `Technology has transformed communication, relationships, education, and work. Discuss how digital tools influence daily interactions, both positively and negatively.`,
+            text: `Technology has revolutionized the way we communicate in everyday life. From instant messaging to virtual meetings, digital platforms have eliminated geographical barriers. Communication that once required days now happens in seconds.
+
+In earlier times, letters were handwritten and phone calls were scheduled. Today, we send texts, voice notes, and video messages effortlessly. While this convenience increases efficiency, it also raises concerns about attention span and emotional depth.
+
+Social platforms encourage constant connectivity. Notifications, updates, and real-time responses create an environment of immediacy. However, constant connectivity can reduce concentration. Sometimes, silent reflection strengthens stronger social skills.
+
+Technology also enhances professional communication. Emails, collaborative platforms, and cloud storage streamline productivity. Remote work has become possible because of reliable digital infrastructure. Virtual meetings save travel time and expand global opportunities.
+
+Yet, technology has introduced challenges. Misinterpretation of tone in text messages often leads to misunderstanding. Overdependence on screens reduces face-to-face interactions. The phrase “digital distance diminishes direct dialogue” reflects this reality.
+
+Consider this articulation practice:
+“Swift software systems simplify sophisticated solutions.”
+“Tiny technical tweaks transform total teamwork.”
+“Smart screens silently shape society.”
+
+On a positive note, technology supports education through online courses, digital libraries, and interactive learning. It democratizes knowledge and empowers individuals worldwide.
+
+In conclusion, technology is neither entirely beneficial nor entirely harmful. Its impact depends on how responsibly we use it. Balanced usage, mindful communication, and digital discipline are essential for maintaining meaningful human connections.`
         },
         'social': {
-            prompt: 'Discuss the impact of social media on modern relationships. How has it changed how we make and maintain connections?',
-            text: `Social media profoundly impacts modern relationships by altering how we form and maintain connections. It allows us to easily stay in touch with distant friends and family, yet it can also create unrealistic expectations through curated portrayals of life. Navigating this digital landscape requires intentionality and a focus on authentic interactions.`,
-            twister: `She sells social media strategies by the seamlessly scrolling silver screen.`
+            prompt: `Social media influences friendships, relationships, identity, and self-expression. Discuss its advantages, psychological impact, and long-term consequences.`,
+            text: `Social media has dramatically reshaped modern relationships. Platforms designed for connection have become powerful tools for communication, branding, and influence. They allow people to share experiences instantly and interact across continents.
+
+On the positive side, social media strengthens long-distance relationships. Friends and families remain connected through posts, calls, and shared memories. Communities form around common interests, creating belonging and support networks.
+
+However, excessive usage can lead to comparison and insecurity. Highlight reels often replace reality. Constant scrolling stimulates short-term satisfaction but reduces sustained attention. The pursuit of validation sometimes replaces genuine interaction.
+
+Algorithms influence perception. Content personalization shapes opinions and behaviors subtly. This raises concerns about misinformation and echo chambers. Responsible digital literacy is essential.
+
+Healthy boundaries are necessary. Scheduled screen breaks improve mental clarity. Meaningful conversations require mindful presence.
+
+Practice articulation with these lines:
+“Social sites spread stories swiftly.”
+“People post pictures portraying polished personalities.”
+“Real relationships require real respect.”
+
+In conclusion, social media is a powerful instrument. Used wisely, it connects and empowers. Used excessively, it distracts and distorts. The responsibility lies with the user to maintain balance and authenticity.`
         },
         'language': {
-            prompt: 'The importance of learning multiple languages in a globalized world. Why should someone learn a new language today?',
-            text: `In our increasingly interconnected world, learning multiple languages is an invaluable asset. Bilingualism not only enhances cognitive abilities and cultural empathy but also opens doors to diverse career opportunities and global networking. It bridges cultural divides, fostering mutual understanding and collaboration across international borders.`,
-            twister: `Lively language learners literally love learning lovely linguistic lessons locally.`
+            prompt: `Learning multiple languages improves communication, cultural awareness, and career opportunities in a globalized world.`,
+            text: `In today’s interconnected world, learning multiple languages is an invaluable skill. Language is not merely a communication tool; it is a gateway to culture, perspective, and opportunity.
+
+Multilingual individuals demonstrate cognitive flexibility and enhanced problem-solving skills. Research suggests that switching between languages strengthens memory and concentration. It also improves listening skills and pronunciation awareness.
+
+Language learning builds cultural empathy. When we understand another language, we understand humor, emotion, and nuance more deeply. It promotes global collaboration and reduces prejudice.
+
+Professionally, multilingualism increases employability. Global companies value candidates who can communicate across borders. Negotiation, networking, and leadership become more effective with linguistic versatility.
+
+However, mastering pronunciation requires consistent practice. Clarity, confidence, and cadence matter significantly in spoken language.
+
+Try these articulation drills:
+“Lively linguists learn languages logically.”
+“Proper pronunciation prevents persistent problems.”
+“Global growth grows gradually.”
+
+In conclusion, language learning is an investment in personal and professional growth. It strengthens the brain, broadens the mind, and bridges borders. In a globalized era, multilingualism is not just an advantage — it is a powerful asset.`
         },
         'custom': {
             prompt: 'Please speak on a topic of your choice. You may describe a recent experience, a book you read, or a project you are working on.',
-            text: `Communication is the bridge between confusion and clarity. When we take the time to articulate our thoughts precisely and listen actively to others, we build stronger relationships and solve complex problems more effectively. Every conversation is an opportunity to learn something new and connect on a deeper level.`,
-            twister: `Unique New York, you know you need unique New York correctly communicated.`
+            text: `Communication is the bridge between confusion and clarity. When we take the time to articulate our thoughts precisely and listen actively to others, we build stronger relationships and solve complex problems more effectively. Every conversation is an opportunity to learn something new and connect on a deeper level.`
         }
     };
 
@@ -230,32 +289,21 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
                     ) : (
                         <Tabs variant="soft-rounded" colorScheme="blue" flex={1} display="flex" flexDirection="column">
                             <TabList mb={4}>
-                                <Tab color="whiteAlpha.700" _selected={{ color: 'white', bg: 'blue.600' }}>Topic Prompt</Tab>
+                                <Tab color="whiteAlpha.700" _selected={{ color: 'white', bg: 'blue.600' }}>Topic Overview</Tab>
                                 <Tab color="whiteAlpha.700" _selected={{ color: 'white', bg: 'blue.600' }}>Reading Passage</Tab>
-                                <Tab color="whiteAlpha.700" _selected={{ color: 'white', bg: 'blue.600' }}>Tongue Twisters</Tab>
                             </TabList>
-                            <TabPanels flex={1}>
+                            <TabPanels flex={1} overflowY="auto" overflowX="hidden">
                                 <TabPanel h="full" p={0}>
-                                    <Box p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200" h="full" display="flex" alignItems="center" justifyContent="center">
-                                        <Text fontSize="4xl" lineHeight="1.8" fontFamily="sans-serif" textAlign="center" fontWeight="bold">
+                                    <Box p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200" minH="full" display="flex" alignItems="center" justifyContent="center">
+                                        <Text fontSize="3xl" lineHeight="1.8" fontFamily="sans-serif" textAlign="center" fontWeight="bold">
                                             {currentTopic.prompt}
                                         </Text>
                                     </Box>
                                 </TabPanel>
                                 <TabPanel h="full" p={0}>
-                                    <Box p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200" h="full" display="flex" alignItems="center" justifyContent="center">
-                                        <Text fontSize="3xl" lineHeight="1.8" fontFamily="sans-serif" textAlign="center">
+                                    <Box p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200" minH="full" display="flex" alignItems="center" justifyContent="center">
+                                        <Text fontSize="2xl" lineHeight="1.8" fontFamily="sans-serif" textAlign="left" whiteSpace="pre-wrap">
                                             {currentTopic.text}
-                                        </Text>
-                                    </Box>
-                                </TabPanel>
-                                <TabPanel h="full" p={0}>
-                                    <Box p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200" h="full" display="flex" flexDir="column" alignItems="center" justifyContent="center">
-                                        <Text fontSize="sm" color="whiteAlpha.600" textTransform="uppercase" letterSpacing="widest" mb={8}>
-                                            Warm up your articulation
-                                        </Text>
-                                        <Text fontSize="4xl" lineHeight="1.8" fontFamily="serif" textAlign="center" fontStyle="italic" color="blue.200" fontWeight="bold">
-                                            "{currentTopic.twister}"
                                         </Text>
                                     </Box>
                                 </TabPanel>
