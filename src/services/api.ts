@@ -34,6 +34,75 @@ export interface AnalysisResult {
             tip: string;
         }>;
     };
+
+    // AMCAT-Style Assessment Report Data
+    amcat_metrics?: {
+        pronunciation: { score: number; consonant: number; vowel: number; stress: number; };
+        fluency: { score: number; rate: number; pause: number; fillers: number; };
+        intonation: { score: number; sentence: number; rise_fall: number; pitch: number; };
+        clarity: { score: number; end_consonants: number; enunciation: number; pace: number; };
+        mti: { score: number; l1_interference: number; retroflex: number; vowel_shift: number; };
+    };
+    amcat_insights?: Array<{
+        dimension: string;
+        score: number;
+        definition: string;
+        feedback: string;
+    }>;
+    amcat_mti_deep_dive?: {
+        detected_accent: string;
+        patterns: Array<{
+            name: string;
+            frequency: number; // 0 to 100
+            behaviors: string[];
+        }>;
+    };
+    amcat_transcript?: {
+        reference_text: string;
+        user_text: string;
+        error_words: Array<{ word: string; severity: "minor" | "moderate" | "major"; type: string; }>;
+        stats: {
+            total_words: number;
+            speech_rate_wpm: number;
+            ideal_wpm_range: string;
+            total_sentences: number;
+            avg_sentence_duration: number;
+            longest_pause: number;
+            filler_count: number;
+        };
+        error_summary: {
+            mispronunciation: number;
+            stutters: number;
+            unnatural_pauses: number;
+            filler_words: number;
+            mti_substitutions: number;
+        };
+    };
+    amcat_error_log?: Array<{
+        timestamp: string;
+        word: string;
+        said_as: string;
+        correct_ipa: string;
+        error_type: string;
+        severity: "minor" | "moderate" | "major";
+        category: "Pronunciation" | "Fluency" | "MTI" | "Grammar" | "Style";
+    }>;
+    amcat_sentences?: Array<{
+        text: string;
+        pronunciation_issues: string;
+        fluency: string;
+        mti_detected: string;
+        rhythm: string;
+        intonation: string;
+    }>;
+    amcat_summary?: {
+        top_strengths: string[];
+        top_improvements: string[];
+        learning_resources: Array<{
+            area: string;
+            items: Array<{ title: string; type: "Free" | "Paid" | "YouTube" | "Web"; }>;
+        }>;
+    };
 }
 
 export interface EligibilityResponse {
