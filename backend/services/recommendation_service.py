@@ -56,7 +56,11 @@ class RecommendationService:
             "last_updated_at": datetime.now().isoformat()
         }
         
-        res = supabase.table('speech_profiles').upsert(profile_data, on_conflict='user_id').execute()
+        existing = supabase.table('speech_profiles').select('id').eq('user_id', user_id).execute()
+        if existing.data:
+            res = supabase.table('speech_profiles').update(profile_data).eq('user_id', user_id).execute()
+        else:
+            res = supabase.table('speech_profiles').insert(profile_data).execute()
         return res.data
 
     @staticmethod
