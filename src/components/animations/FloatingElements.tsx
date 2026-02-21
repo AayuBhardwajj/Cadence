@@ -6,7 +6,7 @@ import React from "react";
 type MotionBoxProps = Omit<BoxProps, "transition"> & HTMLMotionProps<"div">;
 
 // Chakra-compatible Motion Box
-const MotionBox = motion(Box) as React.FC<MotionBoxProps>;
+const MotionBox = motion.create(Box) as React.FC<MotionBoxProps>;
 
 /**
  * FloatingOrb: A circular element that floats gently.

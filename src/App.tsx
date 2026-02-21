@@ -69,7 +69,7 @@ export default function App() {
         <ThemeProvider>
           <LanguageProvider>
             <AccessibilityProvider>
-              <Router>
+              <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 {session ? (
                   <Routes>
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />

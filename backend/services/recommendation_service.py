@@ -102,7 +102,7 @@ class RecommendationService:
         """
         Maps a user's speech profile weaknesses to exercise templates and creates personalized recommendations.
         """
-        profile_res = supabase.table('speech_profiles').select('*').eq('user_id', user_id).order('last_updated_at', descending=True).limit(1).execute()
+        profile_res = supabase.table('speech_profiles').select('*').eq('user_id', user_id).order('last_updated_at', desc=True).limit(1).execute()
         if not profile_res.data:
             return []
             

@@ -140,7 +140,7 @@ export const AnalyticsPage = () => {
                         </div>
 
                         <div className="h-[350px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                 <AreaChart data={fluencyData}>
                                     <defs>
                                         <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
@@ -230,7 +230,7 @@ export const AnalyticsPage = () => {
                     <EnhancedCard className="bg-slate-900/50">
                         <h3 className="text-sm font-black text-white uppercase tracking-widest italic mb-10 text-center">Skill Mastery Radar</h3>
                         <div className="h-[300px] w-full flex justify-center">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillData}>
                                     <PolarGrid stroke="#ffffff1a" />
                                     <PolarAngleAxis dataKey="subject" tick={{ fill: '#ffffff4d', fontSize: 10, fontWeight: 900 }} />

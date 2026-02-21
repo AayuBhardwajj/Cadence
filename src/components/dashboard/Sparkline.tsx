@@ -9,7 +9,7 @@ export const Sparkline: React.FC<{ data: number[]; color?: string }> = ({
 
     return (
         <div className="h-8 w-24">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <LineChart data={chartData}>
                     <Line
                         type="monotone"
