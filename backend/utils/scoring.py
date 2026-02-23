@@ -11,6 +11,21 @@ def calculate_score(audio_data: dict, video_data: dict):
     """
     Calculates 6 core metrics (0-100) and CEFR level.
     """
+    # 0. Check for analysis failure
+    if audio_data.get("error_code") == "AUDIO_ANALYSIS_FAILED" or audio_data.get("transcription") == "Could not analyze audio.":
+        return {
+            "overall_score": 0,
+            "cefr_level": "N/A",
+            "breakdown": {
+                "fluency": 0, "pronunciation": 0, "clarity": 0,
+                "grammar": 0, "vocabulary": 0, "confidence": 0,
+                "wpm": 0, "fillers": 0, "eye_contact": video_data.get("eye_contact_percent", 0)
+            },
+            "strengths": ["Audio processing failed"],
+            "focus_areas": ["Ensure microphone is working", "Check if ffmpeg is installed"],
+            "feedback": "Analysis failed: Could not process the audio file. Please try again."
+        }
+
     wpm = audio_data.get("wpm", 0)
     fillers = audio_data.get("filler_count", 0)
     eye_contact = video_data.get("eye_contact_percent", 0)
@@ -21,25 +36,23 @@ def calculate_score(audio_data: dict, video_data: dict):
     filler_penalty = min(50, fillers * 4)
     fluency = max(0, wpm_score - filler_penalty)
     
-    # 2. Pronunciation Accuracy (Basic proxy: Based on transcription length/confidence if available)
-    # Since we use Whisper, we don't have phoneme-level confidence here yet, 
-    # but we can mock it or use word count as a proxy for complexity.
+    # 2. Pronunciation Accuracy (Basic proxy)
     pronunciation = min(100, 70 + (len(transcription.split()) / 50))
     
-    # 3. Clarity & Articulation (Proxy: WPM stability and eye contact)
+    # 3. Clarity & Articulation
     clarity = min(100, (fluency * 0.7) + (eye_contact * 0.3))
     
-    # 4. Grammar & Structure (Mock logic based on sentence completeness)
+    # 4. Grammar & Structure
     grammar = min(100, 65 + (transcription.count('.') * 5))
     
-    # 5. Vocabulary Range (Unique word count / total words)
+    # 5. Vocabulary Range
     words = transcription.lower().split()
     unique_words = len(set(words))
     total_words = len(words)
     vocab_ratio = (unique_words / total_words) if total_words > 0 else 0
     vocab = min(100, vocab_ratio * 150)
     
-    # 6. Confidence Indicators (Voice steadiness - mocked, Eye contact)
+    # 6. Confidence Indicators
     confidence = eye_contact
     
     # Overall Weighted Score

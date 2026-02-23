@@ -66,5 +66,6 @@ def analyze_audio(video_path: str):
             "transcription": "Could not analyze audio.",
             "wpm": 0,
             "filler_count": 0,
-            "error": str(e)
+            "error": str(e),
+            "error_code": "AUDIO_ANALYSIS_FAILED"
         }
