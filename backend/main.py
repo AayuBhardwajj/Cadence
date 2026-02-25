@@ -108,37 +108,35 @@ async def upload_assessment(
             'custom': 'Please speak on a topic of your choice. You may describe a recent experience, a book you read, or a project you are working on.'
         }
         
-        # 3.5 Deep Speech Analysis (New)
+        # 3.5 Deep Speech Analysis (Optimized Single Call)
         print(f"AdaptiveLearning: Performing deep analysis for {userId}...")
         deep_analysis = await deep_analyze_speech(
-            audio_data.get("transcription", ""), 
+            audio_data, 
             score_data, 
-            audio_data.get("words_data", []),
             topic_id=topicId,
             topic_prompt=TOPIC_PROMPTS.get(topicId, TOPIC_PROMPTS['custom'])
         )
         
-        # Merge the complex AMCAT structure into the root scoring data for frontend API compliance
+        # Merge the complex AMCAT structure into the root scoring data
         if isinstance(deep_analysis, dict):
             score_data.update(deep_analysis)
 
         # 4. Update last_full_assessment_at in Supabase
-        # We use profiles.update for this
         supabase.table('profiles').update({
             'last_full_assessment_at': datetime.now().isoformat()
         }).eq('id', userId).execute()
 
-        # 4. Integrate Adaptive Learning System
-        # Generate/Update Speech Profile
-        print(f"AdaptiveLearning: Generating profile for {userId}...")
+        # 4. Integrate Adaptive Learning System with Consolidated Data
+        # Pass pre-generated exercises from Gemini to avoid extra API calls
+        print(f"AdaptiveLearning: Updating profile and recommendations for {userId}...")
         await RecommendationService.generate_speech_profile(userId, sessionId, score_data, audio_data)
         
-        # Generate New Recommendations
-        print(f"AdaptiveLearning: Generating recommendations for {userId}...")
-        await RecommendationService.generate_recommendations(userId)
+        practice_exercises = score_data.get("practice_exercises", [])
+        await RecommendationService.generate_recommendations(userId, pre_generated_exercises=practice_exercises)
 
         # 5. Cleanup
-        os.remove(temp_file_path)
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
         
         return {
             "sessionId": sessionId or str(uuid.uuid4()),

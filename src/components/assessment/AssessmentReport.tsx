@@ -548,6 +548,77 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                     </VStack>
                 </Box>
 
+                <PageBreak />
+
+                {/* ======================= PAGE 9 (NEW) ======================= */}
+                <Box className="pdf-page" minH="950px">
+                    <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">5 | 3-Week Improvement Plan</Heading>
+
+                    <Text mb={8} color="gray.600">This structured plan is designed to address your specific weaknesses identified during this assessment.</Text>
+
+                    <VStack align="stretch" spacing={8}>
+                        {(result as any).improvement_plan ? Object.entries((result as any).improvement_plan).map(([week, data]: [string, any], idx: number) => (
+                            <Box key={week} p={6} bg="blue.50" rounded="md" border="1px solid" borderColor="blue.100" position="relative">
+                                <Badge colorScheme="blue" position="absolute" top="-10px" left="20px" px={4} py={1} rounded="full" shadow="sm">
+                                    {week.replace('_', ' ').toUpperCase()}
+                                </Badge>
+                                <HStack justify="space-between" mb={4} mt={2}>
+                                    <Heading size="md" color="blue.900">Focus: {data.focus}</Heading>
+                                    <Badge colorScheme="purple">{data.daily_minutes} mins / day</Badge>
+                                </HStack>
+                                <Box bg="white" p={4} rounded="sm" border="1px solid" borderColor="blue.100">
+                                    <Text fontWeight="bold" fontSize="sm" mb={1} color="gray.500">Daily Exercise:</Text>
+                                    <Text color="gray.800">{data.exercise}</Text>
+                                </Box>
+                            </Box>
+                        )) : (
+                            <Text color="gray.500" fontStyle="italic">Personalized plan unavailable. Please wait for the daily quota to reset.</Text>
+                        )}
+                    </VStack>
+                </Box>
+
+                <PageBreak />
+
+                {/* ======================= PAGE 10 (NEW) ======================= */}
+                <Box className="pdf-page" minH="950px">
+                    <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">6 | Recommended Practice</Heading>
+
+                    <Text mb={8} color="gray.600">Immediate actions you can take to see improvement in your communication clarity and flow.</Text>
+
+                    <SimpleGrid columns={1} spacing={6}>
+                        {(result as any).practice_exercises?.map((ex: any, idx: number) => (
+                            <Box key={idx} p={6} border="1px solid" borderColor="gray.200" rounded="lg" shadow="sm" transition="all 0.2s" _hover={{ shadow: 'md', borderColor: 'blue.200' }}>
+                                <HStack justify="space-between" mb={4}>
+                                    <HStack spacing={3}>
+                                        <Box bg="blue.100" p={2} rounded="full" color="blue.600">
+                                            <MonitorPlay size={24} />
+                                        </Box>
+                                        <Heading size="md" color="gray.800">{ex.title}</Heading>
+                                    </HStack>
+                                    <Badge variant="subtle" colorScheme="orange" px={3} py={1} rounded="md">
+                                        {ex.duration_minutes} MINS
+                                    </Badge>
+                                </HStack>
+                                <Text color="gray.700" lineHeight="tall" pl={12}>
+                                    {ex.description}
+                                </Text>
+                            </Box>
+                        )) || (
+                                <Text color="gray.500" fontStyle="italic">No practice exercises suggested for this session.</Text>
+                            )}
+                    </SimpleGrid>
+
+                    <Box mt={12} p={6} bg="gray.800" color="white" rounded="lg">
+                        <HStack spacing={4}>
+                            <AlertTriangle color="#F6AD55" />
+                            <Box>
+                                <Text fontWeight="bold">Suggested Next Topic:</Text>
+                                <Text fontSize="lg" fontStyle="italic">"{(result as any).next_topic_suggestion || "Public Speaking Basics"}"</Text>
+                            </Box>
+                        </HStack>
+                    </Box>
+                </Box>
+
                 <Center mt={12} borderTop="1px solid" borderColor="gray.200" pt={8} className="no-print">
                     <Text fontSize="xs" color="gray.400">--- END OF REPORT ---</Text>
                 </Center>

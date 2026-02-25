@@ -101,9 +101,10 @@ class RecommendationService:
         return res.data
 
     @staticmethod
-    async def generate_recommendations(user_id: str):
+    async def generate_recommendations(user_id: str, pre_generated_exercises: List[Dict[str, Any]] = None):
         """
         Maps a user's speech profile weaknesses to exercise templates and creates personalized recommendations.
+        If pre_generated_exercises is provided (from consolidated Gemini call), it uses them to avoid extra API calls.
         """
         profile_res = supabase.table('speech_profiles').select('*').eq('user_id', user_id).order('last_updated_at', desc=True).limit(1).execute()
         if not profile_res.data:
@@ -116,8 +117,11 @@ class RecommendationService:
             profile['weakness_priority_3']
         ]
         
-        model = RecommendationService._get_gemini_model()
+        # Use shared helper to get model if needed
+        model = RecommendationService._get_gemini_model() if not pre_generated_exercises else None
         recommendations = []
+        
+        pre_gen_idx = 0
         
         for i, category in enumerate(weaknesses):
             limit = 2 if i == 0 else 1
@@ -126,18 +130,24 @@ class RecommendationService:
             for template in templates_res.data:
                 issues = profile['identified_issues'].get(category, [])
                 
-                # Dynamic Content Generation
-                dynamic_content = f"Practice your {category} skills."
-                if model and issues:
-                    try:
-                        prompt = f"Generate a short, engaging 3-sentence speaking exercise for a user struggling with {category}. Specific issues: {', '.join(issues)}. Style: Encouraging."
-                        response = model.models.generate_content(
-                            model='gemini-2.5-flash',
-                            contents=prompt,
-                        )
-                        dynamic_content = response.text
-                    except Exception as e:
-                        print(f"Gemini error: {e}")
+                # Check for pre-generated exercise from the consolidated call
+                if pre_generated_exercises and pre_gen_idx < len(pre_generated_exercises):
+                    ex = pre_generated_exercises[pre_gen_idx]
+                    dynamic_content = f"{ex.get('title', '')}: {ex.get('description', '')}"
+                    pre_gen_idx += 1
+                else:
+                    # Fallback to dynamic generation or static content
+                    dynamic_content = f"Practice your {category} skills."
+                    if model and issues:
+                        try:
+                            prompt = f"Generate a short, engaging 3-sentence speaking exercise for a user struggling with {category}. Specific issues: {', '.join(issues)}. Style: Encouraging."
+                            response = model.models.generate_content(
+                                model='gemini-2.0-flash',
+                                contents=prompt,
+                            )
+                            dynamic_content = response.text
+                        except Exception as e:
+                            print(f"Gemini error in recommendation: {e}")
 
                 recommendations.append({
                     "user_id": user_id,
