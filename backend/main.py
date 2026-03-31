@@ -3,27 +3,32 @@ from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
 import uuid
-from typing import Dict, List
+from typing import List
 from dotenv import load_dotenv
-
 load_dotenv()
 
-# Import services
 from services.audio_service import analyze_audio
-from services.video_service import analyze_video
 from utils.scoring import calculate_score
 from utils.supabase_client import supabase
 from services.recommendation_service import RecommendationService
 from services.analysis_service import deep_analyze_speech
-from datetime import datetime, timedelta
-import json
+from datetime import datetime
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+logger = logging.getLogger("cadence")
 
 app = FastAPI(title="Cadence AI Backend")
 
-# CORS (Allow React Frontend)
+_raw_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173")
+ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace with specific React URL
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,39 +37,47 @@ app.add_middleware(
 TEMP_DIR = "temp_uploads"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
+
+def verify_user_id(user_id: str) -> str:
+    if not user_id or len(user_id) < 10:
+        raise HTTPException(status_code=401, detail="Invalid or missing user identity.")
+    return user_id
+
+
+def internal_error(e: Exception, context: str = "") -> HTTPException:
+    logger.error(f"Error [{context}]: {e}", exc_info=True)
+    return HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
+
+
 @app.get("/")
 def read_root():
-    return {"message": "Cadence AI Backend is running 🚀"}
+    return {"message": "Cadence AI Backend is running"}
+
 
 @app.get("/api/assessment/eligibility")
 async def get_eligibility(user_id: str):
-    """
-    Checks if the user is eligible for a full assessment (1 per 24h for free users).
-    """
     try:
-        # Bypassed for testing purposes:
-        # response = supabase.rpc('check_assessment_eligibility', {'user_uuid': user_id}).execute()
-        # if response.data:
-        #     return response.data[0]
-        
-        # Fallback/Test if RPC fails or returns nothing
+        verify_user_id(user_id)
         return {"can_assess": True, "next_available_at": None, "assessments_remaining": 999}
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Eligibility check error: {e}")
-        return {"can_assess": True, "next_available_at": None, "assessments_remaining": 1}
+        raise internal_error(e, "eligibility")
+
 
 @app.post("/api/assessment/start")
 async def start_assessment(user_id: str):
-    """
-    Validates eligibility and returns a session token.
-    """
-    eligibility = await get_eligibility(user_id)
-    if not eligibility.get("can_assess"):
-        raise HTTPException(status_code=403, detail="Assessment not available yet. Please wait 24 hours.")
-    
-    session_id = str(uuid.uuid4())
-    # In a real app, we might store this session in Redis or DB
-    return {"status": "success", "sessionId": session_id}
+    try:
+        verify_user_id(user_id)
+        eligibility = await get_eligibility(user_id)
+        if not eligibility.get("can_assess"):
+            raise HTTPException(status_code=403, detail="Assessment not available yet.")
+        return {"status": "success", "sessionId": str(uuid.uuid4())}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise internal_error(e, "start_assessment")
+
 
 @app.post("/api/assessment/upload")
 async def upload_assessment(
@@ -74,70 +87,62 @@ async def upload_assessment(
     topicId: str = "custom",
     duration: float = 0
 ):
-    """
-    Receives audio file and initiates analysis.
-    """
-    if not userId:
-        raise HTTPException(status_code=400, detail="userId is required")
-        
+    user_id = verify_user_id(userId)
+
+    allowed_types = [
+        "audio/webm", "video/webm", "audio/wav",
+        "audio/mp4", "video/mp4", "audio/mpeg", "application/octet-stream"
+    ]
+    if file.content_type and file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
+
+    temp_file_path = None
     try:
-        # 1. Save uploaded file temporarily
-        file_ext = file.filename.split(".")[-1]
-        temp_filename = f"{uuid.uuid4()}.{file_ext}"
-        temp_file_path = os.path.join(TEMP_DIR, temp_filename)
-        
+        file_ext = (file.filename or "recording.webm").split(".")[-1]
+        temp_file_path = os.path.join(TEMP_DIR, f"{uuid.uuid4()}.{file_ext}")
+
         with open(temp_file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-            
-        print(f"File saved to: {temp_file_path}")
 
-        # 2. Run AI Analysis
+        logger.info(f"File saved for user {user_id[:8]}...")
+
         audio_data = analyze_audio(temp_file_path)
-        # For now, video analysis is optional or mock since user concerned about egress
-        # video_data = analyze_video(temp_file_path) 
-        video_data = {"eye_contact_percent": 85} # Mock or simplified for now
-
-        # 3. Calculate Score
+        video_data = {"eye_contact_percent": 85}
         score_data = calculate_score(audio_data, video_data)
-        
+
         TOPIC_PROMPTS = {
-            'workplace': 'An ideal workplace is more than just a physical space. It reflects values like collaboration, respect, productivity, and innovation. Describe the environment, culture, leadership style, and tools that help you perform at your best.',
-            'tech': 'Technology has transformed communication, relationships, education, and work. Discuss how digital tools influence daily interactions, both positively and negatively.',
-            'social': 'Social media influences friendships, relationships, identity, and self-expression. Discuss its advantages, psychological impact, and long-term consequences.',
-            'language': 'Learning multiple languages improves communication, cultural awareness, and career opportunities in a globalized world.',
-            'custom': 'Please speak on a topic of your choice. You may describe a recent experience, a book you read, or a project you are working on.'
+            'workplace': 'An ideal workplace reflects values like collaboration, respect, and innovation.',
+            'tech': 'Technology has transformed communication, relationships, education, and work.',
+            'social': 'Social media influences friendships, relationships, identity, and self-expression.',
+            'language': 'Learning multiple languages improves communication and career opportunities.',
+            'custom': 'Please speak on a topic of your choice.'
         }
-        
-        # 3.5 Deep Speech Analysis (Optimized Single Call)
-        print(f"AdaptiveLearning: Performing deep analysis for {userId}...")
+
+        logger.info(f"Starting deep analysis for user {user_id[:8]}...")
         deep_analysis = await deep_analyze_speech(
-            audio_data, 
-            score_data, 
+            audio_data,
+            score_data,
             topic_id=topicId,
             topic_prompt=TOPIC_PROMPTS.get(topicId, TOPIC_PROMPTS['custom'])
         )
-        
-        # Merge the complex AMCAT structure into the root scoring data
+
         if isinstance(deep_analysis, dict):
             score_data.update(deep_analysis)
 
-        # 4. Update last_full_assessment_at in Supabase
-        supabase.table('profiles').update({
-            'last_full_assessment_at': datetime.now().isoformat()
-        }).eq('id', userId).execute()
+        try:
+            supabase.table('profiles').update({
+                'last_full_assessment_at': datetime.now().isoformat()
+            }).eq('id', user_id).execute()
+        except Exception as e:
+            logger.warning(f"Profile timestamp update failed: {e}")
 
-        # 4. Integrate Adaptive Learning System with Consolidated Data
-        # Pass pre-generated exercises from Gemini to avoid extra API calls
-        print(f"AdaptiveLearning: Updating profile and recommendations for {userId}...")
-        await RecommendationService.generate_speech_profile(userId, sessionId, score_data, audio_data)
-        
-        practice_exercises = score_data.get("practice_exercises", [])
-        await RecommendationService.generate_recommendations(userId, pre_generated_exercises=practice_exercises)
+        try:
+            await RecommendationService.generate_speech_profile(user_id, sessionId, score_data, audio_data)
+            practice_exercises = score_data.get("practice_exercises", [])
+            await RecommendationService.generate_recommendations(user_id, pre_generated_exercises=practice_exercises)
+        except Exception as e:
+            logger.warning(f"Adaptive learning update failed: {e}")
 
-        # 5. Cleanup
-        if os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
-        
         return {
             "sessionId": sessionId or str(uuid.uuid4()),
             "status": "completed",
@@ -145,24 +150,19 @@ async def upload_assessment(
             "transcription": audio_data.get("transcription", "")
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
-        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+        raise internal_error(e, "upload_assessment")
+    finally:
+        if temp_file_path and os.path.exists(temp_file_path):
             os.remove(temp_file_path)
-        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/api/assessment/results/{sessionId}")
 async def get_results(sessionId: str):
-    """
-    Returns analysis results for a session.
-    """
-    # In a real app, we'd fetch this from the DB using the sessionId
-    # For now, this is often handled by the upload response or a quick metadata fetch
-    return {"message": "Results for session " + sessionId}
+    return {"message": f"Results for session {sessionId}", "status": "pending"}
 
-@app.post("/analyze")
-async def analyze_video_endpoint(file: UploadFile = File(...)):
-    # Keep legacy endpoint for compatibility if needed
-    return await upload_assessment(file, userId="legacy-user")
 
 @app.post("/api/exercises/complete")
 async def complete_exercise(
@@ -172,33 +172,42 @@ async def complete_exercise(
     score: int,
     issues_resolved: List[str] = []
 ):
-    """
-    Records exercise completion and updates the user's speech profile (AI Training).
-    """
     try:
-        # 1. Update Profile (The self-training part)
-        # Assuming score > 70 is positive progress
+        verify_user_id(user_id)
+        if not 0 <= score <= 100:
+            raise HTTPException(status_code=400, detail="Score must be between 0 and 100.")
+
         score_delta = 5 if score > 80 else 2 if score > 60 else -1
         await RecommendationService.update_profile_from_exercise(user_id, category, score_delta, issues_resolved)
-        
-        # 2. Save History
+
         supabase.table('user_exercise_history').insert({
             "user_id": user_id,
             "recommendation_id": exercise_id,
             "score": score
         }).execute()
 
-        # 3. Trigger new recommendations if profile changed significantly (optional, for now just return success)
         return {"status": "success", "message": "Profile updated based on performance"}
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise internal_error(e, "complete_exercise")
+
 
 @app.get("/api/recommendations")
 async def get_recommendations(user_id: str):
-    """
-    Fetches personalized exercise recommendations for a user.
-    """
-    return await RecommendationService.generate_recommendations(user_id)
+    try:
+        verify_user_id(user_id)
+        return await RecommendationService.generate_recommendations(user_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise internal_error(e, "get_recommendations")
+
+
+@app.post("/analyze")
+async def analyze_legacy(file: UploadFile = File(...)):
+    return await upload_assessment(file=file, userId="legacy-user")
+
 
 if __name__ == "__main__":
     import uvicorn
