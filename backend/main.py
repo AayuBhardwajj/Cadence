@@ -23,6 +23,7 @@ logger = logging.getLogger("cadence")
 
 app = FastAPI(title="Cadence AI Backend")
 
+# CORS — env-driven, no wildcard
 _raw_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173")
 ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",")]
 

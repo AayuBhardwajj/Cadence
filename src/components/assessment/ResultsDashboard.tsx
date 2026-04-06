@@ -46,6 +46,19 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result, onRe
         <Box w="full" maxW="5xl" mx="auto" py={12} px={6}>
             <VStack spacing={10} align="stretch">
                 {/* Header Scorecard */}
+                {result.api_error && (
+                    <Box p={4} bg="orange.400/10" border="1px solid" borderColor="orange.400/20" rounded="2xl" mb={2}>
+                        <HStack spacing={3}>
+                            <Icon as={AlertCircle} color="orange.400" />
+                            <VStack align="start" spacing={0}>
+                                <Text fontWeight="bold" color="orange.200" fontSize="sm">AI Insights Throttled</Text>
+                                <Text fontSize="xs" color="whiteAlpha.600">
+                                    Our advanced AI is currently experiencing high demand. We've provided a report based on our core heuristic engine.
+                                </Text>
+                            </VStack>
+                        </HStack>
+                    </Box>
+                )}
                 <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
                     <Box
                         gridColumn={{ md: "span 2" }}
