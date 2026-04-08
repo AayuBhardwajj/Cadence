@@ -2,12 +2,12 @@ import React from 'react';
 import {
     Box, VStack, HStack, Text, Heading, SimpleGrid,
     Divider, Center, Button, Badge, Table,
-    Thead, Tbody, Tr, Th, Td, Progress, Flex, Grid, GridItem
+    Thead, Tbody, Tr, Th, Td, Flex, Grid, GridItem
 } from '@chakra-ui/react';
 import { Download, CheckCircle, AlertTriangle, MonitorPlay } from 'lucide-react';
+import { PDFDownloadLink } from '@react-pdf/renderer';
 import { AnalysisResult } from '../../services/api';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import { AssessmentReportPDF } from './AssessmentReportPDF';
 
 interface AssessmentReportProps {
     userName: string;
@@ -23,13 +23,13 @@ const getColor = (score: number) => {
 };
 
 const getDot = (score: number) => {
-    if (score >= 70) return "��";
+    if (score >= 70) return "🟢";
     if (score >= 30) return "🟡";
     return "🔴";
 };
 
 const PageBreak = () => (
-    <Box className="page-break" my={8} borderBottom="2px dashed" borderColor="gray.300" sx={{ '@media print': { borderBottom: 'none', margin: 0 } }} />
+    <Box className="page-break" my={8} borderBottom="2px dashed" borderColor="gray.300" />
 );
 
 export const AssessmentReport: React.FC<AssessmentReportProps> = ({
@@ -40,7 +40,6 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
 }) => {
     const today = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 
-    // Strict dynamic data mapping (no more mock fallbacks)
     const m = result.amcat_metrics || {
         pronunciation: { score: 0, consonant: 0, vowel: 0, stress: 0 },
         fluency: { score: 0, rate: 0, pause: 0, fillers: 0 },
@@ -60,38 +59,7 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
     const sentences = result.amcat_sentences || [];
     const summary = result.amcat_summary || { top_strengths: [], top_improvements: [], learning_resources: [] };
 
-    const handleDownloadPdf = async () => {
-        const reportContent = document.getElementById('assessment-report-content');
-        if (!reportContent) return;
-
-        const pages = reportContent.querySelectorAll('.pdf-page');
-        if (pages.length === 0) return;
-
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-
-        for (let i = 0; i < pages.length; i++) {
-            const pageEl = pages[i] as HTMLElement;
-            // Capture each page block
-            const canvas = await html2canvas(pageEl, { scale: 2, useCORS: true } as any);
-            const imgData = canvas.toDataURL('image/png');
-
-            // Calculate scaled dimensions to fit the PDF
-            const imgProps = pdf.getImageProperties(imgData);
-            const ratio = imgProps.width / imgProps.height;
-            let drawHeight = pdfWidth / ratio;
-
-            // If the chunk height exceeds the A4 page height, scale it down (or cap it) 
-            // but standard A4 aspect matches roughly the 950px height mapping
-            if (drawHeight > pdfHeight) drawHeight = pdfHeight;
-
-            if (i > 0) pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, drawHeight);
-        }
-
-        pdf.save(`${userName.replace(/\s+/g, '_')}_Assessment_Report.pdf`);
-    };
+    const pdfFileName = `${userName.replace(/\s+/g, '_')}_Assessment_Report.pdf`;
 
     return (
         <Box className="report-container" p={8} bg="gray.100" minH="100vh">
@@ -112,13 +80,35 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                 }
             `}} />
 
+            {/* ── Top action bar ── */}
             <HStack justify="space-between" mb={8} className="no-print" maxW="900px" mx="auto">
                 <Button variant="ghost" onClick={onClose} color="gray.600">Back to Results</Button>
-                <Button leftIcon={<Download size={18} />} colorScheme="blue" onClick={handleDownloadPdf} shadow="md">
-                    Download Assessment Report (PDF)
-                </Button>
+
+                <PDFDownloadLink
+                    document={
+                        <AssessmentReportPDF
+                            userName={userName}
+                            sessionId={sessionId}
+                            result={result}
+                        />
+                    }
+                    fileName={pdfFileName}
+                >
+                    {({ loading }) => (
+                        <Button
+                            leftIcon={<Download size={18} />}
+                            colorScheme="blue"
+                            shadow="md"
+                            isLoading={loading}
+                            loadingText="Preparing PDF…"
+                        >
+                            Download Assessment Report (PDF)
+                        </Button>
+                    )}
+                </PDFDownloadLink>
             </HStack>
 
+            {/* ── On-screen preview (unchanged UI) ── */}
             <Box id="assessment-report-content" className="print-box" w="100%" maxW="900px" mx="auto" bg="white" p={12} shadow="2xl" color="gray.800">
 
                 {/* ======================= PAGE 1 ======================= */}
@@ -158,7 +148,6 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                         </HStack>
                     </HStack>
 
-                    {/* Tile Grid */}
                     <SimpleGrid columns={3} spacing={4} mb={10}>
                         {[
                             { name: "Topic Relevancy", score: m.relevancy?.score || 100 },
@@ -178,7 +167,6 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                         ))}
                     </SimpleGrid>
 
-                    {/* Sub-dimension bars */}
                     <Box>
                         <Heading size="md" mb={6} borderBottom="2px solid" borderColor="gray.100" pb={2}>Detailed Sub-Dimensions</Heading>
                         <SimpleGrid columns={2} spacing={10}>
@@ -236,7 +224,6 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                 {/* ======================= PAGE 2 ======================= */}
                 <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">1 | Introduction</Heading>
-
                     <Box bg="gray.50" p={8} rounded="md" border="1px solid" borderColor="gray.200" mb={8}>
                         <Heading size="md" mb={4}>About This Report</Heading>
                         <Text fontSize="md" color="gray.700" lineHeight="tall">
@@ -245,134 +232,93 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                             Analysis was performed across five core dimensions of spoken English quality.
                         </Text>
                     </Box>
-
                     <Heading size="md" mb={4}>Score Interpretation</Heading>
                     <Text mb={4} color="gray.600">All scores are on a scale of 0–100.</Text>
-
                     <VStack align="stretch" spacing={4}>
                         <HStack bg="green.50" p={4} border="1px solid" borderColor="green.200" rounded="md">
                             <Text fontSize="2xl">🟢</Text>
-                            <VStack align="start" spacing={0}>
-                                <Text fontWeight="bold" color="green.800" fontSize="lg">70–100: Proficient</Text>
-                                <Text color="green.700" fontSize="sm">Candidate demonstrates clear, business-ready communication with minimal interference.</Text>
-                            </VStack>
+                            <VStack align="start" spacing={0}><Text fontWeight="bold" color="green.800" fontSize="lg">70–100: Proficient</Text><Text color="green.700" fontSize="sm">Candidate demonstrates clear, business-ready communication with minimal interference.</Text></VStack>
                         </HStack>
                         <HStack bg="yellow.50" p={4} border="1px solid" borderColor="yellow.200" rounded="md">
                             <Text fontSize="2xl">🟡</Text>
-                            <VStack align="start" spacing={0}>
-                                <Text fontWeight="bold" color="yellow.800" fontSize="lg">30–69: Developing</Text>
-                                <Text color="yellow.700" fontSize="sm">Candidate is intelligible but demonstrates noticeable issues requiring targeted practice.</Text>
-                            </VStack>
+                            <VStack align="start" spacing={0}><Text fontWeight="bold" color="yellow.800" fontSize="lg">30–69: Developing</Text><Text color="yellow.700" fontSize="sm">Candidate is intelligible but demonstrates noticeable issues requiring targeted practice.</Text></VStack>
                         </HStack>
                         <HStack bg="red.50" p={4} border="1px solid" borderColor="red.200" rounded="md">
                             <Text fontSize="2xl">🔴</Text>
-                            <VStack align="start" spacing={0}>
-                                <Text fontWeight="bold" color="red.800" fontSize="lg">0–29: Needs Significant Work</Text>
-                                <Text color="red.700" fontSize="sm">Candidate's speech frequently impedes comprehension; foundational training required.</Text>
-                            </VStack>
+                            <VStack align="start" spacing={0}><Text fontWeight="bold" color="red.800" fontSize="lg">0–29: Needs Significant Work</Text><Text color="red.700" fontSize="sm">Candidate's speech frequently impedes comprehension; foundational training required.</Text></VStack>
                         </HStack>
                     </VStack>
                 </Box>
 
                 <PageBreak />
 
-                {/* ======================= PAGE 3 ======================= */}
+                {/* ======================= PAGE 3: Insights ======================= */}
                 <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">2 | Insights</Heading>
-
                     <VStack align="stretch" spacing={6}>
-                        {insights.length > 0 ? insights.map((insight, idx) => (
+                        {insights.length > 0 ? insights.map((insight: any, idx: number) => (
                             <Box key={idx} border="1px solid" borderColor="gray.200" rounded="md" p={6} bg="white" shadow="sm">
                                 <HStack justify="space-between" mb={3}>
                                     <Heading size="md" color="gray.800">{insight.dimension}</Heading>
-                                    <HStack>
-                                        <Text fontWeight="bold">Score:</Text>
-                                        <Text fontWeight="bold" color={getColor(insight.score)} fontSize="lg">{insight.score}/100 {getDot(insight.score)}</Text>
-                                    </HStack>
+                                    <Text fontWeight="bold" color={getColor(insight.score)} fontSize="lg">{insight.score}/100 {getDot(insight.score)}</Text>
                                 </HStack>
                                 <Text fontSize="sm" color="gray.600" mb={3} fontStyle="italic">{insight.definition}</Text>
                                 <Divider mb={3} />
                                 <Text fontSize="sm" color="gray.800" lineHeight="tall">{insight.feedback}</Text>
                             </Box>
-                        )) : (
-                            <Text color="gray.500" fontStyle="italic">Detailed insights are currently being generated or unavailable for this session.</Text>
-                        )}
+                        )) : <Text color="gray.500" fontStyle="italic">Detailed insights are currently being generated or unavailable for this session.</Text>}
                     </VStack>
                 </Box>
 
                 <PageBreak />
 
-                {/* ======================= PAGE 4 ======================= */}
+                {/* ======================= PAGE 4: MTI ======================= */}
                 <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">MTI Deep Dive</Heading>
-
                     <Box bg="red.50" borderLeft="4px solid" borderColor="red.500" p={4} mb={8}>
                         <Text fontWeight="bold" color="red.900" fontSize="lg">Detected L1 Influence: {mti_deep_dive.detected_accent || "No obvious accent detected"}</Text>
                     </Box>
-
                     <VStack align="stretch" spacing={8}>
                         {mti_deep_dive.patterns.length > 0 ? mti_deep_dive.patterns.map((item: any, idx: number) => (
                             <Box key={idx} borderBottom="1px solid" borderColor="gray.100" pb={6}>
-                                <HStack justify="space-between" mb={2}>
-                                    <Heading size="sm" color="gray.800">{item.pattern}</Heading>
-                                    <Badge colorScheme={item.score > 60 ? "red" : (item.score > 30 ? "yellow" : "green")}>Score: {item.score}</Badge>
+                                <HStack justify="space-between" mb={4}>
+                                    <Heading size="sm">{item.pattern}</Heading>
+                                    <Badge colorScheme={item.score > 60 ? "red" : item.score > 30 ? "yellow" : "green"}>Score: {item.score}</Badge>
                                 </HStack>
-
-                                <Box position="relative" h="8px" bg="gray.200" rounded="full" mb={2} mt={4}>
+                                <Box position="relative" h="8px" bg="gray.200" rounded="full" mb={2}>
                                     <Box position="absolute" top="-20px" left="0" fontSize="xs" color="gray.500">Rare</Box>
                                     <Box position="absolute" top="-20px" right="0" fontSize="xs" color="gray.500">Frequent</Box>
-                                    <Box
-                                        position="absolute" top="-4px"
-                                        left={item.score + "%"}
-                                        w="16px" h="16px" bg="gray.800" rounded="full"
-                                        transform="translateX(-50%)"
-                                    />
-                                    <Box
-                                        position="absolute" top="4px"
-                                        w="100%" h="1px" bg="gray.400" zIndex={0}
-                                    />
+                                    <Box position="absolute" top="-4px" left={item.score + "%"} w="16px" h="16px" bg="gray.800" rounded="full" transform="translateX(-50%)" />
                                 </Box>
-
                                 <Box mt={4} pl={4}>
                                     <ul style={{ color: "#4A5568", fontSize: "14px", lineHeight: "1.6" }}>
                                         {item.behaviors?.map((b: string, i: number) => <li key={i}>{b}</li>)}
                                     </ul>
                                 </Box>
                             </Box>
-                        )) : (
-                            <Text color="gray.500" fontStyle="italic">No specific MTI patterns detected.</Text>
-                        )}
+                        )) : <Text color="gray.500" fontStyle="italic">No specific MTI patterns detected.</Text>}
                     </VStack>
                 </Box>
 
                 <PageBreak />
 
-                {/* ======================= PAGE 5 ======================= */}
+                {/* ======================= PAGE 5: Response ======================= */}
                 <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">3 | Response</Heading>
-
                     <Grid templateColumns="3fr 1fr" gap={8}>
                         <GridItem>
                             <Box mb={8}>
                                 <Text fontWeight="bold" color="gray.600" fontSize="xs" textTransform="uppercase" mb={2}>Paragraph Displayed to Candidate:</Text>
-                                <Box bg="gray.50" p={6} border="1px solid" borderColor="gray.200" rounded="md" fontStyle="italic" color="gray.700">
-                                    "{transcript.reference_text || 'Reference text unavailable.'}"
-                                </Box>
+                                <Box bg="gray.50" p={6} border="1px solid" borderColor="gray.200" rounded="md" fontStyle="italic" color="gray.700">"{transcript.reference_text || 'Reference text unavailable.'}"</Box>
                             </Box>
-
                             <Box>
                                 <Text fontWeight="bold" color="gray.600" fontSize="xs" textTransform="uppercase" mb={2}>Candidate's Transcription (Auto-generated):</Text>
-                                <Box bg="white" p={6} border="1px solid" borderColor="gray.200" rounded="md" color="gray.800" lineHeight="tall">
-                                    {transcript.user_text || 'Transcription unavailable.'}
-                                </Box>
+                                <Box bg="white" p={6} border="1px solid" borderColor="gray.200" rounded="md" color="gray.800" lineHeight="tall">{transcript.user_text || 'Transcription unavailable.'}</Box>
                             </Box>
                         </GridItem>
-
                         <GridItem>
                             <Box bg="gray.800" color="white" rounded="md" overflow="hidden" mb={6}>
-                                <Box bg="blue.900" p={3} textAlign="center">
-                                    <Text fontWeight="bold" fontSize="sm" textTransform="uppercase" letterSpacing="wide">Error Summary</Text>
-                                </Box>
+                                <Box bg="blue.900" p={3} textAlign="center"><Text fontWeight="bold" fontSize="sm" textTransform="uppercase">Error Summary</Text></Box>
                                 <VStack align="stretch" spacing={0}>
                                     {[
                                         { label: "Mispronunciation", val: transcript.error_summary?.mispronunciation || 0 },
@@ -388,11 +334,8 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                     ))}
                                 </VStack>
                             </Box>
-
                             <Box border="1px solid" borderColor="gray.200" rounded="md">
-                                <Box bg="gray.100" p={3} textAlign="center" borderBottom="1px solid" borderColor="gray.200">
-                                    <Text fontWeight="bold" fontSize="sm" color="gray.700" textTransform="uppercase" letterSpacing="wide">Speech Statistics</Text>
-                                </Box>
+                                <Box bg="gray.100" p={3} textAlign="center" borderBottom="1px solid" borderColor="gray.200"><Text fontWeight="bold" fontSize="sm" color="gray.700" textTransform="uppercase">Speech Statistics</Text></Box>
                                 <VStack align="stretch" spacing={0}>
                                     {[
                                         { label: "Total Words Spoken", val: transcript.stats?.total_words || "N/A" },
@@ -404,7 +347,7 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                     ].map((row, idx) => (
                                         <HStack key={idx} justify="space-between" p={3} borderBottom="1px solid" borderColor="gray.100">
                                             <Text fontSize="xs" color="gray.600">{row.label}</Text>
-                                            <Text fontSize="xs" fontWeight="bold">{row.val}</Text>
+                                            <Text fontSize="xs" fontWeight="bold">{String(row.val)}</Text>
                                         </HStack>
                                     ))}
                                 </VStack>
@@ -415,29 +358,15 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
 
                 <PageBreak />
 
-                {/* ======================= PAGE 6 ======================= */}
+                {/* ======================= PAGE 6: Error Log ======================= */}
                 <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">Word-Level Error Log</Heading>
-
-                    <VStack align="stretch" spacing={6}>
-                        {error_log.length > 0 ? (
-                            <Box bg="red.50" p={2} borderTopRadius="md" borderBottom="2px solid" borderColor="red.300">
-                                <Text fontWeight="bold" color="red.800" textTransform="uppercase">Speech & Error Log</Text>
-                            </Box>
-                        ) : (
-                            <Text color="gray.500" fontStyle="italic">No specific word-level errors were heavily detected.</Text>
-                        )}
-                        {error_log.length > 0 && (
-                            <Table size="sm" variant="simple" bg="white" border="1px solid" borderColor="gray.200" borderTop="none">
+                    {error_log.length === 0
+                        ? <Text color="gray.500" fontStyle="italic">No specific word-level errors were heavily detected.</Text>
+                        : (
+                            <Table size="sm" variant="simple" bg="white" border="1px solid" borderColor="gray.200">
                                 <Thead bg="gray.50">
-                                    <Tr>
-                                        <Th>Timestamp</Th>
-                                        <Th>Word</Th>
-                                        <Th>Candidate Said</Th>
-                                        <Th>Correct Form</Th>
-                                        <Th>Error Type</Th>
-                                        <Th>Severity</Th>
-                                    </Tr>
+                                    <Tr><Th>Timestamp</Th><Th>Word</Th><Th>Candidate Said</Th><Th>Correct Form</Th><Th>Error Type</Th><Th>Severity</Th></Tr>
                                 </Thead>
                                 <Tbody>
                                     {error_log.map((err: any, i: number) => (
@@ -447,47 +376,46 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                             <Td fontSize="sm" color="red.600">"{err.said_as}"</Td>
                                             <Td fontSize="sm" color="green.600">"{err.correct_ipa}"</Td>
                                             <Td fontSize="sm">{err.error_type} ({err.category})</Td>
-                                            <Td>
-                                                <Badge colorScheme={err.severity === 'major' ? 'red' : (err.severity === 'moderate' ? 'yellow' : 'gray')}>{err.severity}</Badge>
-                                            </Td>
+                                            <Td><Badge colorScheme={err.severity === 'major' ? 'red' : err.severity === 'moderate' ? 'yellow' : 'gray'}>{err.severity}</Badge></Td>
                                         </Tr>
                                     ))}
                                 </Tbody>
                             </Table>
                         )}
-                    </VStack>
                 </Box>
 
                 <PageBreak />
 
-                {/* ======================= PAGE 7 ======================= */}
+                {/* ======================= PAGE 7: Sentence Breakdown ======================= */}
                 <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">Sentence-by-Sentence Breakdown</Heading>
-
                     <VStack align="stretch" spacing={8}>
                         {sentences.length > 0 ? sentences.map((sentence: any, idx: number) => (
                             <Box key={idx} borderLeft="4px solid" borderColor="blue.500" bg="gray.50" pl={4} py={3} pr={4} roundedRight="md">
                                 <Text fontWeight="bold" fontSize="md" mb={3} color="gray.800">Sentence {idx + 1}: "{sentence.text}"</Text>
                                 <SimpleGrid columns={1} spacing={2} pl={4}>
-                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">Pronunciation Issues:</Text> {sentence.pronunciation_issues}</Text>
-                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">Fluency:</Text> {sentence.fluency}</Text>
-                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">MTI Detected:</Text> {sentence.mti_detected}</Text>
-                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">Rhythm:</Text> {sentence.rhythm}</Text>
-                                    <Text fontSize="sm"><Text as="span" fontWeight="bold" color="gray.600">Intonation:</Text> {sentence.intonation}</Text>
+                                    {[
+                                        { label: "Pronunciation Issues", val: sentence.pronunciation_issues },
+                                        { label: "Fluency", val: sentence.fluency },
+                                        { label: "MTI Detected", val: sentence.mti_detected },
+                                        { label: "Rhythm", val: sentence.rhythm },
+                                        { label: "Intonation", val: sentence.intonation },
+                                    ].map((row, i) => (
+                                        <Text key={i} fontSize="sm">
+                                            <Text as="span" fontWeight="bold" color="gray.600">{row.label}: </Text>{row.val}
+                                        </Text>
+                                    ))}
                                 </SimpleGrid>
                             </Box>
-                        )) : (
-                            <Text color="gray.500" fontStyle="italic">Sentence-level analysis is not available for this session.</Text>
-                        )}
+                        )) : <Text color="gray.500" fontStyle="italic">Sentence-level analysis is not available for this session.</Text>}
                     </VStack>
                 </Box>
 
                 <PageBreak />
 
-                {/* ======================= PAGE 8 ======================= */}
+                {/* ======================= PAGE 8: Learning Resources ======================= */}
                 <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">4 | Learning Resources</Heading>
-
                     <HStack mb={8} justify="center" spacing={10} bg="blue.50" p={6} rounded="md" border="1px solid" borderColor="blue.100">
                         <VStack>
                             <Text fontSize="sm" fontWeight="bold" textTransform="uppercase" color="blue.600">Overall Speech Score</Text>
@@ -499,40 +427,27 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                             <Heading size="2xl" color="blue.900">{result.cefr_level || 'B1'}</Heading>
                         </VStack>
                     </HStack>
-
                     <SimpleGrid columns={2} spacing={8} mb={10}>
                         <Box bg="green.50" p={6} rounded="md" border="1px solid" borderColor="green.200">
-                            <HStack mb={4}>
-                                <CheckCircle color="#38A169" />
-                                <Heading size="md" color="green.900">Top Strengths</Heading>
-                            </HStack>
+                            <HStack mb={4}><CheckCircle color="#38A169" /><Heading size="md" color="green.900">Top Strengths</Heading></HStack>
                             <VStack align="start" spacing={3}>
-                                {summary.top_strengths?.map((str: string, i: number) => (
-                                    <Text key={i} fontSize="sm" color="green.800">• {str}</Text>
-                                )) || <Text fontSize="sm" color="green.800">No defined strengths collected.</Text>}
+                                {summary.top_strengths?.map((str: string, i: number) => <Text key={i} fontSize="sm" color="green.800">• {str}</Text>)
+                                    || <Text fontSize="sm" color="green.800">No defined strengths collected.</Text>}
                             </VStack>
                         </Box>
-
                         <Box bg="red.50" p={6} rounded="md" border="1px solid" borderColor="red.200">
-                            <HStack mb={4}>
-                                <AlertTriangle color="#E53E3E" />
-                                <Heading size="md" color="red.900">Priority Improvements</Heading>
-                            </HStack>
+                            <HStack mb={4}><AlertTriangle color="#E53E3E" /><Heading size="md" color="red.900">Priority Improvements</Heading></HStack>
                             <VStack align="start" spacing={3}>
-                                {summary.top_improvements?.map((imp: string, i: number) => (
-                                    <Text key={i} fontSize="sm" color="red.800">• {imp}</Text>
-                                )) || <Text fontSize="sm" color="red.800">No priority improvements derived.</Text>}
+                                {summary.top_improvements?.map((imp: string, i: number) => <Text key={i} fontSize="sm" color="red.800">• {imp}</Text>)
+                                    || <Text fontSize="sm" color="red.800">No priority improvements derived.</Text>}
                             </VStack>
                         </Box>
                     </SimpleGrid>
-
                     <Heading size="md" mb={4}>Personalized Learning Resources</Heading>
-                    <Text fontSize="sm" color="gray.600" mb={6}>Based on detected weaknesses, we recommend the following resources:</Text>
-
                     <VStack align="stretch" spacing={6}>
                         {summary.learning_resources?.map((res: any, idx: number) => (
                             <Box key={idx}>
-                                <Heading size="sm" mb={3} color="gray.800">{res.area}</Heading>
+                                <Heading size="sm" mb={3}>{res.area}</Heading>
                                 <VStack align="stretch" spacing={2}>
                                     {res.items?.map((item: any, i: number) => (
                                         <HStack key={i} justify="space-between" bg="white" p={3} border="1px solid" borderColor="gray.200" rounded="md">
@@ -542,26 +457,20 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                     ))}
                                 </VStack>
                             </Box>
-                        )) || (
-                                <Text color="gray.500" fontStyle="italic">No specific learning resources matched yet.</Text>
-                            )}
+                        )) || <Text color="gray.500" fontStyle="italic">No specific learning resources matched yet.</Text>}
                     </VStack>
                 </Box>
 
                 <PageBreak />
 
-                {/* ======================= PAGE 9 (NEW) ======================= */}
+                {/* ======================= PAGE 9: 3-Week Plan ======================= */}
                 <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">5 | 3-Week Improvement Plan</Heading>
-
                     <Text mb={8} color="gray.600">This structured plan is designed to address your specific weaknesses identified during this assessment.</Text>
-
                     <VStack align="stretch" spacing={8}>
-                        {(result as any).improvement_plan ? Object.entries((result as any).improvement_plan).map(([week, data]: [string, any], idx: number) => (
+                        {(result as any).improvement_plan ? Object.entries((result as any).improvement_plan).map(([week, data]: [string, any]) => (
                             <Box key={week} p={6} bg="blue.50" rounded="md" border="1px solid" borderColor="blue.100" position="relative">
-                                <Badge colorScheme="blue" position="absolute" top="-10px" left="20px" px={4} py={1} rounded="full" shadow="sm">
-                                    {week.replace('_', ' ').toUpperCase()}
-                                </Badge>
+                                <Badge colorScheme="blue" position="absolute" top="-10px" left="20px" px={4} py={1} rounded="full" shadow="sm">{week.replace('_', ' ').toUpperCase()}</Badge>
                                 <HStack justify="space-between" mb={4} mt={2}>
                                     <Heading size="md" color="blue.900">Focus: {data.focus}</Heading>
                                     <Badge colorScheme="purple">{data.daily_minutes} mins / day</Badge>
@@ -571,43 +480,30 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                     <Text color="gray.800">{data.exercise}</Text>
                                 </Box>
                             </Box>
-                        )) : (
-                            <Text color="gray.500" fontStyle="italic">Personalized plan unavailable. Please wait for the daily quota to reset.</Text>
-                        )}
+                        )) : <Text color="gray.500" fontStyle="italic">Personalized plan unavailable. Please wait for the daily quota to reset.</Text>}
                     </VStack>
                 </Box>
 
                 <PageBreak />
 
-                {/* ======================= PAGE 10 (NEW) ======================= */}
+                {/* ======================= PAGE 10: Practice ======================= */}
                 <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">6 | Recommended Practice</Heading>
-
                     <Text mb={8} color="gray.600">Immediate actions you can take to see improvement in your communication clarity and flow.</Text>
-
                     <SimpleGrid columns={1} spacing={6}>
                         {(result as any).practice_exercises?.map((ex: any, idx: number) => (
-                            <Box key={idx} p={6} border="1px solid" borderColor="gray.200" rounded="lg" shadow="sm" transition="all 0.2s" _hover={{ shadow: 'md', borderColor: 'blue.200' }}>
+                            <Box key={idx} p={6} border="1px solid" borderColor="gray.200" rounded="lg" shadow="sm">
                                 <HStack justify="space-between" mb={4}>
                                     <HStack spacing={3}>
-                                        <Box bg="blue.100" p={2} rounded="full" color="blue.600">
-                                            <MonitorPlay size={24} />
-                                        </Box>
+                                        <Box bg="blue.100" p={2} rounded="full" color="blue.600"><MonitorPlay size={24} /></Box>
                                         <Heading size="md" color="gray.800">{ex.title}</Heading>
                                     </HStack>
-                                    <Badge variant="subtle" colorScheme="orange" px={3} py={1} rounded="md">
-                                        {ex.duration_minutes} MINS
-                                    </Badge>
+                                    <Badge variant="subtle" colorScheme="orange" px={3} py={1} rounded="md">{ex.duration_minutes} MINS</Badge>
                                 </HStack>
-                                <Text color="gray.700" lineHeight="tall" pl={12}>
-                                    {ex.description}
-                                </Text>
+                                <Text color="gray.700" lineHeight="tall" pl={12}>{ex.description}</Text>
                             </Box>
-                        )) || (
-                                <Text color="gray.500" fontStyle="italic">No practice exercises suggested for this session.</Text>
-                            )}
+                        )) || <Text color="gray.500" fontStyle="italic">No practice exercises suggested for this session.</Text>}
                     </SimpleGrid>
-
                     <Box mt={12} p={6} bg="gray.800" color="white" rounded="lg">
                         <HStack spacing={4}>
                             <AlertTriangle color="#F6AD55" />
@@ -623,6 +519,6 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                     <Text fontSize="xs" color="gray.400">--- END OF REPORT ---</Text>
                 </Center>
             </Box>
-        </Box >
+        </Box>
     );
 };
