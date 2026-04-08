@@ -1,3 +1,4 @@
+from groq import Groq
 from google import genai
 import os
 from utils.supabase_client import supabase
@@ -6,55 +7,75 @@ from typing import Dict, List, Any
 import json
 
 class RecommendationService:
+
     @staticmethod
-    def _get_gemini_model():
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            return None
-        return genai.Client(api_key=api_key)
+    def _get_llm_client():
+        """Returns (client, 'groq') or (client, 'gemini') or (None, None)."""
+        groq_key = os.environ.get("GROQ_API_KEY")
+        if groq_key:
+            return Groq(api_key=groq_key), "groq"
+        gemini_key = os.environ.get("GEMINI_API_KEY")
+        if gemini_key:
+            return genai.Client(api_key=gemini_key), "gemini"
+        return None, None
+
+    @staticmethod
+    def _call_llm_sync(client, provider: str, prompt: str) -> str:
+        if provider == "groq":
+            for model_id in ("llama-3.1-8b-instant", "gemma2-9b-it"):
+                try:
+                    resp = client.chat.completions.create(
+                        model=model_id,
+                        messages=[
+                            {"role": "system", "content": "You are a speech coaching assistant. Return only plain text — no JSON, no markdown."},
+                            {"role": "user",   "content": prompt}
+                        ],
+                        temperature=0.3,
+                        max_tokens=200,
+                    )
+                    return resp.choices[0].message.content.strip()
+                except Exception as e:
+                    print(f"Groq/{model_id} error in recommendation: {e}")
+        gemini_key = os.environ.get("GEMINI_API_KEY")
+        if gemini_key:
+            try:
+                gemini = genai.Client(api_key=gemini_key)
+                resp = gemini.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+                return resp.text.strip()
+            except Exception as e:
+                print(f"Gemini fallback error in recommendation: {e}")
+        return ""
 
     @staticmethod
     async def generate_speech_profile(user_id: str, assessment_id: str, scores: Dict[str, int], metrics: Dict[str, Any]):
-        """
-        Processes assessment results into a persistent speech profile.
-        """
-        # 1. Rank weaknesses by severity (0-100, lower score = higher severity)
         rankable_metrics = {
             'pronunciation': scores.get('pronunciation', scores.get('pronunciation_score', 100)),
-            'fluency': scores.get('fluency', scores.get('fluency_score', 100)),
-            'grammar': scores.get('grammar', scores.get('grammar_score', 100)),
-            'vocabulary': scores.get('vocabulary', scores.get('vocabulary_score', 100)),
-            'clarity': scores.get('clarity', scores.get('clarity_score', 100)),
-            'confidence': scores.get('confidence', scores.get('confidence_score', 100))
+            'fluency':       scores.get('fluency',       scores.get('fluency_score', 100)),
+            'grammar':       scores.get('grammar',       scores.get('grammar_score', 100)),
+            'vocabulary':    scores.get('vocabulary',    scores.get('vocabulary_score', 100)),
+            'clarity':       scores.get('clarity',       scores.get('clarity_score', 100)),
+            'confidence':    scores.get('confidence',    scores.get('confidence_score', 100))
         }
-        
-        # Sort by score ascending (lowest score first)
         sorted_weaknesses = sorted(rankable_metrics.items(), key=lambda item: item[1])
-        
-        # 2. Extract Specific Identified Issues
         identified_issues = {
             'pronunciation': metrics.get('phoneme_errors', []),
-            'fluency': [f"{metrics.get('filler_word_count', 0)} fillers"] if metrics.get('filler_word_count', 0) > 10 else [],
-            'grammar': metrics.get('grammar_errors', []),
-            'vocabulary': metrics.get('lexical_gaps', [])
+            'fluency':       [f"{metrics.get('filler_word_count',0)} fillers"] if metrics.get('filler_word_count',0) > 10 else [],
+            'grammar':       metrics.get('grammar_errors', []),
+            'vocabulary':    metrics.get('lexical_gaps', [])
         }
-        
-        # 3. Determine Learning Pace
-        overall = scores.get('overall_score', 50)
+        overall       = scores.get('overall_score', 50)
         learning_pace = 'fast' if overall > 80 else 'moderate' if overall > 50 else 'slow'
-        
-        profile_data = {
+        profile_data  = {
             "user_id": user_id,
             "created_from_assessment_id": assessment_id,
             "weakness_priority_1": sorted_weaknesses[0][0],
             "weakness_priority_2": sorted_weaknesses[1][0],
             "weakness_priority_3": sorted_weaknesses[2][0],
-            "current_scores": scores,
-            "identified_issues": identified_issues,
-            "learning_pace": learning_pace,
-            "last_updated_at": datetime.now().isoformat()
+            "current_scores":      scores,
+            "identified_issues":   identified_issues,
+            "learning_pace":       learning_pace,
+            "last_updated_at":     datetime.now().isoformat()
         }
-        
         existing = supabase.table('speech_profiles').select('id').eq('user_id', user_id).execute()
         if existing.data:
             res = supabase.table('speech_profiles').update(profile_data).eq('user_id', user_id).execute()
@@ -64,103 +85,70 @@ class RecommendationService:
 
     @staticmethod
     async def update_profile_from_exercise(user_id: str, category: str, score_delta: int, issues_resolved: List[str]):
-        """
-        AI Trains Itself: Incremental profile updates based on exercise performance.
-        """
         profile_res = supabase.table('speech_profiles').select('*').eq('user_id', user_id).execute()
         if not profile_res.data:
             return None
-            
-        profile = profile_res.data[0]
-        current_scores = profile.get('current_scores', {})
+        profile          = profile_res.data[0]
+        current_scores   = profile.get('current_scores', {})
         identified_issues = profile.get('identified_issues', {})
-        
-        # Update scores (clamp between 0-100)
-        old_score = current_scores.get(category, 50)
-        new_score = max(0, min(100, old_score + score_delta))
+        old_score        = current_scores.get(category, 50)
+        new_score        = max(0, min(100, old_score + score_delta))
         current_scores[category] = new_score
-        
-        # Remove resolved issues
         if category in identified_issues:
-            remaining_issues = [i for i in identified_issues[category] if i not in issues_resolved]
-            identified_issues[category] = remaining_issues
-            
-        # Re-calculate priorities
-        sorted_weaknesses = sorted(current_scores.items(), key=lambda item: item[1] if isinstance(item[1], (int, float)) else 100)
-        
+            identified_issues[category] = [i for i in identified_issues[category] if i not in issues_resolved]
+        sorted_weaknesses = sorted(current_scores.items(), key=lambda item: item[1] if isinstance(item[1], (int,float)) else 100)
         update_data = {
-            "current_scores": current_scores,
+            "current_scores":    current_scores,
             "identified_issues": identified_issues,
             "weakness_priority_1": sorted_weaknesses[0][0] if len(sorted_weaknesses) > 0 else profile['weakness_priority_1'],
             "weakness_priority_2": sorted_weaknesses[1][0] if len(sorted_weaknesses) > 1 else profile['weakness_priority_2'],
             "weakness_priority_3": sorted_weaknesses[2][0] if len(sorted_weaknesses) > 2 else profile['weakness_priority_3'],
             "last_updated_at": datetime.now().isoformat()
         }
-        
         res = supabase.table('speech_profiles').update(update_data).eq('user_id', user_id).execute()
         return res.data
 
     @staticmethod
     async def generate_recommendations(user_id: str, pre_generated_exercises: List[Dict[str, Any]] = None):
-        """
-        Maps a user's speech profile weaknesses to exercise templates and creates personalized recommendations.
-        If pre_generated_exercises is provided (from consolidated Gemini call), it uses them to avoid extra API calls.
-        """
         profile_res = supabase.table('speech_profiles').select('*').eq('user_id', user_id).order('last_updated_at', desc=True).limit(1).execute()
         if not profile_res.data:
             return []
-            
-        profile = profile_res.data[0]
-        weaknesses = [
-            profile['weakness_priority_1'],
-            profile['weakness_priority_2'],
-            profile['weakness_priority_3']
-        ]
-        
-        # Use shared helper to get model if needed
-        model = RecommendationService._get_gemini_model() if not pre_generated_exercises else None
-        recommendations = []
-        
-        pre_gen_idx = 0
-        
+        profile    = profile_res.data[0]
+        weaknesses = [profile['weakness_priority_1'], profile['weakness_priority_2'], profile['weakness_priority_3']]
+        client, provider = RecommendationService._get_llm_client() if not pre_generated_exercises else (None, None)
+        recommendations  = []
+        pre_gen_idx      = 0
+
         for i, category in enumerate(weaknesses):
-            limit = 2 if i == 0 else 1
+            limit        = 2 if i == 0 else 1
             templates_res = supabase.table('exercise_templates').select('*').eq('skill_category', category).eq('is_active', True).limit(limit).execute()
-            
+
             for template in templates_res.data:
                 issues = profile['identified_issues'].get(category, [])
-                
-                # Check for pre-generated exercise from the consolidated call
+
                 if pre_generated_exercises and pre_gen_idx < len(pre_generated_exercises):
-                    ex = pre_generated_exercises[pre_gen_idx]
-                    dynamic_content = f"{ex.get('title', '')}: {ex.get('description', '')}"
-                    pre_gen_idx += 1
+                    ex             = pre_generated_exercises[pre_gen_idx]
+                    dynamic_content = f"{ex.get('title','')}: {ex.get('description','')}"
+                    pre_gen_idx   += 1
                 else:
-                    # Fallback to dynamic generation or static content
                     dynamic_content = f"Practice your {category} skills."
-                    if model and issues:
-                        try:
-                            prompt = f"Generate a short, engaging 3-sentence speaking exercise for a user struggling with {category}. Specific issues: {', '.join(issues)}. Style: Encouraging."
-                            response = model.models.generate_content(
-                                model='gemini-2.0-flash',
-                                contents=prompt,
-                            )
-                            dynamic_content = response.text
-                        except Exception as e:
-                            print(f"Gemini error in recommendation: {e}")
+                    if client and issues:
+                        prompt  = f"Generate a short, engaging 3-sentence speaking exercise for a user struggling with {category}. Specific issues: {', '.join(issues)}. Style: Encouraging."
+                        result  = RecommendationService._call_llm_sync(client, provider, prompt)
+                        if result:
+                            dynamic_content = result
 
                 recommendations.append({
-                    "user_id": user_id,
+                    "user_id":     user_id,
                     "template_id": template['id'],
                     "priority_rank": i + 1,
                     "personalization_context": {
-                        "why": f"Based on your {category} progress.",
-                        "focus_items": issues[:3],
+                        "why":           f"Based on your {category} progress.",
+                        "focus_items":   issues[:3],
                         "dynamic_prompt": dynamic_content
                     }
                 })
-        
+
         supabase.table('exercise_recommendations').update({"is_active": False}).eq('user_id', user_id).execute()
         res = supabase.table('exercise_recommendations').insert(recommendations).execute()
-        
         return res.data
