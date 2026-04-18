@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Flex, Text, Avatar, IconButton, HStack, Tooltip, Image, Tag, useDisclosure } from '@chakra-ui/react';
+import { Box, Flex, Text, Avatar, IconButton, HStack, Tooltip, Image, useDisclosure } from '@chakra-ui/react';
 import { Reply, MessageSquareDashed, Trash2 } from 'lucide-react';
 import { ChatMessage } from '../../types/chat.types';
 import WhisperModal from './WhisperModal';
@@ -14,11 +14,12 @@ interface MessageItemProps {
 export default function MessageItem({ message, currentUser, onReply, onDelete }: MessageItemProps) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const isMine = message.sender_id === currentUser.id;
+  const isWhisper = message.is_whisper;
 
   const renderContent = () => {
     if (message.deleted_at) {
       return (
-        <Text color="gray.400" fontStyle="italic" fontSize="sm">
+        <Text color="whiteAlpha.400" fontStyle="italic" fontSize="sm">
           This message was deleted
         </Text>
       );
@@ -29,27 +30,29 @@ export default function MessageItem({ message, currentUser, onReply, onDelete }:
         <Image
           src={message.media_url || ''}
           maxH="200px"
-          borderRadius="md"
+          borderRadius="xl"
           cursor="pointer"
           onClick={() => window.open(message.media_url || '', '_blank')}
+          transition="transform 0.2s"
+          _hover={{ transform: "scale(1.02)" }}
         />
       );
     }
 
     if (message.message_type === 'voice') {
-      return <audio controls src={message.media_url || ''} style={{ height: '40px' }} />;
+      return <audio controls src={message.media_url || ''} style={{ height: '36px', filter: 'invert(1) hue-rotate(180deg)' }} />;
     }
 
     // Parse mentions in text
     const parts = message.content.split(/(@\w+)/g);
     return (
-      <Text fontSize="md" whiteSpace="pre-wrap" wordBreak="break-word">
+      <Text fontSize="sm" color="white" whiteSpace="pre-wrap" wordBreak="break-word" lineHeight="tall">
         {parts.map((part, i) => {
           if (part.startsWith('@')) {
             return (
-              <Tag key={i} size="sm" colorScheme="blue" borderRadius="full" px={2} py={0.5} mr={1}>
+              <Text as="span" key={i} color="purple.400" fontWeight="bold">
                 {part}
-              </Tag>
+              </Text>
             );
           }
           return <span key={i}>{part}</span>;
@@ -58,44 +61,65 @@ export default function MessageItem({ message, currentUser, onReply, onDelete }:
     );
   };
 
-  const isWhisper = message.is_whisper;
-
   return (
-    <Flex direction="column" w="100%" mb={4} _hover={{ '.msg-actions': { opacity: 1 } }}>
+    <Flex 
+      direction="column" 
+      w="100%" 
+      align={isMine ? 'flex-end' : 'flex-start'} 
+      mb={2} 
+      _hover={{ '.msg-actions': { opacity: 1 } }}
+    >
       {message.reply_preview && !message.deleted_at && (
-        <Box ml={12} pl={2} mb={1} borderLeft="2px solid" borderColor="gray.300" _dark={{ borderColor: 'gray.600' }}>
-          <Text fontSize="xs" color="gray.500" noOfLines={1}>
+        <Flex align="center" mb={1} ml={isMine ? 0 : 10} mr={isMine ? 10 : 0} opacity={0.6}>
+          <Text fontSize="xs" color="whiteAlpha.600" isTruncated maxW="200px">
             Replying to: {message.reply_preview}
           </Text>
-        </Box>
+        </Flex>
       )}
 
-      <Flex 
-        align="flex-start" 
-        bg={isWhisper ? 'purple.50' : 'transparent'} 
-        _dark={{ bg: isWhisper ? 'purple.900' : 'transparent' }}
-        p={isWhisper ? 2 : 0} 
-        borderRadius="md"
-      >
-        <Avatar size="sm" src={message.sender_avatar || undefined} name={message.sender_name} mr={3} mt={1} />
+      <Flex direction={isMine ? 'row-reverse' : 'row'} align="flex-end" maxW="85%">
+        <Avatar 
+          size="xs" 
+          src={message.sender_avatar || undefined} 
+          name={message.sender_name} 
+          mb={1}
+          ml={isMine ? 2 : 0}
+          mr={isMine ? 0 : 2}
+        />
         
-        <Box flex={1} minW={0}>
-          <Flex align="baseline" mb={1}>
-            <Text fontWeight="bold" fontSize="sm" mr={2}>
+        <Box 
+          p={3}
+          borderRadius="2xl"
+          bg={isWhisper ? "purple.900" : (isMine ? "purple.500" : "whiteAlpha.100")}
+          border={isWhisper ? "1px solid" : "none"}
+          borderColor={isWhisper ? "purple.500" : "transparent"}
+          borderBottomRightRadius={isMine ? "xs" : "2xl"}
+          borderBottomLeftRadius={!isMine ? "xs" : "2xl"}
+          position="relative"
+          boxShadow="lg"
+        >
+          {!isMine && (
+            <Text fontWeight="black" fontSize="xs" color="purple.400" mb={1} letterSpacing="tight">
               {message.sender_name}
             </Text>
-            <Text fontSize="xs" color="gray.400">
-              {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </Text>
-          </Flex>
+          )}
 
           {isWhisper && !message.deleted_at && (
-            <Text fontSize="xs" fontStyle="italic" color="purple.500" mb={1}>
-              (Whisper to @{message.whisper_to_name}):
+            <Text fontSize="2xs" fontStyle="italic" color="purple.200" mb={1} textTransform="uppercase">
+              (Whisper to @{message.whisper_to_name})
             </Text>
           )}
 
           {renderContent()}
+
+          <Text 
+            fontSize="2xs" 
+            color={isMine ? "whiteAlpha.700" : "whiteAlpha.500"} 
+            mt={1} 
+            textAlign={isMine ? "right" : "left"}
+          >
+            {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </Text>
         </Box>
 
         {!message.deleted_at && (
@@ -104,19 +128,21 @@ export default function MessageItem({ message, currentUser, onReply, onDelete }:
             opacity={0} 
             transition="opacity 0.2s" 
             spacing={1} 
-            ml={2}
-            bg="white"
-            _dark={{ bg: 'gray.800' }}
-            boxShadow="sm"
-            borderRadius="md"
+            mx={2}
+            bg="whiteAlpha.100"
+            backdropFilter="blur(5px)"
+            borderRadius="lg"
             p={1}
+            alignSelf="center"
           >
             <Tooltip label="Reply">
               <IconButton
                 aria-label="Reply"
-                icon={<Box as={Reply} width="16px" height="16px" />}
+                icon={<Reply size={14} />}
                 size="xs"
                 variant="ghost"
+                color="whiteAlpha.600"
+                _hover={{ color: "white", bg: "whiteAlpha.100" }}
                 onClick={() => onReply(message)}
               />
             </Tooltip>
@@ -125,9 +151,11 @@ export default function MessageItem({ message, currentUser, onReply, onDelete }:
               <Tooltip label="Whisper">
                 <IconButton
                   aria-label="Whisper"
-                  icon={<Box as={MessageSquareDashed} width="16px" height="16px" />}
+                  icon={<MessageSquareDashed size={14} />}
                   size="xs"
                   variant="ghost"
+                  color="whiteAlpha.600"
+                  _hover={{ color: "white", bg: "whiteAlpha.100" }}
                   onClick={onOpen}
                 />
               </Tooltip>
@@ -137,10 +165,11 @@ export default function MessageItem({ message, currentUser, onReply, onDelete }:
               <Tooltip label="Delete">
                 <IconButton
                   aria-label="Delete"
-                  icon={<Box as={Trash2} width="16px" height="16px" />}
+                  icon={<Trash2 size={14} />}
                   size="xs"
                   variant="ghost"
-                  colorScheme="red"
+                  color="red.400"
+                  _hover={{ bg: "red.400", color: "white" }}
                   onClick={() => onDelete(message.id)}
                 />
               </Tooltip>

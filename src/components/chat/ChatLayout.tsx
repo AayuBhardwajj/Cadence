@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Flex } from '@chakra-ui/react';
+import { Flex, Box } from '@chakra-ui/react';
 import RoomList from './RoomList';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
@@ -15,6 +15,22 @@ interface ChatLayoutProps {
   };
 }
 
+const glassStyle = {
+  bg: "whiteAlpha.50",
+  borderRadius: "2xl",
+  border: "1px solid",
+  borderColor: "whiteAlpha.100",
+  backdropFilter: "blur(10px)",
+};
+
+const scrollbarStyle = {
+  sx: {
+    "&::-webkit-scrollbar": { width: "4px" },
+    "&::-webkit-scrollbar-track": { background: "transparent" },
+    "&::-webkit-scrollbar-thumb": { background: "whiteAlpha.200", borderRadius: "full" }
+  }
+};
+
 export default function ChatLayout({ currentUser }: ChatLayoutProps) {
   const [selectedRoomId, setSelectedRoomId] = useState<string>('');
   const [activeDMUserId, setActiveDMUserId] = useState<string | null>(null);
@@ -28,16 +44,18 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
   };
 
   return (
-    <Flex h="100%" w="100%" bg="white" _dark={{ bg: 'gray.900' }}>
-      <Flex direction="column" w="260px" shrink={0} borderRight="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.700' }}>
+    <Flex h="100%" w="100%" gap={4} minH="0" overflow="hidden">
+      {/* Left: Room list */}
+      <Box w="240px" flexShrink={0} {...glassStyle} overflowY="auto" {...scrollbarStyle}>
         <RoomList
           selectedRoomId={selectedRoomId}
           onSelectRoom={setSelectedRoomId}
           currentUser={currentUser}
         />
-      </Flex>
+      </Box>
 
-      <Flex direction="column" flex={1} position="relative" minW={0}>
+      {/* Center: Messages */}
+      <Flex direction="column" flex={1} minW={0} overflow="hidden" {...glassStyle}>
         {selectedRoomId ? (
           <>
             <MessageList
@@ -53,18 +71,19 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
             />
           </>
         ) : (
-          <Flex flex={1} align="center" justify="center" color="gray.500">
+          <Flex flex={1} align="center" justify="center" color="whiteAlpha.400">
             Select a room to start chatting
           </Flex>
         )}
       </Flex>
 
-      <Flex direction="column" w="220px" shrink={0} borderLeft="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.700' }}>
+      {/* Right: Online users */}
+      <Box w="200px" flexShrink={0} {...glassStyle} overflowY="auto" {...scrollbarStyle}>
         <OnlineUsers
           currentUser={currentUser}
           onStartDM={handleStartDM}
         />
-      </Flex>
+      </Box>
 
       {activeDMUserId && activeDMUser && (
         <DMPanel

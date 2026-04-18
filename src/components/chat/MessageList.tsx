@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, VStack, Spinner, Center } from '@chakra-ui/react';
+import { Box, VStack, Spinner, Center, Flex } from '@chakra-ui/react';
 import { useChat } from '../../hooks/useChat';
 import { ChatMessage } from '../../types/chat.types';
 import MessageItem from './MessageItem';
@@ -34,7 +34,6 @@ export default function MessageList({ roomId, currentUser, onReply }: MessageLis
 
     const unsubscribe = subscribeToRoom(roomId, (newMsg) => {
       setMessages((prev) => {
-        // Prevent duplicate appends if we got the local optimism back
         if (prev.some((m) => m.id === newMsg.id)) return prev;
         return [...prev, newMsg];
       });
@@ -55,26 +54,39 @@ export default function MessageList({ roomId, currentUser, onReply }: MessageLis
   if (loading) {
     return (
       <Center flex={1}>
-        <Spinner color="blue.500" />
+        <Spinner color="purple.500" />
       </Center>
     );
   }
 
   return (
-    <Box flex={1} overflowY="auto" p={4}>
-      <VStack spacing={4} align="stretch" pb={2}>
-        {messages.map((msg) => (
-          <MessageItem
-            key={msg.id}
-            message={msg}
-            currentUser={currentUser}
-            onReply={onReply}
-            onDelete={handleDelete}
-          />
-        ))}
-        <Box ref={bottomRef} />
-      </VStack>
-      <TypingIndicator roomId={roomId} currentUserId={currentUser.id} />
-    </Box>
+    <Flex direction="column" flex={1} minH={0} overflow="hidden">
+      <Box 
+        flex={1} 
+        overflowY="auto" 
+        p={4}
+        sx={{
+          "&::-webkit-scrollbar": { width: "4px" },
+          "&::-webkit-scrollbar-track": { background: "transparent" },
+          "&::-webkit-scrollbar-thumb": { background: "whiteAlpha.200", borderRadius: "full" }
+        }}
+      >
+        <VStack spacing={4} align="stretch" pb={2}>
+          {messages.map((msg) => (
+            <MessageItem
+              key={msg.id}
+              message={msg}
+              currentUser={currentUser}
+              onReply={onReply}
+              onDelete={handleDelete}
+            />
+          ))}
+          <div ref={bottomRef} />
+        </VStack>
+      </Box>
+      <Box px={4}>
+        <TypingIndicator roomId={roomId} currentUserId={currentUser.id} />
+      </Box>
+    </Flex>
   );
 }

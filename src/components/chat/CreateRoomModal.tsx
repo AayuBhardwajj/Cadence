@@ -23,6 +23,16 @@ interface CreateRoomModalProps {
   onCreated: (roomId: string) => void;
 }
 
+const inputStyle = {
+  bg: "whiteAlpha.50",
+  border: "1px solid",
+  borderColor: "whiteAlpha.200",
+  color: "white",
+  _placeholder: { color: "whiteAlpha.400" },
+  _focus: { borderColor: "purple.400", boxShadow: "0 0 0 1px purple.400" },
+  borderRadius: "xl"
+};
+
 export default function CreateRoomModal({ isOpen, onClose, currentUser, onCreated }: CreateRoomModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -73,35 +83,39 @@ export default function CreateRoomModal({ isOpen, onClose, currentUser, onCreate
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <ModalOverlay />
-      <ModalContent as="form" onSubmit={handleSubmit}>
-        <ModalHeader>Create New Room</ModalHeader>
-        <ModalCloseButton />
+      <ModalOverlay backdropFilter="blur(5px)" />
+      <ModalContent as="form" onSubmit={handleSubmit} bg="gray.900" border="1px solid" borderColor="whiteAlpha.200" borderRadius="2xl">
+        <ModalHeader color="white">Create New Room</ModalHeader>
+        <ModalCloseButton color="whiteAlpha.600" />
         <ModalBody pb={6}>
           <FormControl isRequired>
-            <FormLabel>Room Name</FormLabel>
+            <FormLabel color="whiteAlpha.600" fontSize="sm">Room Name</FormLabel>
             <Input 
               placeholder="e.g. general, announcements" 
               value={name} 
               onChange={(e) => setName(e.target.value)} 
+              {...inputStyle}
             />
           </FormControl>
 
           <FormControl mt={4}>
-            <FormLabel>Description</FormLabel>
+            <FormLabel color="whiteAlpha.600" fontSize="sm">Description</FormLabel>
             <Textarea 
               placeholder="Optional description" 
               value={description} 
               onChange={(e) => setDescription(e.target.value)} 
+              {...inputStyle}
             />
           </FormControl>
         </ModalBody>
 
         <ModalFooter>
-          <Button colorScheme="blue" mr={3} type="submit" isLoading={isLoading}>
-            Create
+          <Button colorScheme="purple" mr={3} type="submit" isLoading={isLoading} borderRadius="xl">
+            Create Room
           </Button>
-          <Button onClick={onClose} variant="ghost">Cancel</Button>
+          <Button onClick={onClose} variant="ghost" color="whiteAlpha.600" _hover={{ bg: "whiteAlpha.100", color: "white" }} borderRadius="xl">
+            Cancel
+          </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

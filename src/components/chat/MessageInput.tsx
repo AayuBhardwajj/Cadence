@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Box, Flex, IconButton, Textarea, HStack, Text, Tooltip, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, Input, SimpleGrid, Image, useToast
+  Box, Flex, Button, IconButton, Textarea, HStack, Text, Tooltip, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, Input, SimpleGrid, Image, useToast
 } from '@chakra-ui/react';
 import { Smile, Image as ImageIcon, Film, Mic, Send, X, Square } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
@@ -214,21 +214,36 @@ export default function MessageInput({ roomId, currentUser, replyTo, onClearRepl
     }
   };
 
+  const iconBtnStyle = {
+    variant: "ghost",
+    color: "whiteAlpha.600",
+    _hover: { color: "white", bg: "whiteAlpha.100" },
+    size: "sm"
+  };
+
   return (
-    <Box p={4} borderTop="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.700' }} position="relative">
+    <Box p={4} borderTop="1px solid" borderColor="whiteAlpha.100" position="relative">
       {replyTo && (
-        <Flex p={2} bg="gray.100" _dark={{ bg: 'gray.700' }} borderRadius="md" mb={2} align="center" justify="space-between">
-          <Box>
-            <Text fontSize="xs" fontWeight="bold">Replying to {replyTo.senderName}</Text>
-            <Text fontSize="sm" noOfLines={1}>{replyTo.content}</Text>
+        <Flex p={2} bg="whiteAlpha.100" borderRadius="xl" mb={2} align="center" justify="space-between" backdropFilter="blur(5px)">
+          <Box minW={0}>
+            <Text fontSize="xs" fontWeight="bold" color="purple.400">Replying to {replyTo.senderName}</Text>
+            <Text fontSize="xs" color="whiteAlpha.800" noOfLines={1}>{replyTo.content}</Text>
           </Box>
-          <IconButton aria-label="Cancel reply" icon={<Box as={X} width="16px" height="16px" />} size="xs" variant="ghost" onClick={onClearReply} />
+          <IconButton 
+            aria-label="Cancel reply" 
+            icon={<X size={14} />} 
+            size="xs" 
+            variant="ghost" 
+            color="whiteAlpha.600"
+            _hover={{ color: "white" }}
+            onClick={onClearReply} 
+          />
         </Flex>
       )}
 
       {showEmoji && (
         <Box position="absolute" bottom="100%" left="4" mb={2} zIndex={10}>
-          <EmojiPicker onEmojiClick={(em) => setContent(c => c + em.emoji)} />
+          <EmojiPicker theme={"dark" as any} onEmojiClick={(em) => setContent(c => c + em.emoji)} />
         </Box>
       )}
 
@@ -237,13 +252,13 @@ export default function MessageInput({ roomId, currentUser, replyTo, onClearRepl
         
         <HStack spacing={1} pb={1}>
           <Tooltip label="Emoji">
-            <IconButton aria-label="Emoji" icon={<Box as={Smile} width="20px" height="20px" />} size="sm" variant="ghost" onClick={() => setShowEmoji(!showEmoji)} />
+            <IconButton aria-label="Emoji" icon={<Smile size={20} />} {...iconBtnStyle} onClick={() => setShowEmoji(!showEmoji)} />
           </Tooltip>
           <Tooltip label="Image">
-            <IconButton aria-label="Image" icon={<Box as={ImageIcon} width="20px" height="20px" />} size="sm" variant="ghost" onClick={() => fileInputRef.current?.click()} isLoading={isUploading} />
+            <IconButton aria-label="Image" icon={<ImageIcon size={20} />} {...iconBtnStyle} onClick={() => fileInputRef.current?.click()} isLoading={isUploading} />
           </Tooltip>
           <Tooltip label="GIF">
-            <IconButton aria-label="GIF" icon={<Box as={Film} width="20px" height="20px" />} size="sm" variant="ghost" onClick={onGiphyOpen} />
+            <IconButton aria-label="GIF" icon={<Film size={20} />} {...iconBtnStyle} onClick={onGiphyOpen} />
           </Tooltip>
         </HStack>
 
@@ -255,6 +270,14 @@ export default function MessageInput({ roomId, currentUser, replyTo, onClearRepl
           maxRows={4}
           resize="none"
           flex={1}
+          bg="whiteAlpha.50"
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+          borderRadius="xl"
+          color="white"
+          _placeholder={{ color: "whiteAlpha.400" }}
+          _focus={{ borderColor: "purple.400", boxShadow: "0 0 0 1px purple.400" }}
+          py={2}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
@@ -266,15 +289,26 @@ export default function MessageInput({ roomId, currentUser, replyTo, onClearRepl
         <HStack spacing={1} pb={1}>
           {content.trim() ? (
             <Tooltip label="Send">
-              <IconButton aria-label="Send" icon={<Box as={Send} width="20px" height="20px" />} size="sm" colorScheme="blue" onClick={handleSend} />
+              <IconButton 
+                aria-label="Send" 
+                icon={<Send size={20} />} 
+                colorScheme="purple"
+                size="sm"
+                borderRadius="xl"
+                onClick={handleSend} 
+              />
             </Tooltip>
           ) : (
             <Tooltip label={isRecording ? "Stop Recording" : "Hold to Record"}>
               <IconButton
                 aria-label="Voice"
-                icon={isRecording ? <Box as={Square} width="20px" height="20px" fill="white" /> : <Box as={Mic} width="20px" height="20px" />}
+                icon={isRecording ? <Square size={20} fill="white" /> : <Mic size={20} />}
                 size="sm"
+                borderRadius="xl"
                 colorScheme={isRecording ? "red" : "gray"}
+                variant={isRecording ? "solid" : "ghost"}
+                color={isRecording ? "white" : "whiteAlpha.600"}
+                _hover={isRecording ? {} : { color: "white", bg: "whiteAlpha.100" }}
                 onMouseDown={startRecording}
                 onMouseUp={stopRecording}
                 onMouseLeave={stopRecording}
@@ -285,19 +319,25 @@ export default function MessageInput({ roomId, currentUser, replyTo, onClearRepl
       </Flex>
 
       <Modal isOpen={isGiphyOpen} onClose={onGiphyClose} size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Search GIFs</ModalHeader>
-          <ModalCloseButton />
+        <ModalOverlay backdropFilter="blur(5px)" />
+        <ModalContent bg="gray.900" border="1px solid" borderColor="whiteAlpha.200" borderRadius="2xl">
+          <ModalHeader color="white">Search GIFs</ModalHeader>
+          <ModalCloseButton color="whiteAlpha.600" />
           <ModalBody pb={6}>
             <Flex gap={2} mb={4}>
               <Input
                 placeholder="Search Giphy..."
                 value={gifQuery}
                 onChange={(e) => setGifQuery(e.target.value)}
+                bg="whiteAlpha.50"
+                border="1px solid"
+                borderColor="whiteAlpha.200"
+                color="white"
+                _placeholder={{ color: "whiteAlpha.400" }}
+                _focus={{ borderColor: "purple.400", boxShadow: "0 0 0 1px purple.400" }}
                 onKeyDown={(e) => e.key === 'Enter' && searchGifs()}
               />
-              <Button onClick={searchGifs}>Search</Button>
+              <Button colorScheme="purple" onClick={searchGifs}>Search</Button>
             </Flex>
             <SimpleGrid columns={3} spacing={2}>
               {gifs.map((g) => (
@@ -306,8 +346,8 @@ export default function MessageInput({ roomId, currentUser, replyTo, onClearRepl
                   src={g.images.fixed_height_small.url}
                   cursor="pointer"
                   onClick={() => handleSendGif(g.images.downsized.url)}
-                  borderRadius="md"
-                  _hover={{ opacity: 0.8 }}
+                  borderRadius="xl"
+                  _hover={{ transform: "scale(1.05)", transition: "0.2s" }}
                 />
               ))}
             </SimpleGrid>

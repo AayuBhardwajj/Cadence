@@ -1,17 +1,7 @@
 import React, { useState } from 'react';
 import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Textarea,
-  useToast
+  Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
+  Button, FormControl, FormLabel, Textarea, useToast
 } from '@chakra-ui/react';
 import { supabase } from '../../lib/supabase';
 
@@ -22,6 +12,16 @@ interface WhisperModalProps {
   targetUser: { id: string; name: string };
   roomId: string;
 }
+
+const inputStyle = {
+  bg: "whiteAlpha.50",
+  border: "1px solid",
+  borderColor: "whiteAlpha.200",
+  color: "white",
+  _placeholder: { color: "whiteAlpha.400" },
+  _focus: { borderColor: "purple.400", boxShadow: "0 0 0 1px purple.400" },
+  borderRadius: "xl"
+};
 
 export default function WhisperModal({ isOpen, onClose, currentUser, targetUser, roomId }: WhisperModalProps) {
   const [content, setContent] = useState('');
@@ -69,27 +69,30 @@ export default function WhisperModal({ isOpen, onClose, currentUser, targetUser,
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Whisper to @{targetUser.name}</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody>
+      <ModalOverlay backdropFilter="blur(5px)" />
+      <ModalContent bg="gray.900" border="1px solid" borderColor="whiteAlpha.200" borderRadius="2xl">
+        <ModalHeader color="white">Whisper to @{targetUser.name}</ModalHeader>
+        <ModalCloseButton color="whiteAlpha.600" />
+        <ModalBody pb={6}>
           <FormControl>
-            <FormLabel>Message (only they will see it)</FormLabel>
+            <FormLabel color="whiteAlpha.600" fontSize="sm">Message (only they will see it)</FormLabel>
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Type your secret message..."
               rows={4}
+              {...inputStyle}
             />
           </FormControl>
         </ModalBody>
 
         <ModalFooter>
-          <Button colorScheme="purple" mr={3} onClick={handleSend} isLoading={isLoading}>
+          <Button colorScheme="purple" mr={3} onClick={handleSend} isLoading={isLoading} borderRadius="xl">
             Send Whisper
           </Button>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose} variant="ghost" color="whiteAlpha.600" _hover={{ bg: "whiteAlpha.100", color: "white" }} borderRadius="xl">
+            Cancel
+          </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

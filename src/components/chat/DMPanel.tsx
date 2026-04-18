@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  Box, Flex, IconButton, Text, Avatar, Textarea, HStack, Tooltip, useToast, VStack, Spinner, Center, Image
+  Box, Flex, IconButton, Text, Avatar, Textarea, HStack, Tooltip, useToast, VStack, Spinner, Center, Image,
+  Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerBody, DrawerCloseButton
 } from '@chakra-ui/react';
-import { X as CloseIcon, Send, Image as ImageIcon } from 'lucide-react';
+import { Send, Image as ImageIcon } from 'lucide-react';
 import { useDM } from '../../hooks/useDM';
 import { DMMessage } from '../../types/chat.types';
 import { supabase } from '../../lib/supabase';
@@ -120,78 +121,118 @@ export default function DMPanel({ currentUser, targetUser, onClose }: DMPanelPro
   };
 
   return (
-    <Flex direction="column" w="360px" shrink={0} borderLeft="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.700' }} bg="white" _dark={{ bg: 'gray.900' }}>
-      <Flex p={4} align="center" borderBottom="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.700' }} justify="space-between">
-        <Flex align="center">
-          <Avatar size="sm" src={targetUser.avatar_url || targetUser.avatar} name={targetUser.name || targetUser.username} mr={3} />
-          <Text fontWeight="bold">{targetUser.name || targetUser.username}</Text>
-        </Flex>
-        <IconButton aria-label="Close DM" icon={<Box as={CloseIcon} width="20px" height="20px" />} size="sm" variant="ghost" onClick={onClose} />
-      </Flex>
+    <Drawer isOpen={true} placement="right" onClose={onClose} size="sm">
+      <DrawerOverlay backdropFilter="blur(5px)" />
+      <DrawerContent bg="gray.900" borderLeft="1px solid" borderColor="whiteAlpha.100">
+        <DrawerCloseButton color="whiteAlpha.600" />
+        <DrawerHeader borderBottomWidth="1px" borderColor="whiteAlpha.100" p={4}>
+          <Flex align="center">
+            <Avatar size="sm" src={targetUser.avatar_url || targetUser.avatar} name={targetUser.name || targetUser.username} mr={3} />
+            <Box>
+              <Text fontSize="md" fontWeight="bold" color="white">{targetUser.name || targetUser.username}</Text>
+              <Text fontSize="2xs" color="green.400" fontWeight="bold">Online</Text>
+            </Box>
+          </Flex>
+        </DrawerHeader>
 
-      <Box flex={1} overflowY="auto" p={4}>
-        {loading ? (
-          <Center h="100%">
-            <Spinner color="blue.500" />
-          </Center>
-        ) : (
-          <VStack spacing={4} align="stretch">
-            {messages.map((msg) => {
-              const isMine = msg.sender_id === currentUser.id;
-              return (
-                <Flex key={msg.id} justify={isMine ? 'flex-end' : 'flex-start'}>
-                  <Box 
-                    maxW="80%" 
-                    bg={isMine ? 'blue.500' : 'gray.100'} 
-                    _dark={{ bg: isMine ? 'blue.600' : 'gray.700' }}
-                    color={isMine ? 'white' : 'inherit'}
-                    borderRadius="lg" 
-                    p={3}
-                  >
-                    {msg.message_type === 'image' ? (
-                      <Image src={msg.media_url!} maxH="150px" borderRadius="md" cursor="pointer" onClick={() => window.open(msg.media_url!, '_blank')} />
-                    ) : (
-                      <Text fontSize="sm" whiteSpace="pre-wrap" wordBreak="break-word">{msg.content}</Text>
-                    )}
-                    <Text fontSize="xs" opacity={0.7} mt={1} textAlign={isMine ? 'right' : 'left'}>
-                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </Text>
-                  </Box>
-                </Flex>
-              );
-            })}
-            <Box ref={bottomRef} />
-          </VStack>
-        )}
-      </Box>
+        <DrawerBody p={0} display="flex" flexDirection="column">
+          <Box flex={1} overflowY="auto" p={4} 
+            sx={{
+              "&::-webkit-scrollbar": { width: "4px" },
+              "&::-webkit-scrollbar-track": { background: "transparent" },
+              "&::-webkit-scrollbar-thumb": { background: "whiteAlpha.200", borderRadius: "full" }
+            }}
+          >
+            {loading ? (
+              <Center h="100%">
+                <Spinner color="purple.500" />
+              </Center>
+            ) : (
+              <VStack spacing={4} align="stretch">
+                {messages.map((msg) => {
+                  const isMine = msg.sender_id === currentUser.id;
+                  return (
+                    <Flex key={msg.id} justify={isMine ? 'flex-end' : 'flex-start'}>
+                      <Box 
+                        maxW="85%" 
+                        bg={isMine ? 'purple.500' : 'whiteAlpha.100'} 
+                        color="white"
+                        borderRadius="2xl"
+                        borderBottomRightRadius={isMine ? "xs" : "2xl"}
+                        borderBottomLeftRadius={!isMine ? "xs" : "2xl"}
+                        p={3}
+                        boxShadow="md"
+                      >
+                        {msg.message_type === 'image' ? (
+                          <Image src={msg.media_url!} maxH="150px" borderRadius="xl" cursor="pointer" onClick={() => window.open(msg.media_url!, '_blank')} />
+                        ) : (
+                          <Text fontSize="sm" whiteSpace="pre-wrap" wordBreak="break-word">{msg.content}</Text>
+                        )}
+                        <Text fontSize="2xs" opacity={0.5} mt={1} textAlign={isMine ? 'right' : 'left'}>
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </Box>
+                    </Flex>
+                  );
+                })}
+                <Box ref={bottomRef} />
+              </VStack>
+            )}
+          </Box>
 
-      <Flex p={4} borderTop="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.700' }} align="flex-end" gap={2}>
-        <input type="file" accept="image/*" ref={fileInputRef} hidden onChange={handleImageUpload} />
-        
-        <Tooltip label="Image">
-          <IconButton aria-label="Image" icon={<Box as={ImageIcon} width="20px" height="20px" />} size="sm" variant="ghost" onClick={() => fileInputRef.current?.click()} isLoading={isUploading} />
-        </Tooltip>
+          <Box p={4} borderTopWidth="1px" borderColor="whiteAlpha.100">
+            <Flex align="flex-end" gap={2}>
+              <input type="file" accept="image/*" ref={fileInputRef} hidden onChange={handleImageUpload} />
+              
+              <Tooltip label="Image">
+                <IconButton 
+                  aria-label="Image" 
+                  icon={<ImageIcon size={20} />} 
+                  size="sm" 
+                  variant="ghost" 
+                  color="whiteAlpha.600"
+                  _hover={{ color: "white", bg: "whiteAlpha.100" }}
+                  onClick={() => fileInputRef.current?.click()} 
+                  isLoading={isUploading} 
+                />
+              </Tooltip>
 
-        <Textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Type a DM..."
-          rows={1}
-          maxRows={4}
-          resize="none"
-          flex={1}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-        />
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Type a DM..."
+                rows={1}
+                maxRows={4}
+                resize="none"
+                flex={1}
+                bg="whiteAlpha.50"
+                border="1px solid"
+                borderColor="whiteAlpha.200"
+                borderRadius="xl"
+                color="white"
+                _placeholder={{ color: "whiteAlpha.400" }}
+                _focus={{ borderColor: "purple.400", boxShadow: "0 0 0 1px purple.400" }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+              />
 
-        <Tooltip label="Send">
-          <IconButton aria-label="Send" icon={<Box as={Send} width="20px" height="20px" />} size="sm" colorScheme="blue" onClick={handleSend} isDisabled={!content.trim()} />
-        </Tooltip>
-      </Flex>
-    </Flex>
+              <IconButton 
+                aria-label="Send" 
+                icon={<Send size={20} />} 
+                size="sm" 
+                colorScheme="purple" 
+                borderRadius="xl"
+                onClick={handleSend} 
+                isDisabled={!content.trim()} 
+              />
+            </Flex>
+          </Box>
+        </DrawerBody>
+      </DrawerContent>
+    </Drawer>
   );
 }

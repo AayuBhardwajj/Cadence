@@ -40,40 +40,63 @@ export default function RoomList({ selectedRoomId, onSelectRoom, currentUser }: 
   };
 
   return (
-    <Flex direction="column" h="100%">
-      <Box p={4} borderBottom="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.700' }}>
-        <Text fontSize="lg" fontWeight="bold">Community</Text>
-      </Box>
+    <Flex direction="column" h="100%" p={4}>
+      <Text 
+        fontSize="xs" 
+        fontWeight="bold" 
+        color="whiteAlpha.400" 
+        textTransform="uppercase" 
+        letterSpacing="wider" 
+        mb={3}
+      >
+        Rooms
+      </Text>
 
-      <VStack flex={1} overflowY="auto" align="stretch" spacing={1} p={2}>
-        {rooms.map((room) => (
-          <Box
-            key={room.id}
-            px={3}
-            py={2}
-            cursor="pointer"
-            borderRadius="md"
-            bg={selectedRoomId === room.id ? 'blue.50' : 'transparent'}
-            _dark={{ bg: selectedRoomId === room.id ? 'teal.900' : 'transparent' }}
-            color={selectedRoomId === room.id ? 'blue.600' : 'inherit'}
-            _hover={{ bg: selectedRoomId === room.id ? undefined : 'gray.100', _dark: { bg: 'whiteAlpha.200' } }}
-            onClick={() => onSelectRoom(room.id)}
-          >
-            <Flex align="center">
-              <Box as={Hash} width="16px" height="16px" mr={2} opacity={0.6} />
-              <Box>
-                <Text fontWeight="medium" fontSize="sm">{room.name}</Text>
+      <VStack flex={1} overflowY="auto" align="stretch" spacing={1}
+        sx={{
+          "&::-webkit-scrollbar": { width: "4px" },
+          "&::-webkit-scrollbar-track": { background: "transparent" },
+          "&::-webkit-scrollbar-thumb": { background: "whiteAlpha.200", borderRadius: "full" }
+        }}
+      >
+        {rooms.map((room) => {
+          const isActive = selectedRoomId === room.id;
+          return (
+            <Flex
+              key={room.id}
+              px={3}
+              py={2}
+              cursor="pointer"
+              borderRadius="xl"
+              bg={isActive ? 'purple.500' : 'transparent'}
+              color={isActive ? 'white' : 'whiteAlpha.600'}
+              _hover={isActive ? {} : { bg: "whiteAlpha.100", color: "white" }}
+              onClick={() => onSelectRoom(room.id)}
+              align="center"
+              transition="all 0.2s"
+            >
+              <Box as={Hash} width="16px" height="16px" mr={2} opacity={isActive ? 1 : 0.6} />
+              <Box minW={0}>
+                <Text fontWeight="bold" fontSize="sm" isTruncated>{room.name}</Text>
                 {room.description && (
-                  <Text fontSize="xs" color="gray.500" noOfLines={1}>{room.description}</Text>
+                  <Text fontSize="xs" color={isActive ? "whiteAlpha.800" : "whiteAlpha.400"} isTruncated>
+                    {room.description}
+                  </Text>
                 )}
               </Box>
             </Flex>
-          </Box>
-        ))}
+          );
+        })}
       </VStack>
 
-      <Box p={4} borderTop="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.700' }}>
-        <Button w="100%" colorScheme="blue" variant="outline" size="sm" onClick={onOpen}>
+      <Box mt={4}>
+        <Button 
+          w="100%" 
+          colorScheme="purple" 
+          size="sm" 
+          onClick={onOpen}
+          borderRadius="xl"
+        >
           Create Room
         </Button>
       </Box>
