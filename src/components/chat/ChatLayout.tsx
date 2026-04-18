@@ -38,8 +38,8 @@ export default function ChatLayout({ currentUser }: ChatLayoutProps) {
   const [replyTo, setReplyTo] = useState<{ id: string; content: string; senderName: string } | null>(null);
 
   const handleStartDM = (user: any) => {
-    if (user.id === currentUser.id) return;
-    setActiveDMUserId(user.id);
+    if (user.user_id === currentUser.id) return;
+    setActiveDMUserId(user.user_id);
     setActiveDMUser(user);
   };
 

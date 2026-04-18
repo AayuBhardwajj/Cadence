@@ -62,7 +62,7 @@ export interface DMMessage {
 }
 
 export interface OnlineUser {
-  id: string;
+  user_id: string;
   username: string;
   avatar_url: string | null;
 }

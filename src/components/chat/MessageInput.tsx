@@ -267,7 +267,6 @@ export default function MessageInput({ roomId, currentUser, replyTo, onClearRepl
           onChange={(e) => handleType(e.target.value)}
           placeholder="Type a message..."
           rows={1}
-          maxRows={4}
           resize="none"
           flex={1}
           bg="whiteAlpha.50"

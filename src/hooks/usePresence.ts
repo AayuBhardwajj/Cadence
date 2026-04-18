@@ -7,20 +7,23 @@ export const usePresence = () => {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
 
-  const trackPresence = useCallback(async (user: { id: string; username: string; avatar_url: string | null }) => {
+  const trackPresence = useCallback(async (user: { user_id: string; username: string; avatar_url: string | null }) => {
     const presChannel = supabase.channel('presence:global');
 
     presChannel
       .on('presence', { event: 'sync' }, () => {
-        const newState = presChannel.presenceState();
-        const users: OnlineUser[] = [];
-        for (const id in newState) {
-          const presences = newState[id] as any[];
-          if (presences.length > 0) {
-            users.push(presences[0] as OnlineUser);
-          }
-        }
-        setOnlineUsers(users);
+        const state = presChannel.presenceState<{ user_id: string; username: string; avatar_url: string | null }>();
+        const allEntries = Object.values(state).flat();
+        
+        // Deduplicate by user_id — keep only the first entry per user
+        const seen = new Set<string>();
+        const unique = allEntries.filter(entry => {
+          if (seen.has(entry.user_id)) return false;
+          seen.add(entry.user_id);
+          return true;
+        });
+        
+        setOnlineUsers(unique);
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {

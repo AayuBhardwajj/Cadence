@@ -17,7 +17,7 @@ export default function OnlineUsers({ currentUser, onStartDM }: OnlineUsersProps
 
   useEffect(() => {
     trackPresence({
-      id: currentUser.id,
+      user_id: currentUser.id,
       username: currentUser.name,
       avatar_url: currentUser.avatar_url
     });
@@ -49,14 +49,14 @@ export default function OnlineUsers({ currentUser, onStartDM }: OnlineUsersProps
       >
         {onlineUsers.map((user) => (
           <Flex
-            key={user.id}
+            key={user.user_id}
             align="center"
             p={2}
             borderRadius="xl"
-            cursor={user.id !== currentUser.id ? 'pointer' : 'default'}
-            _hover={user.id !== currentUser.id ? { bg: "whiteAlpha.100" } : {}}
+            cursor={user.user_id !== currentUser.id ? 'pointer' : 'default'}
+            _hover={user.user_id !== currentUser.id ? { bg: "whiteAlpha.100" } : {}}
             onClick={() => {
-              if (user.id !== currentUser.id) onStartDM(user);
+              if (user.user_id !== currentUser.id) onStartDM(user);
             }}
             transition="all 0.2s"
           >
