@@ -36,6 +36,7 @@ import { StreakHeatmap } from "../components/dashboard/StreakHeatmap";
 import { RotatingQuotes } from "../components/dashboard/RotatingQuotes";
 import { QuickActions } from "../components/dashboard/QuickActions";
 import { KeyboardHints } from "../components/dashboard/KeyboardHints";
+import { TipOfTheDay } from "../components/dashboard/TipOfTheDay";
 import { useTier } from "../lib/TierContext";
 import { Navbar } from "../components/navigation/Navbar";
 import { Lock, ArrowRight } from 'lucide-react';
@@ -52,14 +53,12 @@ export function Dashboard() {
   const [greeting, setGreeting] = useState('');
   const { t } = useLanguage();
 
-
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 12) setGreeting(t('dashboard.greeting_morning'));
     else if (hour < 18) setGreeting(t('dashboard.greeting_afternoon'));
     else setGreeting(t('dashboard.greeting_evening'));
 
-    // Celebration on load for milestone reaching
     setTimeout(() => {
       confetti({
         particleCount: 150,
@@ -316,18 +315,8 @@ export function Dashboard() {
                 </div>
               </EnhancedCard>
 
-              <EnhancedCard className="bg-gradient-to-br from-orange-600/10 to-transparent border-orange-500/20">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-orange-500/20 rounded-lg">
-                    <MessageSquare className="w-5 h-5 text-orange-400" />
-                  </div>
-                  <h3 className="font-bold text-white tracking-tight">{t('dashboard.tip_of_the_day')}</h3>
-                </div>
-
-                <p className="text-sm text-white/80 leading-relaxed italic">
-                  {t('dashboard.tip_content')}
-                </p>
-              </EnhancedCard>
+              {/* ── Tip of the Day ── */}
+              <TipOfTheDay />
 
               {tier === 'FREE' && (
                 <EnhancedCard className="bg-gradient-to-br from-amber-400/20 to-transparent border-amber-400/30 relative overflow-hidden group">
@@ -356,7 +345,7 @@ export function Dashboard() {
           <div className="max-w-[1400px] mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex items-center gap-2 opacity-50">
               <Mic className="w-4 h-4 text-white" />
-              <span className="text-sm font-black tracking-tighter">FLUENTLY</span>
+              <span className="text-sm font-black tracking-tighter">CADENCE</span>
             </div>
 
             <div className="flex flex-wrap justify-center gap-8">
