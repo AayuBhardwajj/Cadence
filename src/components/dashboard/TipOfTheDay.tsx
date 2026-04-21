@@ -1,12 +1,6 @@
 /**
  * TipOfTheDay.tsx
- * Drop-in replacement for the static tip card in Dashboard.tsx.
- * Fetches from GET /api/tip-of-the-day on mount.
- *
- * Usage in Dashboard.tsx — replace the existing EnhancedCard tip block with:
- *   import { TipOfTheDay } from "../components/dashboard/TipOfTheDay";
- *   ...
- *   <TipOfTheDay />
+ * Fetches a personalized daily tip from GET /api/tip-of-the-day?user_id=<uuid>
  */
 
 import React, { useEffect, useState } from "react";
@@ -14,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Sparkles, RefreshCw, Lock } from "lucide-react";
 import { EnhancedCard } from "./EnhancedCard";
 import { useTier } from "../../lib/TierContext";
+import { supabase } from "../../lib/supabase";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -34,9 +29,13 @@ export function TipOfTheDay() {
         setLoading(true);
         setError(false);
         try {
-            const res = await fetch(`${API_BASE}/api/tip-of-the-day`, {
-                credentials: "include", // sends session cookie / JWT
-            });
+            // Get user_id from Supabase — same pattern as the rest of the app
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user?.id) throw new Error("Not authenticated");
+
+            const res = await fetch(
+                `${API_BASE}/api/tip-of-the-day?user_id=${user.id}`
+            );
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data: TipData = await res.json();
             setTip(data);
@@ -72,7 +71,7 @@ export function TipOfTheDay() {
                     </div>
                 </div>
 
-                {/* Refresh — only for paid (free tips are cached/deterministic anyway) */}
+                {/* Refresh — only shown for paid users */}
                 {isPaid && !loading && (
                     <button
                         onClick={fetchTip}
@@ -133,13 +132,11 @@ export function TipOfTheDay() {
                     >
                         <p className="text-sm text-white/80 leading-relaxed italic">{tip.tip}</p>
 
-                        {/* Free-tier upsell hint — subtle, below the tip */}
+                        {/* Free-tier upsell hint */}
                         {!isPaid && (
                             <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-white/30 uppercase tracking-widest">
                                 <Lock className="w-3 h-3 text-amber-500/60" />
-                                <span>
-                                    Upgrade to Pro for tips tailored to your weak areas
-                                </span>
+                                <span>Upgrade to Pro for tips tailored to your weak areas</span>
                             </div>
                         )}
                     </motion.div>

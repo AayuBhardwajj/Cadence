@@ -24,7 +24,7 @@ logger = logging.getLogger("cadence")
 app = FastAPI(title="Cadence AI Backend")
 
 # ── Routers ───────────────────────────────────────────────────────────────────
-from routers.tip_router import router as tip_router
+from services.tip_router import router as tip_router
 app.include_router(tip_router)
 
 # ── CORS — env-driven, no wildcard ────────────────────────────────────────────
