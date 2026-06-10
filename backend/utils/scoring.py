@@ -1,4 +1,3 @@
-
 def estimate_cefr(overall_score: int) -> str:
     if overall_score >= 90: return "C2"
     if overall_score >= 75: return "C1"
@@ -34,7 +33,12 @@ def calculate_score(audio_data: dict, video_data: dict):
     # 1. Fluency Score (Target 140-160 WPM, filler penalty)
     wpm_score = 100 - min(40, abs(150 - wpm) * 0.8)
     filler_penalty = min(50, fillers * 4)
-    fluency = max(0, wpm_score - filler_penalty)
+    # Stutter penalty — computed post-analysis, injected if available
+    # scoring.py does not call detect_stutters directly (avoid circular import)
+    # stutter_count is passed in via audio_data if pre-computed upstream
+    stutter_count = audio_data.get("stutter_count", 0)
+    stutter_penalty = min(30, stutter_count * 5)
+    fluency = max(0, wpm_score - filler_penalty - stutter_penalty)
     
     # 2. Pronunciation Accuracy (Basic proxy)
     pronunciation = min(100, 70 + (len(transcription.split()) / 50))

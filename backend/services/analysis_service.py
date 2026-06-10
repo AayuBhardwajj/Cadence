@@ -3,6 +3,7 @@ from google import genai
 import os
 import json
 from typing import Dict, Any
+from services.audio_service import detect_stutters
 
 def _get_groq_client():
     api_key = os.environ.get("GROQ_API_KEY")
@@ -92,8 +93,15 @@ async def deep_analyze_speech(audio_data: Dict[str, Any], metrics: Dict[str, Any
     transcription = audio_data.get("transcription", "")
     words_data    = audio_data.get("words_data", [])
 
+    stutter_data = {
+        "stutter_count": audio_data.get("stutter_count", 0),
+        "stutter_events": audio_data.get("stutter_events", [])
+    }
+    if not stutter_data["stutter_events"] and words_data:
+        stutter_data = detect_stutters(words_data)
+
     if not transcription or transcription == "Could not analyze audio." or metrics.get("overall_score") == 0:
-        print("Skipping deep analysis — missing/failed transcription.")
+        print("Skiipping deep analysis — missing/failed transcription.")
         return _get_fallback_analysis(metrics, audio_data, topic_prompt)
 
     if not os.environ.get("GROQ_API_KEY") and not os.environ.get("GEMINI_API_KEY"):
@@ -123,6 +131,8 @@ ASSESSMENT INPUT PACKAGE:
 - Total Filler Words: {audio_data.get('filler_count', 0)}
 - Long Pauses (>1.5s): {timing_summary.count('Long pause')}
 - Sentence Count: {len(sentences_raw)}
+- Total Programmatic Stutters: {stutter_data.get('stutter_count', 0)}
+- Programmatic Stutter Events (max 10): {json.dumps(stutter_data.get('stutter_events', [])[:10])}
 
 [HEURISTIC SCORES — your scores must stay within ±8 of these]
 - Fluency: {metrics['breakdown']['fluency']} / 100
@@ -161,19 +171,41 @@ REQUIRED JSON SCHEMA:
     "week_3": {{"focus": "", "exercise": "", "daily_minutes": 15}}
   }},
   "practice_exercises": [{{"title": "", "description": "", "duration_minutes": 10}}],
-  "next_topic_suggestion": ""
+  "next_topic_suggestion": "",
+  "stutter_analysis": {{
+    "stutter_count": 0,
+    "stutter_rate_percent": 0.0,
+    "most_stuttered_words": [],
+    "trigger_sounds": [],
+    "stutter_pattern": "none",
+    "severity": "none",
+    "severity_rationale": "",
+    "coaching_tip": ""
+  }},
+  "mti_deep": {{
+    "mti_detected": null,
+    "confidence": "low",
+    "accent_summary": "",
+    "phoneme_errors": [],
+    "prosody_issues": [],
+    "vowel_issues": [],
+    "retroflex_usage": {{"detected": false, "affected_sounds": [], "example_words": [], "severity": "none"}},
+    "l1_interference_details": {{"score": 70, "primary_interference_areas": [], "strength_areas": []}},
+    "recommendations": []
+  }}
 }}
 """
 
     try:
         content = await _call_llm(prompt)
         result  = json.loads(content)
-        return _map_consolidated_to_amcat(result, metrics, audio_data, topic_prompt)
+        return _map_consolidated_to_amcat(result, metrics, audio_data, topic_prompt, stutter_data)
     except Exception as e:
         print(f"LLM pipeline failed, using heuristic fallback: {e}")
         return _get_fallback_analysis(metrics, audio_data, topic_prompt)
 
-def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], audio_data: Dict[str, Any], topic_prompt: str = "") -> Dict[str, Any]:
+def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], audio_data: Dict[str, Any], topic_prompt: str = "", stutter_data=None) -> Dict[str, Any]:
+    stutter_data = stutter_data or {}
     scores        = data.get("scores", {})
     transcription = audio_data.get("transcription", "")
     wpm           = audio_data.get("wpm", 0)
@@ -242,7 +274,21 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
             "fluency":       {"score": fluency_score, "rate": wpm_score,                    "pause": _clamp(100-fluency_score+10), "fillers": filler_score},
             "intonation":    {"score": _clamp(fluency_score-5), "sentence": _clamp(fluency_score-3), "rise_fall": _clamp(fluency_score-8), "pitch": _clamp(fluency_score-5)},
             "clarity":       {"score": _clamp(metrics["breakdown"].get("clarity", fluency_score-5)), "end_consonants": _clamp(pron_score-8), "enunciation": _clamp(pron_score-3), "pace": wpm_score},
-            "mti":           {"score": mti_score, "l1_interference": _clamp(mti_score-5), "retroflex": _clamp(mti_score-10), "vowel_shift": _clamp(mti_score-5)},
+            "mti": {
+                "score": mti_score,
+                "l1_interference": _clamp(
+                    data.get("mti_deep", {}).get("l1_interference_details", {}).get("score", mti_score - 5)
+                ),
+                "retroflex": _clamp({
+                    "none": 95, "mild": 75, "moderate": 55, "severe": 35
+                }.get(
+                    data.get("mti_deep", {}).get("retroflex_usage", {}).get("severity", "none"), 
+                    mti_score - 10
+                )),
+                "vowel_shift": _clamp(
+                    100 - len(data.get("mti_deep", {}).get("vowel_issues", [])) * 12
+                )
+            },
             "relevancy":     {"score": _clamp(topic_relevancy.get("score", 85)), "feedback": topic_relevancy.get("feedback", "Topic relevancy assessed.")}
         },
         "amcat_insights": [
@@ -271,7 +317,7 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
             },
             "error_summary": {
                 "mispronunciation":  len(error_log),
-                "stutters":          0,
+                "stutters":          data.get("stutter_analysis", {}).get("stutter_count", 0),
                 "unnatural_pauses":  timing_summary_count(audio_data.get("words_data", [])),
                 "filler_words":      filler_count,
                 "mti_substitutions": len([e for e in error_log if e.get("category") == "MTI"])
@@ -287,6 +333,12 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
         "practice_exercises":    data.get("practice_exercises", []),
         "improvement_plan":      data.get("improvement_plan", {}),
         "next_topic_suggestion": data.get("next_topic_suggestion", ""),
+        "stutter_analysis": {
+            **data.get("stutter_analysis", {}),
+            # Merge in programmatic events not returned by LLM
+            "stutter_events": stutter_data.get("stutter_events", [])
+        },
+        "mti_deep": data.get("mti_deep", {}),
         "api_error": False
     }
 
@@ -356,5 +408,28 @@ def _get_fallback_analysis(metrics: Dict[str, Any], audio_data: Dict[str, Any], 
         },
         "amcat_error_log":[],"amcat_sentences":[],
         "amcat_summary":{"top_strengths":metrics.get("strengths",[]),"top_improvements":metrics.get("focus_areas",[]),"learning_resources":[{"area":"Pronunciation","items":[{"title":"BBC Learning English","type":"Web"}]},{"area":"Fluency","items":[{"title":"Shadowing Technique","type":"YouTube"}]}]},
-        "practice_exercises":[],"improvement_plan":{},"next_topic_suggestion":"Public Speaking Basics","api_error":True
+        "practice_exercises":[],"improvement_plan":{},"next_topic_suggestion":"Public Speaking Basics",
+        "stutter_analysis": {
+            "stutter_count": 0,
+            "stutter_rate_percent": 0.0,
+            "most_stuttered_words": [],
+            "trigger_sounds": [],
+            "stutter_pattern": "none",
+            "severity": "none",
+            "severity_rationale": "LLM unavailable — heuristic fallback",
+            "coaching_tip": "Practice reading aloud slowly, one sentence at a time.",
+            "stutter_events": []
+        },
+        "mti_deep": {
+            "mti_detected": None,
+            "confidence": "low",
+            "accent_summary": "MTI analysis unavailable — heuristic fallback",
+            "phoneme_errors": [],
+            "prosody_issues": [],
+            "vowel_issues": [],
+            "retroflex_usage": {"detected": False, "affected_sounds": [], "example_words": [], "severity": "none"},
+            "l1_interference_details": {"score": 70, "primary_interference_areas": [], "strength_areas": []},
+            "recommendations": []
+        },
+        "api_error":True
     }
