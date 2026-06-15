@@ -12,6 +12,7 @@ from utils.scoring import calculate_score
 from utils.supabase_client import supabase
 from services.recommendation_service import RecommendationService
 from services.analysis_service import deep_analyze_speech
+from services.content_generation_service import generate_assessment_package
 from datetime import datetime
 import logging
 
@@ -57,6 +58,22 @@ def internal_error(e: Exception, context: str = "") -> HTTPException:
 @app.get("/")
 def read_root():
     return {"message": "Cadence AI Backend is running"}
+
+
+from fastapi import Body
+
+@app.post("/api/assessments/generate-content")
+async def generate_content(body: dict = Body(...)):
+    try:
+        topic = body.get("topic")
+        difficulty = body.get("difficulty", "intermediate")
+        res = await generate_assessment_package(
+            topic=topic,
+            difficulty=difficulty
+        )
+        return res
+    except Exception as e:
+        raise internal_error(e, "generate_content")
 
 
 @app.get("/api/assessment/eligibility")

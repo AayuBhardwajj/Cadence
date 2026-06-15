@@ -209,3 +209,19 @@ export const completeExercise = async (
     if (!response.ok) throw new Error("Failed to complete exercise");
     return await response.json();
 };
+
+export const apiClient = {
+  async post<T>(path: string, body: any): Promise<T> {
+    const response = await fetch(`${API_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json() as T;
+  }
+};

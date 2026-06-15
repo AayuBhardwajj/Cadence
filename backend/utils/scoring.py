@@ -6,6 +6,24 @@ def estimate_cefr(overall_score: int) -> str:
     if overall_score >= 30: return "A2"
     return "A1"
 
+def compute_overall_score(
+    fluency_score: float,      # 0-100
+    pronunciation_score: float, # 0-100
+    vocabulary_score: float,    # 0-100
+    grammar_score: float,       # 0-100
+    stutter_score: float,       # 0-100
+    filler_score: float,        # 0-100
+) -> float:
+    return round(
+        fluency_score * 0.25 +
+        pronunciation_score * 0.25 +
+        vocabulary_score * 0.20 +
+        grammar_score * 0.15 +
+        stutter_score * 0.10 +
+        filler_score * 0.05,
+        2
+    )
+
 def calculate_score(audio_data: dict, video_data: dict):
     """
     Calculates 6 core metrics (0-100) and CEFR level.
@@ -43,7 +61,7 @@ def calculate_score(audio_data: dict, video_data: dict):
     # 2. Pronunciation Accuracy (Basic proxy)
     pronunciation = min(100, 70 + (len(transcription.split()) / 50))
     
-    # 3. Clarity & Articulation
+    # 3. Clarity & Articulation (Derived display-only metric, not used in overall score)
     clarity = min(100, (fluency * 0.7) + (eye_contact * 0.3))
     
     # 4. Grammar & Structure
@@ -59,14 +77,17 @@ def calculate_score(audio_data: dict, video_data: dict):
     # 6. Confidence Indicators
     confidence = eye_contact
     
-    # Overall Weighted Score
-    overall = (
-        fluency * 0.25 + 
-        pronunciation * 0.20 + 
-        clarity * 0.15 + 
-        grammar * 0.15 + 
-        vocab * 0.15 + 
-        confidence * 0.10
+    # Overall Weighted Score (Deterministic)
+    stutter_score = max(0, 100 - (stutter_count * 10))
+    filler_score = max(0, 100 - (fillers * 8))
+    
+    overall = compute_overall_score(
+        fluency_score=fluency,
+        pronunciation_score=pronunciation,
+        vocabulary_score=vocab,
+        grammar_score=grammar,
+        stutter_score=stutter_score,
+        filler_score=filler_score
     )
     
     cefr = estimate_cefr(int(overall))
