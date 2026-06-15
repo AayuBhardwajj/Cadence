@@ -13,6 +13,7 @@ from utils.supabase_client import supabase
 from services.recommendation_service import RecommendationService
 from services.analysis_service import deep_analyze_speech
 from services.content_generation_service import generate_assessment_package
+from services.content_quality_service import evaluate_content_quality
 from datetime import datetime
 import logging
 
@@ -129,7 +130,9 @@ async def upload_assessment(
         logger.info(f"File saved for user {user_id[:8]}...")
 
         audio_data = analyze_audio(temp_file_path)
-        video_data = {"eye_contact_percent": 85}
+        # TODO: Wire to video_service.py MediaPipe analyzer once video processing is enabled.
+        # Using 0 as a neutral placeholder to avoid artificially inflating confidence scores.
+        video_data = {"eye_contact_percent": 0}
         score_data = calculate_score(audio_data, video_data)
 
         TOPIC_PROMPTS = {
@@ -165,11 +168,52 @@ async def upload_assessment(
         except Exception as e:
             logger.warning(f"Adaptive learning update failed: {e}")
 
+        # Persist full analysis result to analysis_results table
+        try:
+            if isinstance(deep_analysis, dict):
+                amcat_block = deep_analysis.get("amcat", {}) if isinstance(deep_analysis.get("amcat"), dict) else {}
+                persist_data = {
+                    "assessment_id": sessionId,
+                    "overall_score": deep_analysis.get("overall_score", 0),
+                    "cefr_level": deep_analysis.get("cefr_level", "A2"),
+                    "transcription": deep_analysis.get("transcription", ""),
+                    "breakdown": deep_analysis.get("breakdown", {}),
+                    "amcat_metrics": deep_analysis.get("amcat_metrics", amcat_block.get("metrics", {})),
+                    "amcat_insights": deep_analysis.get("amcat_insights", amcat_block.get("insights", {})),
+                    "amcat_mti_deep_dive": deep_analysis.get("amcat_mti_deep_dive", amcat_block.get("mti_deep_dive", {})),
+                    "amcat_transcript": deep_analysis.get("amcat_transcript", amcat_block.get("transcript", {})),
+                    "amcat_error_log": deep_analysis.get("amcat_error_log", amcat_block.get("error_log", [])),
+                    "amcat_sentences": deep_analysis.get("amcat_sentences", amcat_block.get("sentences", [])),
+                    "stutter_analysis": deep_analysis.get("stutter_analysis", {}),
+                    "mti_deep": deep_analysis.get("mti_deep", {})
+                }
+                supabase.table("analysis_results").insert(persist_data).execute()
+        except Exception as db_err:
+            # Log but do not fail the request — analysis already completed
+            logger.error(f"Failed to persist analysis_results: {db_err}")
+
+        # Content quality scoring
+        try:
+            transcript = audio_data.get("transcription", "")
+            if transcript and len(transcript.strip()) > 20:
+                content_quality = await evaluate_content_quality(
+                    transcript=transcript,
+                    original_prompt=TOPIC_PROMPTS.get(topicId, TOPIC_PROMPTS['custom']),
+                    topic=topicId,
+                    assessment_id=sessionId
+                )
+                # Attach to response for immediate display
+                score_data["content_quality"] = content_quality
+        except Exception as cq_err:
+            logger.warning(f"Content quality scoring failed (non-blocking): {cq_err}")
+            score_data["content_quality"] = None
+
         return {
             "sessionId": sessionId or str(uuid.uuid4()),
             "status": "completed",
             "results": score_data,
-            "transcription": audio_data.get("transcription", "")
+            "transcription": audio_data.get("transcription", ""),
+            "content_quality": score_data.get("content_quality")
         }
 
     except HTTPException:

@@ -1,6 +1,7 @@
 import whisper
 import os
 import ssl
+import re
 
 # Fix for SSL Certificate Error on macOS
 try:
@@ -90,6 +91,40 @@ def detect_stutters(words_data: list) -> dict:
         "stutter_events": stutter_events
     }
 
+def compute_pause_metrics(word_timings: list) -> dict:
+    """
+    Computes pause metrics from Whisper word-level timestamps.
+    word_timings: list of dicts with keys 'word', 'start', 'end'
+    """
+    if not word_timings or len(word_timings) < 2:
+        return {
+            "pause_count": 0,
+            "longest_pause": 0.0,
+            "average_pause": 0.0,
+            "pause_intervals": []
+        }
+
+    pause_intervals = []
+    for i in range(1, len(word_timings)):
+        gap = word_timings[i]["start"] - word_timings[i - 1]["end"]
+        if gap > 0.15:  # ignore gaps under 150ms — natural phoneme boundaries
+            pause_intervals.append(round(gap, 3))
+
+    if not pause_intervals:
+        return {
+            "pause_count": 0,
+            "longest_pause": 0.0,
+            "average_pause": 0.0,
+            "pause_intervals": []
+        }
+
+    return {
+        "pause_count": len(pause_intervals),
+        "longest_pause": round(max(pause_intervals), 3),
+        "average_pause": round(sum(pause_intervals) / len(pause_intervals), 3),
+        "pause_intervals": pause_intervals
+    }
+
 def analyze_audio(video_path: str):
     """
     Extracts audio from video and analyzes it using Whisper.
@@ -123,21 +158,41 @@ def analyze_audio(video_path: str):
         duration_minutes = duration_seconds / 60 if duration_seconds > 0 else 1
         wpm = round(word_count / duration_minutes)
         
-        # Count filler words (very basic)
-        fillers = ["um", "uh", "ah", "like", "you know"]
-        filler_count = sum(text.lower().count(f) for f in fillers)
+        # Count filler words
+        FILLER_WORDS = [
+            "um", "uh", "ah", "like", "you know", "basically", "literally",
+            "actually", "right", "so", "well", "okay", "kind of", "sort of",
+            "i mean", "you see", "honestly", "seriously"
+        ]
+        text_lower = text.lower()
+        filler_count = 0
+        filler_detail = {}
+        for filler in FILLER_WORDS:
+            pattern = r'\b' + re.escape(filler) + r'\b'
+            matches = re.findall(pattern, text_lower)
+            if matches:
+                filler_detail[filler] = len(matches)
+                filler_count += len(matches)
 
         # Detect stutters
         stutter_res = detect_stutters(words_data)
+
+        # Calculate pause metrics
+        pause_res = compute_pause_metrics(words_data)
 
         return {
             "transcription": text.strip(),
             "wpm": wpm,
             "filler_count": filler_count,
+            "filler_detail": filler_detail,
             "duration": round(duration_seconds, 2),
             "words_data": words_data,
             "stutter_count": stutter_res["stutter_count"],
-            "stutter_events": stutter_res["stutter_events"]
+            "stutter_events": stutter_res["stutter_events"],
+            "pause_count": pause_res["pause_count"],
+            "longest_pause": pause_res["longest_pause"],
+            "average_pause": pause_res["average_pause"],
+            "pause_intervals": pause_res["pause_intervals"]
         }
         
     except Exception as e:
@@ -147,8 +202,13 @@ def analyze_audio(video_path: str):
             "transcription": "Could not analyze audio.",
             "wpm": 0,
             "filler_count": 0,
+            "filler_detail": {},
             "stutter_count": 0,
             "stutter_events": [],
+            "pause_count": 0,
+            "longest_pause": 0.0,
+            "average_pause": 0.0,
+            "pause_intervals": [],
             "error": str(e),
             "error_code": "AUDIO_ANALYSIS_FAILED"
         }

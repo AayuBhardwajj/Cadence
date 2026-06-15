@@ -134,11 +134,15 @@ ASSESSMENT INPUT PACKAGE:
 - Total Programmatic Stutters: {stutter_data.get('stutter_count', 0)}
 - Programmatic Stutter Events (max 10): {json.dumps(stutter_data.get('stutter_events', [])[:10])}
 
-[HEURISTIC SCORES — your scores must stay within ±8 of these]
-- Fluency: {metrics['breakdown']['fluency']} / 100
-- Vocabulary: {metrics['breakdown']['vocabulary']} / 100
-- Grammar: {metrics['breakdown']['grammar']} / 100
-- Confidence: {metrics['breakdown']['confidence']} / 100
+The following scores have been computed deterministically by the system.
+You must use these exact values in your explanations. Do not modify or re-score.
+Do NOT generate numeric scores. Scores are computed deterministically by the system. Your role is to explain the candidate's performance in natural language only.
+
+Fluency Score: {metrics['breakdown']['fluency']}
+Pronunciation Score: {metrics['breakdown']['pronunciation']}
+Grammar Score: {metrics['breakdown']['grammar']}
+Vocabulary Score: {metrics['breakdown']['vocabulary']}
+Overall Score: {metrics['overall_score']}
 
 [TIMING SUMMARY]
 {timing_summary}
@@ -146,14 +150,19 @@ ASSESSMENT INPUT PACKAGE:
 STRICT RULES:
 - Return ONLY a valid JSON object matching the schema below.
 - No markdown. No preamble. No trailing text.
-- All scores are integers 0–100.
 - Qualitative fields must reference actual words/phrases from the transcript.
 - If transcript < 20 words, set all qualitative text to: "insufficient_sample"
 - Arrays must be actual arrays, even if empty.
 
 REQUIRED JSON SCHEMA:
 {{
-  "scores": {{"fluency": 0, "pronunciation": 0, "grammar": 0, "vocabulary": 0, "confidence": 0, "overall": 0}},
+  "score_explanations": {{
+    "fluency": "string explanation of fluency performance",
+    "pronunciation": "string explanation of pronunciation performance",
+    "grammar": "string explanation of grammar performance",
+    "vocabulary": "string explanation of vocabulary performance",
+    "overall": "string summary of overall performance"
+  }},
   "cefr_level": "B1",
   "mti_detected": null,
   "mti_patterns": [{{"pattern": "", "score": 0, "behaviors": []}}],
@@ -206,17 +215,16 @@ REQUIRED JSON SCHEMA:
 
 def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], audio_data: Dict[str, Any], topic_prompt: str = "", stutter_data=None) -> Dict[str, Any]:
     stutter_data = stutter_data or {}
-    scores        = data.get("scores", {})
     transcription = audio_data.get("transcription", "")
     wpm           = audio_data.get("wpm", 0)
     filler_count  = audio_data.get("filler_count", 0)
 
-    pron_score       = _clamp(scores.get("pronunciation", metrics["breakdown"]["pronunciation"]))
-    fluency_score    = _clamp(scores.get("fluency",       metrics["breakdown"]["fluency"]))
-    grammar_score    = _clamp(scores.get("grammar",       metrics["breakdown"]["grammar"]))
-    vocab_score      = _clamp(scores.get("vocabulary",    metrics["breakdown"]["vocabulary"]))
-    confidence_score = _clamp(scores.get("confidence",    metrics["breakdown"]["confidence"]))
-    overall_score    = _clamp(scores.get("overall",       metrics.get("overall_score", 0)))
+    pron_score       = _clamp(metrics["breakdown"]["pronunciation"])
+    fluency_score    = _clamp(metrics["breakdown"]["fluency"])
+    grammar_score    = _clamp(metrics["breakdown"]["grammar"])
+    vocab_score      = _clamp(metrics["breakdown"]["vocabulary"])
+    confidence_score = _clamp(metrics["breakdown"]["confidence"])
+    overall_score    = _clamp(metrics.get("overall_score", 0))
 
     wpm_score    = _wpm_to_score(wpm)
     filler_score = _clamp(100 - (filler_count * 8))

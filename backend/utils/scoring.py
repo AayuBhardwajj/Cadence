@@ -79,7 +79,7 @@ def calculate_score(audio_data: dict, video_data: dict):
     
     # Overall Weighted Score (Deterministic)
     stutter_score = max(0, 100 - (stutter_count * 10))
-    filler_score = max(0, 100 - (fillers * 8))
+    filler_score_val = max(0, 100 - (fillers * 8))
     
     overall = compute_overall_score(
         fluency_score=fluency,
@@ -87,7 +87,7 @@ def calculate_score(audio_data: dict, video_data: dict):
         vocabulary_score=vocab,
         grammar_score=grammar,
         stutter_score=stutter_score,
-        filler_score=filler_score
+        filler_score=filler_score_val,
     )
     
     cefr = estimate_cefr(int(overall))
@@ -111,6 +111,8 @@ def calculate_score(audio_data: dict, video_data: dict):
     return {
         "overall_score": int(overall),
         "cefr_level": cefr,
+        "stutter_score": stutter_score,
+        "filler_score": filler_score_val,
         "breakdown": {
             "fluency": int(fluency),
             "pronunciation": int(pronunciation),
