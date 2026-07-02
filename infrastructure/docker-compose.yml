@@ -1,0 +1,58 @@
+# Cadence local dev infrastructure
+# NOTE: RabbitMQ will be added in a later migration phase once core Spring services
+# are working over plain REST.
+
+networks:
+  cadence-net:
+    driver: bridge
+
+volumes:
+  cadence_pg_data:
+  cadence_redis_data:
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: cadence-postgres
+    networks: [cadence-net]
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: cadence
+      POSTGRES_PASSWORD: cadence_dev
+      POSTGRES_DB: cadence
+    volumes:
+      - cadence_pg_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cadence -d cadence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cadence-redis
+    networks: [cadence-net]
+    ports:
+      - "6379:6379"
+    volumes:
+      - cadence_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: cadence-pgadmin
+    networks: [cadence-net]
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@cadence.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      postgres:
+        condition: service_healthy

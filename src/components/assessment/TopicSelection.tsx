@@ -62,7 +62,7 @@ export const TopicSelection: React.FC<TopicSelectionProps> = ({ onSelect }) => {
                             bg="whiteAlpha.50"
                             border="1px solid"
                             borderColor="whiteAlpha.100"
-                            rounded="2xl"
+                            rounded="2xl" 
                             cursor="pointer"
                             onClick={() => onSelect(topic.id)}
                             transition="all 0.3s"
