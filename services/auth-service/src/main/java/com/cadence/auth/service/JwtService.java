@@ -10,15 +10,14 @@ import io.jsonwebtoken.security.SignatureException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.util.Optional;
 
 @Service
-@SuppressWarnings("deprecation")
 public class JwtService {
 
-    private final Key verificationKey;
+    private final SecretKey verificationKey;
 
     public JwtService(@Value("${jwt.secret}") String secret) {
         if (secret == null || secret.isBlank()) {
@@ -28,18 +27,18 @@ public class JwtService {
         this.verificationKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    // Constructor for testing with specific keys
-    public JwtService(Key verificationKey) {
+    /** Package-visible constructor for unit tests that supply a pre-built key. */
+    JwtService(SecretKey verificationKey) {
         this.verificationKey = verificationKey;
     }
 
     private Claims parseClaims(String token) throws InvalidTokenException {
         try {
-            return Jwts.parserBuilder()
-                    .setSigningKey(verificationKey)
+            return Jwts.parser()
+                    .verifyWith(verificationKey)
                     .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+                    .parseSignedClaims(token)
+                    .getPayload();
         } catch (ExpiredJwtException e) {
             throw new InvalidTokenException("JWT token has expired", e);
         } catch (SignatureException e) {

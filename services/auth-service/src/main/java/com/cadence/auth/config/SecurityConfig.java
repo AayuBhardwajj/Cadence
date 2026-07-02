@@ -29,6 +29,8 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health").permitAll()
+                // /auth/validate is called by the gateway before a token exists on the caller side
+                .requestMatchers("/auth/validate").permitAll()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(handler -> handler
