@@ -14,6 +14,7 @@ from services.recommendation_service import RecommendationService
 from services.analysis_service import deep_analyze_speech
 from services.content_generation_service import generate_assessment_package
 from services.content_quality_service import evaluate_content_quality
+from utils.ai_usage_logger import log_whisper_usage
 from datetime import datetime
 import logging
 
@@ -130,6 +131,15 @@ async def upload_assessment(
         logger.info(f"File saved for user {user_id[:8]}...")
 
         audio_data = analyze_audio(temp_file_path)
+
+        # Log Whisper transcription cost
+        log_whisper_usage(
+            duration_seconds=audio_data.get("duration", 0),
+            model="base",
+            assessment_id=sessionId,
+            user_id=user_id,
+        )
+
         # TODO: Wire to video_service.py MediaPipe analyzer once video processing is enabled.
         # Using 0 as a neutral placeholder to avoid artificially inflating confidence scores.
         video_data = {"eye_contact_percent": 0}
@@ -148,7 +158,9 @@ async def upload_assessment(
             audio_data,
             score_data,
             topic_id=topicId,
-            topic_prompt=TOPIC_PROMPTS.get(topicId, TOPIC_PROMPTS['custom'])
+            topic_prompt=TOPIC_PROMPTS.get(topicId, TOPIC_PROMPTS['custom']),
+            assessment_id=sessionId,
+            user_id=user_id,
         )
 
         if isinstance(deep_analysis, dict):
@@ -273,6 +285,58 @@ async def get_recommendations(user_id: str):
 @app.post("/analyze")
 async def analyze_legacy(file: UploadFile = File(...)):
     return await upload_assessment(file=file, userId="legacy-user")
+
+
+@app.get("/api/admin/ai-usage")
+async def get_ai_usage(
+    from_date: str | None = None,
+    to_date: str | None = None,
+    provider: str | None = None,
+):
+    """
+    Returns AI usage summary grouped by provider and model.
+    Query params: from_date (ISO), to_date (ISO), provider ('groq'|'gemini'|'whisper')
+    """
+    try:
+        query = supabase.table("ai_usage_logs").select(
+            "provider, model, purpose, input_tokens, output_tokens, estimated_cost_usd, created_at"
+        )
+        if from_date:
+            query = query.gte("created_at", from_date)
+        if to_date:
+            query = query.lte("created_at", to_date)
+        if provider:
+            query = query.eq("provider", provider)
+
+        result = query.order("created_at", desc=True).limit(500).execute()
+        rows = result.data or []
+
+        # Aggregate summary
+        summary = {}
+        for row in rows:
+            key = f"{row['provider']}:{row['model']}"
+            if key not in summary:
+                summary[key] = {
+                    "provider": row["provider"],
+                    "model": row["model"],
+                    "total_calls": 0,
+                    "total_input_tokens": 0,
+                    "total_output_tokens": 0,
+                    "total_cost_usd": 0.0,
+                }
+            summary[key]["total_calls"] += 1
+            summary[key]["total_input_tokens"] += row.get("input_tokens") or 0
+            summary[key]["total_output_tokens"] += row.get("output_tokens") or 0
+            summary[key]["total_cost_usd"] += float(row.get("estimated_cost_usd") or 0)
+
+        return {
+            "rows": rows,
+            "summary": list(summary.values()),
+            "total_cost_usd": round(sum(r.get("estimated_cost_usd") or 0 for r in rows if r.get("estimated_cost_usd")), 6),
+            "total_calls": len(rows),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

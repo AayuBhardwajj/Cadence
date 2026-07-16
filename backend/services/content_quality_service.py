@@ -2,6 +2,7 @@ import os
 import json
 from groq import Groq
 from utils.supabase_client import supabase
+from utils.ai_usage_logger import log_llm_usage
 
 def _get_groq_client():
     api_key = os.environ.get("GROQ_API_KEY")
@@ -94,6 +95,17 @@ JSON Schema:
         )
         content = resp.choices[0].message.content.strip()
         result = json.loads(content)
+
+        # Log token usage
+        usage = resp.usage
+        log_llm_usage(
+            provider="groq",
+            model=model_name,
+            input_tokens=usage.prompt_tokens if usage else 0,
+            output_tokens=usage.completion_tokens if usage else 0,
+            purpose="content_quality",
+            assessment_id=assessment_id,
+        )
 
         # Persist content quality scores if assessment_id is provided
         if assessment_id:

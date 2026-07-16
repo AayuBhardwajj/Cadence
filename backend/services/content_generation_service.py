@@ -2,6 +2,7 @@ import os
 import json
 from google import genai
 from utils.supabase_client import supabase
+from utils.ai_usage_logger import log_llm_usage
 
 def _get_gemini_client():
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -122,20 +123,14 @@ JSON Schema:
             print(f"Database insertion to assessment_materials failed: {db_err}")
 
         # Fix 2: Log to ai_usage_logs
-        try:
-            calculated_cost = (input_tokens * 0.075 / 1000000) + (output_tokens * 0.30 / 1000000)
-            usage_data = {
-                "assessment_id": assessment_id,
-                "provider": "gemini",
-                "model": model_name,
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-                "estimated_cost_usd": calculated_cost,
-                "purpose": "content_generation"
-            }
-            supabase.table("ai_usage_logs").insert(usage_data).execute()
-        except Exception as log_err:
-            print(f"Database insertion to ai_usage_logs failed: {log_err}")
+        log_llm_usage(
+            provider="gemini",
+            model=model_name,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            purpose="content_generation",
+            assessment_id=assessment_id,
+        )
 
         # Ensure correct difficulty level is returned
         package["difficulty_level"] = difficulty

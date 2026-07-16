@@ -4,6 +4,7 @@ import os
 import json
 from typing import Dict, Any
 from services.audio_service import detect_stutters
+from utils.ai_usage_logger import log_llm_usage
 
 def _get_groq_client():
     api_key = os.environ.get("GROQ_API_KEY")
@@ -17,7 +18,7 @@ def _get_gemini_client():
         return None
     return genai.Client(api_key=api_key)
 
-async def _call_llm(prompt: str) -> str:
+async def _call_llm(prompt: str, assessment_id: str | None = None, user_id: str | None = None) -> str:
     """
     Fallback chain:
       1. Groq  llama-3.1-8b-instant  (fastest, json_object mode)
@@ -41,6 +42,16 @@ async def _call_llm(prompt: str) -> str:
                     max_tokens=3000,
                     response_format={"type": "json_object"},
                 )
+                usage = resp.usage
+                log_llm_usage(
+                    provider="groq",
+                    model=model_id,
+                    input_tokens=usage.prompt_tokens if usage else 0,
+                    output_tokens=usage.completion_tokens if usage else 0,
+                    purpose="analysis",
+                    assessment_id=assessment_id,
+                    user_id=user_id,
+                )
                 return resp.choices[0].message.content
             except Exception as e:
                 errors.append(f"groq/{model_id}: {e}")
@@ -57,6 +68,16 @@ async def _call_llm(prompt: str) -> str:
                 content = content[7:-3].strip()
             elif content.startswith("```"):
                 content = content[3:-3].strip()
+            meta = resp.usage_metadata
+            log_llm_usage(
+                provider="gemini",
+                model="gemini-2.0-flash",
+                input_tokens=meta.prompt_token_count if meta else 0,
+                output_tokens=meta.candidates_token_count if meta else 0,
+                purpose="analysis",
+                assessment_id=assessment_id,
+                user_id=user_id,
+            )
             return content
         except Exception as e:
             errors.append(f"gemini/gemini-2.0-flash: {e}")
@@ -89,7 +110,14 @@ def _wpm_to_score(wpm: int) -> int:
 def _clamp(val: int, lo: int = 0, hi: int = 100) -> int:
     return max(lo, min(hi, val))
 
-async def deep_analyze_speech(audio_data: Dict[str, Any], metrics: Dict[str, Any], topic_id: str = "custom", topic_prompt: str = "") -> Dict[str, Any]:
+async def deep_analyze_speech(
+    audio_data: Dict[str, Any],
+    metrics: Dict[str, Any],
+    topic_id: str = "custom",
+    topic_prompt: str = "",
+    assessment_id: str | None = None,
+    user_id: str | None = None
+) -> Dict[str, Any]:
     transcription = audio_data.get("transcription", "")
     words_data    = audio_data.get("words_data", [])
 
@@ -206,7 +234,7 @@ REQUIRED JSON SCHEMA:
 """
 
     try:
-        content = await _call_llm(prompt)
+        content = await _call_llm(prompt, assessment_id=assessment_id, user_id=user_id)
         result  = json.loads(content)
         return _map_consolidated_to_amcat(result, metrics, audio_data, topic_prompt, stutter_data)
     except Exception as e:
