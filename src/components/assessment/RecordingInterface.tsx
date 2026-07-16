@@ -1,21 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Text, VStack, HStack, Button, Flex, Progress, IconButton, Tabs, TabList, TabPanels, Tab, TabPanel } from '@chakra-ui/react';
+import { Box, Text, VStack, HStack, Button, Flex, Progress, IconButton, Tabs, TabList, TabPanels, Tab, TabPanel, Spinner } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
-import { StopCircle, RefreshCw, UploadCloud, PlayCircle, PauseCircle } from 'lucide-react';
+import { StopCircle, RefreshCw, UploadCloud } from 'lucide-react';
+import { useAssessmentContent } from '../../hooks/useAssessmentContent';
 
 interface RecordingInterfaceProps {
     onRecordingComplete: (blob: Blob) => void;
     onCancel: () => void;
     userName?: string;
     topicId?: string;
+    difficulty?: string;
 }
 
 export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
     onRecordingComplete,
     onCancel,
     userName = "User",
-    topicId = "custom"
+    topicId = "custom",
+    difficulty = "intermediate"
 }) => {
+    const {
+      data: assessmentContent,
+      isLoading: contentLoading,
+      isError: contentError,
+    } = useAssessmentContent(topicId || '', difficulty || 'intermediate');
+
     const isFullAssessment = topicId !== 'default'; // Assume 'default' is the old paragraph mode
     const MAX_TIME = isFullAssessment ? 300 : 60;
     const [recordingState, setRecordingState] = useState<'idle' | 'countdown' | 'recording' | 'completed' | 'paused'>('idle');
@@ -65,7 +74,7 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
     }, [recordingState, timeLeft]);
 
     const startRecording = async () => {
-        setTimeLeft(60);
+        setTimeLeft(MAX_TIME);
         setRecordingState('recording');
         const stream = videoRef.current?.srcObject as MediaStream;
         if (!stream) return;
@@ -105,94 +114,23 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
         if (recordedBlob) onRecordingComplete(recordedBlob);
     };
 
-    const topicData: Record<string, { prompt: string, text: string }> = {
-        'workplace': {
-            prompt: `An ideal workplace is more than just a physical space. It reflects values like collaboration, respect, productivity, and innovation. Describe the environment, culture, leadership style, and tools that help you perform at your best.`,
-            text: `An ideal workplace, in my opinion, is a balanced environment where productivity and personal well-being coexist harmoniously. It is not defined solely by infrastructure or salary, but by culture, communication, and clarity of purpose. A truly productive workplace fosters collaboration, creativity, and continuous learning.
+    if (contentLoading) {
+      return (
+        <Flex justify="center" align="center" minH="200px" direction="column" gap={3} w="full" h="100vh" bg="#050a1f" color="white">
+          <Spinner size="lg" color="blue.400" />
+          <Text color="gray.400" fontSize="sm">Generating your assessment...</Text>
+        </Flex>
+      );
+    }
 
-First and foremost, I value a workplace that promotes mutual respect and psychological safety. Employees should feel comfortable expressing ideas, asking questions, and even making mistakes without fear of humiliation. As the saying goes, “A smooth sea never made a skilled sailor.” Growth requires experimentation, and experimentation sometimes includes failure.
-
-Secondly, leadership plays a crucial role. A good leader listens actively, communicates transparently, and sets realistic expectations. Clear communication prevents confusion and conflict. After all, clear communication creates confident collaboration. In contrast, poor communication produces procrastination and frustration.
-
-The physical environment also influences productivity. Natural lighting, organized workspaces, and minimal distractions enhance concentration. A cluttered desk can create a cluttered mind. I prefer structured systems where priorities are defined and deadlines are reasonable.
-
-Technology integration is equally important. Efficient tools, fast systems, and secure platforms enable seamless workflow. However, excessive meetings and unnecessary notifications reduce deep focus. Productive professionals prioritize purposeful performance over pointless pressure.
-
-Work-life balance cannot be ignored. Burnout diminishes creativity and motivation. Flexible schedules, remote options, and understanding management contribute to long-term sustainability.
-
-Let me include a short articulation exercise:
-“Busy brains build better businesses.”
-“Professional people perform productive projects precisely.”
-“Creative colleagues collaborate carefully and confidently.”
-
-In conclusion, my ideal workplace is respectful, technologically equipped, growth-oriented, and emotionally intelligent. It supports ambition without sacrificing well-being. A productive workplace is not just where we work — it is where we evolve.`
-        },
-        'tech': {
-            prompt: `Technology has transformed communication, relationships, education, and work. Discuss how digital tools influence daily interactions, both positively and negatively.`,
-            text: `Technology has revolutionized the way we communicate in everyday life. From instant messaging to virtual meetings, digital platforms have eliminated geographical barriers. Communication that once required days now happens in seconds.
-
-In earlier times, letters were handwritten and phone calls were scheduled. Today, we send texts, voice notes, and video messages effortlessly. While this convenience increases efficiency, it also raises concerns about attention span and emotional depth.
-
-Social platforms encourage constant connectivity. Notifications, updates, and real-time responses create an environment of immediacy. However, constant connectivity can reduce concentration. Sometimes, silent reflection strengthens stronger social skills.
-
-Technology also enhances professional communication. Emails, collaborative platforms, and cloud storage streamline productivity. Remote work has become possible because of reliable digital infrastructure. Virtual meetings save travel time and expand global opportunities.
-
-Yet, technology has introduced challenges. Misinterpretation of tone in text messages often leads to misunderstanding. Overdependence on screens reduces face-to-face interactions. The phrase “digital distance diminishes direct dialogue” reflects this reality.
-
-Consider this articulation practice:
-“Swift software systems simplify sophisticated solutions.”
-“Tiny technical tweaks transform total teamwork.”
-“Smart screens silently shape society.”
-
-On a positive note, technology supports education through online courses, digital libraries, and interactive learning. It democratizes knowledge and empowers individuals worldwide.
-
-In conclusion, technology is neither entirely beneficial nor entirely harmful. Its impact depends on how responsibly we use it. Balanced usage, mindful communication, and digital discipline are essential for maintaining meaningful human connections.`
-        },
-        'social': {
-            prompt: `Social media influences friendships, relationships, identity, and self-expression. Discuss its advantages, psychological impact, and long-term consequences.`,
-            text: `Social media has dramatically reshaped modern relationships. Platforms designed for connection have become powerful tools for communication, branding, and influence. They allow people to share experiences instantly and interact across continents.
-
-On the positive side, social media strengthens long-distance relationships. Friends and families remain connected through posts, calls, and shared memories. Communities form around common interests, creating belonging and support networks.
-
-However, excessive usage can lead to comparison and insecurity. Highlight reels often replace reality. Constant scrolling stimulates short-term satisfaction but reduces sustained attention. The pursuit of validation sometimes replaces genuine interaction.
-
-Algorithms influence perception. Content personalization shapes opinions and behaviors subtly. This raises concerns about misinformation and echo chambers. Responsible digital literacy is essential.
-
-Healthy boundaries are necessary. Scheduled screen breaks improve mental clarity. Meaningful conversations require mindful presence.
-
-Practice articulation with these lines:
-“Social sites spread stories swiftly.”
-“People post pictures portraying polished personalities.”
-“Real relationships require real respect.”
-
-In conclusion, social media is a powerful instrument. Used wisely, it connects and empowers. Used excessively, it distracts and distorts. The responsibility lies with the user to maintain balance and authenticity.`
-        },
-        'language': {
-            prompt: `Learning multiple languages improves communication, cultural awareness, and career opportunities in a globalized world.`,
-            text: `In today’s interconnected world, learning multiple languages is an invaluable skill. Language is not merely a communication tool; it is a gateway to culture, perspective, and opportunity.
-
-Multilingual individuals demonstrate cognitive flexibility and enhanced problem-solving skills. Research suggests that switching between languages strengthens memory and concentration. It also improves listening skills and pronunciation awareness.
-
-Language learning builds cultural empathy. When we understand another language, we understand humor, emotion, and nuance more deeply. It promotes global collaboration and reduces prejudice.
-
-Professionally, multilingualism increases employability. Global companies value candidates who can communicate across borders. Negotiation, networking, and leadership become more effective with linguistic versatility.
-
-However, mastering pronunciation requires consistent practice. Clarity, confidence, and cadence matter significantly in spoken language.
-
-Try these articulation drills:
-“Lively linguists learn languages logically.”
-“Proper pronunciation prevents persistent problems.”
-“Global growth grows gradually.”
-
-In conclusion, language learning is an investment in personal and professional growth. It strengthens the brain, broadens the mind, and bridges borders. In a globalized era, multilingualism is not just an advantage — it is a powerful asset.`
-        },
-        'custom': {
-            prompt: 'Please speak on a topic of your choice. You may describe a recent experience, a book you read, or a project you are working on.',
-            text: `Communication is the bridge between confusion and clarity. When we take the time to articulate our thoughts precisely and listen actively to others, we build stronger relationships and solve complex problems more effectively. Every conversation is an opportunity to learn something new and connect on a deeper level.`
-        }
-    };
-
-    const currentTopic = topicData[topicId] || topicData['custom'];
+    if (contentError || !assessmentContent) {
+      return (
+        <Flex justify="center" align="center" minH="200px" direction="column" gap={3} w="full" h="100vh" bg="#050a1f" color="white">
+          <Text color="red.400" fontSize="sm">Failed to load assessment content. Please try again.</Text>
+          <Button size="sm" colorScheme="blue" onClick={onCancel}>Go Back</Button>
+        </Flex>
+      );
+    }
 
     // For standard reading (not full assessment)
     const paragraph = `My name is ${userName}. Communication skills are very important in the modern workplace. When we work with others, we need to express our thoughts clearly and listen carefully. The weather today feels wonderful with warmth and sunshine. I believe regular practice, along with the right techniques, can help anyone improve their speaking abilities. Whether you're preparing for an interview, presentation, or simply want to feel more confident, dedication and consistency make all the difference. Remember, every small step forward brings you closer to your goals.`;
@@ -305,14 +243,14 @@ In conclusion, language learning is an investment in personal and professional g
                                 <TabPanel h="full" p={0}>
                                     <Box p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200" minH="full" display="flex" alignItems="center" justifyContent="center">
                                         <Text fontSize="3xl" lineHeight="1.8" fontFamily="sans-serif" textAlign="center" fontWeight="bold">
-                                            {currentTopic.prompt}
+                                            {assessmentContent?.topicPrompt}
                                         </Text>
                                     </Box>
                                 </TabPanel>
                                 <TabPanel h="full" p={0}>
                                     <Box p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200" minH="full" display="flex" alignItems="center" justifyContent="center">
                                         <Text fontSize="2xl" lineHeight="1.8" fontFamily="sans-serif" textAlign="left" whiteSpace="pre-wrap">
-                                            {currentTopic.text}
+                                            {assessmentContent?.readingPassage}
                                         </Text>
                                     </Box>
                                 </TabPanel>

@@ -77,6 +77,7 @@ export function Assessment() {
     const [eligibility, setEligibility] = useState<EligibilityResponse | null>(null);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [topicId, setTopicId] = useState<string>('custom');
+    const [selectedDifficulty, setSelectedDifficulty] = useState<string>('intermediate');
     const [result, setResult] = useState<AnalysisResult | null>(null);
     const [userName, setUserName] = useState("User");
     const [userId, setUserId] = useState<string | null>(null);
@@ -117,8 +118,9 @@ export function Assessment() {
         }
     };
 
-    const handleTopicSelect = (id: string) => {
+    const handleTopicSelect = (id: string, difficulty: string) => {
         setTopicId(id);
+        setSelectedDifficulty(difficulty);
         setStep('setup');
     };
 
@@ -210,6 +212,8 @@ export function Assessment() {
                     <RecordingInterface
                         key="recording"
                         userName={userName}
+                        topicId={topicId}
+                        difficulty={selectedDifficulty}
                         onRecordingComplete={handleRecordingComplete}
                         onCancel={() => setStep('topic-selection')}
                     />
