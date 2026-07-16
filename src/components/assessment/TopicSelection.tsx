@@ -32,18 +32,32 @@ export const TopicSelection: React.FC<TopicSelectionProps> = ({ onSelect }) => {
     };
 
     return (
-        <VStack spacing={10} w="full" maxW="4xl" mx="auto" py={10}>
+        <Box
+            px={{ base: 4, sm: 6, md: 10, lg: 16 }}
+            py={{ base: 6, md: 10 }}
+            maxW={{ base: "100%", lg: "1100px" }}
+            mx="auto"
+        >
+        <VStack spacing={10} w="full">
             <VStack spacing={3} textAlign="center">
-                <Heading size="xl" bgGradient="linear(to-r, blue.400, purple.500)" bgClip="text">
+                <Heading
+                    fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }}
+                    bgGradient="linear(to-r, blue.400, purple.500)"
+                    bgClip="text"
+                >
                     Choose Your Topic
                 </Heading>
-                <Text color="whiteAlpha.700" fontSize="lg">
+                <Text color="whiteAlpha.700" fontSize={{ base: "md", md: "lg" }}>
                     Select a topic and difficulty level for your assessment
                 </Text>
             </VStack>
 
             {/* 1. Topic Grid */}
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} w="full">
+            <SimpleGrid
+                columns={{ base: 1, sm: 2, md: 2, lg: 3 }}
+                spacing={{ base: 3, md: 4, lg: 5 }}
+                w="100%"
+            >
                 {AVAILABLE_TOPICS.map((topic) => {
                     const isSelected = selectedTopic === topic.id;
                     return (
@@ -53,11 +67,12 @@ export const TopicSelection: React.FC<TopicSelectionProps> = ({ onSelect }) => {
                             whileTap={{ scale: 0.98 }}
                         >
                             <Box
-                                p={6}
+                                minH={{ base: "80px", md: "auto" }}
+                                p={{ base: 4, md: 5 }}
                                 bg={isSelected ? "whiteAlpha.150" : "whiteAlpha.50"}
                                 border="1px solid"
                                 borderColor={isSelected ? "blue.400" : "whiteAlpha.100"}
-                                rounded="2xl" 
+                                rounded="2xl"
                                 cursor="pointer"
                                 onClick={() => setSelectedTopic(topic.id)}
                                 transition="all 0.3s"
@@ -86,12 +101,17 @@ export const TopicSelection: React.FC<TopicSelectionProps> = ({ onSelect }) => {
             {/* 2. Difficulty Selector */}
             <VStack spacing={4} w="full" align="start" pt={6}>
                 <Heading size="md" color="white">Select Difficulty Level</Heading>
-                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} w="full">
+                <SimpleGrid
+                    columns={{ base: 1, sm: 1, md: 3 }}
+                    spacing={{ base: 2, md: 4 }}
+                    w="100%"
+                >
                     {DIFFICULTY_LEVELS.map((level) => {
                         const isSelected = selectedDifficulty === level.id;
                         return (
                             <Box
                                 key={level.id}
+                                w={{ base: "100%", md: "auto" }}
                                 p={4}
                                 bg={isSelected ? "whiteAlpha.150" : "whiteAlpha.50"}
                                 border="1px solid"
@@ -122,6 +142,7 @@ export const TopicSelection: React.FC<TopicSelectionProps> = ({ onSelect }) => {
                 rounded="full"
                 onClick={handleStart}
                 px={12}
+                w={{ base: "100%", sm: "auto" }}
                 isDisabled={!selectedTopic}
                 leftIcon={<Sparkles size={18} />}
                 boxShadow={selectedTopic ? "0 0 20px rgba(66, 153, 225, 0.4)" : "none"}
@@ -130,5 +151,6 @@ export const TopicSelection: React.FC<TopicSelectionProps> = ({ onSelect }) => {
                 Start Assessment
             </Button>
         </VStack>
+        </Box>
     );
 };

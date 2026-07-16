@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
     Box, VStack, HStack, Heading, Text, SimpleGrid, Progress,
     Badge, Icon, Button, Divider, Center, Modal, ModalOverlay,
-    ModalContent, ModalBody, ModalCloseButton, useDisclosure
+    ModalContent, ModalBody, ModalCloseButton, useDisclosure, Stack
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import {
@@ -43,7 +43,13 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result, onRe
     const { isOpen, onOpen, onClose } = useDisclosure();
 
     return (
-        <Box w="full" maxW="5xl" mx="auto" py={12} px={6}>
+        <Box
+            w="full"
+            maxW={{ base: "100%", lg: "5xl" }}
+            mx="auto"
+            py={{ base: 6, md: 12 }}
+            px={{ base: 4, sm: 6, md: 8 }}
+        >
             <VStack spacing={10} align="stretch">
                 {/* Header Scorecard */}
                 {result.api_error && (
@@ -70,12 +76,14 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result, onRe
                             <Box position="relative">
                                 {/* Radial Chart Placeholder / Simple circle for now */}
                                 <Center
-                                    w="160px" h="160px" rounded="full"
+                                    w={{ base: "120px", md: "160px", lg: "160px" }}
+                                    h={{ base: "120px", md: "160px", lg: "160px" }}
+                                    rounded="full"
                                     border="8px solid" borderColor="blue.500"
                                     boxShadow="0 0 30px rgba(66, 153, 225, 0.3)"
                                 >
                                     <VStack spacing={0}>
-                                        <Text fontSize="4xl" fontWeight="black">{result.overall_score}</Text>
+                                        <Text fontSize={{ base: "3xl", md: "4xl" }} fontWeight="black">{result.overall_score}</Text>
                                         <Text fontSize="xs" fontWeight="bold" color="whiteAlpha.600">OVERALL</Text>
                                     </VStack>
                                 </Center>
@@ -193,24 +201,40 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result, onRe
                 </Box>
 
                 {/* Footer Actions */}
-                <HStack justify="space-between" pt={4}>
-                    <Button variant="ghost" leftIcon={<LayoutDashboard size={18} />} onClick={() => window.location.href = '/dashboard'}>
+                <Stack
+                    direction={{ base: "column", sm: "row" }}
+                    justify={{ base: "stretch", sm: "space-between" }}
+                    align={{ base: "stretch", sm: "center" }}
+                    spacing={{ base: 3, sm: 4 }}
+                    pt={4}
+                >
+                    <Button
+                        variant="ghost"
+                        leftIcon={<LayoutDashboard size={18} />}
+                        onClick={() => window.location.href = '/dashboard'}
+                        w={{ base: "100%", sm: "auto" }}
+                    >
                         Back to Dashboard
                     </Button>
-                    <HStack spacing={4}>
+                    <Stack
+                        direction={{ base: "column", sm: "row" }}
+                        spacing={{ base: 3, sm: 4 }}
+                        w={{ base: "100%", sm: "auto" }}
+                    >
                         <Button
                             colorScheme="blue"
                             variant="solid"
                             leftIcon={<FileText size={18} />}
                             onClick={onOpen}
                             boxShadow="0 4px 14px 0 rgba(66, 153, 223, 0.39)"
+                            w={{ base: "100%", sm: "auto" }}
                         >
                             View Full Performance Report
                         </Button>
-                        <Button variant="outline" leftIcon={<Share2 size={18} />}>Share</Button>
-                        <Button colorScheme="blue" onClick={onRetry}>New Assessment</Button>
-                    </HStack>
-                </HStack>
+                        <Button variant="outline" leftIcon={<Share2 size={18} />} w={{ base: "100%", sm: "auto" }}>Share</Button>
+                        <Button colorScheme="blue" onClick={onRetry} w={{ base: "100%", sm: "auto" }}>New Assessment</Button>
+                    </Stack>
+                </Stack>
             </VStack>
 
             {/* Performance Report Modal */}

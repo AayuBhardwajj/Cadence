@@ -143,7 +143,10 @@ export function Assessment() {
     };
 
     return (
-        <Box h="100vh" w="full" overflow="hidden" position="relative" bg="black">
+        <Box
+            h="100vh" w="full" overflow="hidden"
+            position="relative" bg="black"
+        >
             <AnimatePresence mode="wait">
                 {step === 'intro' && (
                     <AuroraBackground key="intro">
@@ -199,7 +202,14 @@ export function Assessment() {
                 )}
 
                 {step === 'topic-selection' && (
-                    <Box key="topics" minH="100vh" bg="#050a1f" overflowY="auto" py={10}>
+                    <Box
+                        key="topics"
+                        minH="100vh"
+                        bg="#050a1f"
+                        overflowY="auto"
+                        py={{ base: 6, md: 10 }}
+                        px={{ base: 0, md: 4 }}
+                    >
                         <TopicSelection onSelect={handleTopicSelect} />
                     </Box>
                 )}

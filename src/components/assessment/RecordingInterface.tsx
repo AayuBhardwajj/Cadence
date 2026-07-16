@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Text, VStack, HStack, Button, Flex, Progress, IconButton, Tabs, TabList, TabPanels, Tab, TabPanel, Spinner } from '@chakra-ui/react';
+import { Box, Text, VStack, HStack, Button, Flex, Progress, IconButton, Tabs, TabList, TabPanels, Tab, TabPanel, Spinner, Stack } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { StopCircle, RefreshCw, UploadCloud } from 'lucide-react';
 import { useAssessmentContent } from '../../hooks/useAssessmentContent';
@@ -157,10 +157,19 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
                 </Box>
             )}
 
-            <HStack w="95%" maxW="1400px" h="90%" spacing={8}>
+            <Stack
+                direction={{ base: "column", lg: "row" }}
+                w={{ base: "95%", md: "95%" }}
+                maxW="1400px"
+                h={{ base: "auto", lg: "90%" }}
+                spacing={{ base: 4, lg: 8 }}
+                px={{ base: 3, sm: 4, md: 8, lg: 12 }}
+                py={{ base: 4, md: 8 }}
+                align={{ base: "stretch", lg: "flex-start" }}
+            >
 
                 {/* Left Panel: Video Feed */}
-                <VStack w="35%" h="full" spacing={6}>
+                <VStack w={{ base: "full", lg: "35%" }} h={{ base: "auto", lg: "full" }} spacing={6}>
                     <Box
                         w="full" flex={1}
                         bg="black" rounded="2xl" overflow="hidden"
@@ -188,33 +197,43 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
                         )}
                         {recordingState === 'recording' && (
                             <VStack>
-                                <Text fontSize="4xl" fontFamily="monospace" fontWeight="bold" color={timeLeft < 10 ? "red.400" : "white"}>
+                                <Text
+                                    fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }}
+                                    fontFamily="monospace"
+                                    fontWeight="bold"
+                                    color={timeLeft < 10 ? "red.400" : "white"}
+                                >
                                     {timeLeft === 0 ? "00:00" : `${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')}`}
                                 </Text>
-                                <Button colorScheme="red" leftIcon={<StopCircle />} onClick={stopRecording} rounded="full" px={8}>
-                                    Finish Recording
-                                </Button>
+                                <Stack direction={{ base: "column", sm: "row" }} spacing={{ base: 3, sm: 4 }} align="center" justify="center">
+                                    <Button colorScheme="red" leftIcon={<StopCircle />} onClick={stopRecording} rounded="full" px={8}>
+                                        Finish Recording
+                                    </Button>
+                                </Stack>
                                 <Text fontSize="xs" color="whiteAlpha.400">Aim for at least 2:00 for a better score</Text>
                             </VStack>
                         )}
                         {recordingState === 'completed' && (
-                            <HStack spacing={4}>
+                            <Stack direction={{ base: "column", sm: "row" }} spacing={{ base: 3, sm: 4 }} align="center" justify="center">
                                 <Button variant="outline" leftIcon={<RefreshCw />} onClick={() => setRecordingState('idle')}>Retry</Button>
                                 <Button colorScheme="blue" size="lg" leftIcon={<UploadCloud />} onClick={handleSubmit}>
                                     Analyze My Speech
                                 </Button>
-                            </HStack>
+                            </Stack>
                         )}
                     </Box>
                 </VStack>
 
                 {/* Right Panel: Reading */}
                 <Box
-                    w="65%" h="full"
+                    w={{ base: "full", lg: "65%" }}
+                    h={{ base: "auto", lg: "full" }}
+                    minH={{ base: "400px", lg: "auto" }}
                     bg="rgba(255, 255, 255, 0.03)"
                     backdropFilter="blur(15px)"
                     border="1px solid rgba(255, 255, 255, 0.08)"
-                    rounded="2xl" p={10}
+                    rounded="2xl"
+                    p={{ base: 4, md: 6, lg: 10 }}
                     position="relative"
                     display="flex"
                     flexDirection="column"
@@ -236,20 +255,46 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
                     ) : (
                         <Tabs variant="soft-rounded" colorScheme="blue" flex={1} display="flex" flexDirection="column">
                             <TabList mb={4}>
-                                <Tab color="whiteAlpha.700" _selected={{ color: 'white', bg: 'blue.600' }}>Topic Overview</Tab>
-                                <Tab color="whiteAlpha.700" _selected={{ color: 'white', bg: 'blue.600' }}>Reading Passage</Tab>
+                                <Tab
+                                    color="whiteAlpha.700"
+                                    _selected={{ color: 'white', bg: 'blue.600' }}
+                                    fontSize={{ base: "xs", md: "sm" }}
+                                    px={{ base: 2, md: 4 }}
+                                >
+                                    Topic Overview
+                                </Tab>
+                                <Tab
+                                    color="whiteAlpha.700"
+                                    _selected={{ color: 'white', bg: 'blue.600' }}
+                                    fontSize={{ base: "xs", md: "sm" }}
+                                    px={{ base: 2, md: 4 }}
+                                >
+                                    Reading Passage
+                                </Tab>
                             </TabList>
                             <TabPanels flex={1} overflowY="auto" overflowX="hidden">
                                 <TabPanel h="full" p={0}>
-                                    <Box p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200" minH="full" display="flex" alignItems="center" justifyContent="center">
-                                        <Text fontSize="3xl" lineHeight="1.8" fontFamily="sans-serif" textAlign="center" fontWeight="bold">
+                                    <Box p={{ base: 4, md: 8 }} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200" minH="full" display="flex" alignItems="center" justifyContent="center">
+                                        <Text
+                                            fontSize={{ base: "lg", md: "2xl", lg: "3xl" }}
+                                            lineHeight={{ base: "tall", md: "1.8" }}
+                                            fontFamily="sans-serif"
+                                            textAlign="center"
+                                            fontWeight="bold"
+                                        >
                                             {assessmentContent?.topicPrompt}
                                         </Text>
                                     </Box>
                                 </TabPanel>
                                 <TabPanel h="full" p={0}>
-                                    <Box p={8} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200" minH="full" display="flex" alignItems="center" justifyContent="center">
-                                        <Text fontSize="2xl" lineHeight="1.8" fontFamily="sans-serif" textAlign="left" whiteSpace="pre-wrap">
+                                    <Box p={{ base: 4, md: 8 }} bg="whiteAlpha.50" rounded="2xl" border="1px dashed" borderColor="whiteAlpha.200" minH="full" display="flex" alignItems="center" justifyContent="center">
+                                        <Text
+                                            fontSize={{ base: "sm", md: "xl", lg: "2xl" }}
+                                            lineHeight={{ base: "tall", md: "1.8" }}
+                                            fontFamily="sans-serif"
+                                            textAlign="left"
+                                            whiteSpace="pre-wrap"
+                                        >
                                             {assessmentContent?.readingPassage}
                                         </Text>
                                     </Box>
@@ -279,7 +324,7 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
                         <Progress value={(MAX_TIME - timeLeft) / MAX_TIME * 100} size="sm" colorScheme="blue" rounded="full" />
                     </Box>
                 </Box>
-            </HStack>
+            </Stack>
         </Flex>
     );
 };
