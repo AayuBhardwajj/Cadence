@@ -9,8 +9,22 @@ networks:
 volumes:
   cadence_pg_data:
   cadence_redis_data:
+  rabbitmq_data:
 
 services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: cadence-rabbitmq
+    networks: [cadence-net]
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: cadence
+      RABBITMQ_DEFAULT_PASS: cadence_dev_pw
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
   postgres:
     image: postgres:16
     container_name: cadence-postgres

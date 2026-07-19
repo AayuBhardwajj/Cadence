@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/cadence
+    url: jdbc:postgresql://localhost:5432/cadence?currentSchema=auth,public
     username: ${DB_USER:cadence}
     password: ${DB_PASSWORD:cadence_dev}
     driver-class-name: org.postgresql.Driver
@@ -14,6 +14,11 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: cadence
+    password: cadence_dev_pw
 
 jwt:
   secret: ${SUPABASE_JWT_SECRET}

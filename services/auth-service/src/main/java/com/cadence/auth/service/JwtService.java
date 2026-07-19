@@ -19,6 +19,7 @@ public class JwtService {
 
     private final SecretKey verificationKey;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public JwtService(@Value("${jwt.secret}") String secret) {
         if (secret == null || secret.isBlank()) {
             throw new IllegalArgumentException("JWT secret cannot be null or empty");
