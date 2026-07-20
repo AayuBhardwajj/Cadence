@@ -1,14 +1,7 @@
 import os
 import json
-from google import genai
 from utils.supabase_client import supabase
-from utils.ai_usage_logger import log_llm_usage
-
-def _get_gemini_client():
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        return None
-    return genai.Client(api_key=api_key)
+from utils.llm_client import call_llm
 
 async def generate_assessment_package(
     topic: str,
@@ -29,9 +22,6 @@ async def generate_assessment_package(
         "difficulty_level": str
     }
     """
-    client = _get_gemini_client()
-    if not client:
-        raise RuntimeError("Gemini API key is not configured.")
 
     # Contextualize prompt with user history if provided
     history_context = ""
@@ -76,31 +66,20 @@ JSON Schema:
 }}
 """
 
-    # Call Gemini API
-    # Using gemini-2.0-flash as it supports high speed generation
-    model_name = "gemini-2.0-flash"
     try:
-        response = client.models.generate_content(
-            model=model_name,
-            contents=prompt,
+        content = await call_llm(
+            prompt,
+            system_message="You are an expert English speech assessment system. Return ONLY valid JSON — no markdown, no preamble.",
+            purpose="content_generation",
+            assessment_id=assessment_id,
         )
-        content = response.text.strip()
-        
-        # Clean markdown wraps if Gemini ignored system instruction
+        content = content.strip()
         if content.startswith("```json"):
             content = content[7:-3].strip()
         elif content.startswith("```"):
             content = content[3:-3].strip()
-
         package = json.loads(content)
-        
-        # Calculate token counts if available in response metadata (approximate fallback if not)
-        input_tokens = 0
-        output_tokens = 0
-        if response.usage_metadata:
-            input_tokens = response.usage_metadata.prompt_token_count
-            output_tokens = response.usage_metadata.candidates_token_count
-        
+
         # Log to assessment_materials table
         # If no active assessment session is passed, we leave assessment_id as null
         material_data = {
@@ -112,25 +91,13 @@ JSON Schema:
             "articulation_exercises": package.get("articulation_exercises", []),
             "vocabulary_challenge": package.get("vocabulary_challenge", []),
             "follow_up_questions": package.get("follow_up_questions", []),
-            "gemini_model_used": model_name,
-            "generation_tokens_used": input_tokens + output_tokens
         }
-        
+
         try:
             # Save to database (we don't block on DB failure if the table doesn't exist yet)
             supabase.table("assessment_materials").insert(material_data).execute()
         except Exception as db_err:
             print(f"Database insertion to assessment_materials failed: {db_err}")
-
-        # Fix 2: Log to ai_usage_logs
-        log_llm_usage(
-            provider="gemini",
-            model=model_name,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            purpose="content_generation",
-            assessment_id=assessment_id,
-        )
 
         # Ensure correct difficulty level is returned
         package["difficulty_level"] = difficulty

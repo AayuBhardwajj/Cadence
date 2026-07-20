@@ -1,88 +1,8 @@
-from groq import Groq
-from google import genai
 import os
 import json
 from typing import Dict, Any
 from services.audio_service import detect_stutters
-from utils.ai_usage_logger import log_llm_usage
-
-def _get_groq_client():
-    api_key = os.environ.get("GROQ_API_KEY")
-    if not api_key:
-        return None
-    return Groq(api_key=api_key)
-
-def _get_gemini_client():
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        return None
-    return genai.Client(api_key=api_key)
-
-async def _call_llm(prompt: str, assessment_id: str | None = None, user_id: str | None = None) -> str:
-    """
-    Fallback chain:
-      1. Groq  llama-3.1-8b-instant  (fastest, json_object mode)
-      2. Groq  gemma2-9b-it          (backup model)
-      3. Gemini gemini-2.0-flash     (Google free tier)
-    Raises RuntimeError if all fail so caller can use heuristic fallback.
-    """
-    errors = []
-
-    groq_client = _get_groq_client()
-    if groq_client:
-        for model_id in ("llama-3.1-8b-instant", "gemma2-9b-it"):
-            try:
-                resp = groq_client.chat.completions.create(
-                    model=model_id,
-                    messages=[
-                        {"role": "system", "content": "You are a certified speech assessment engine. Return ONLY valid JSON — no markdown, no preamble."},
-                        {"role": "user",   "content": prompt}
-                    ],
-                    temperature=0.1,
-                    max_tokens=3000,
-                    response_format={"type": "json_object"},
-                )
-                usage = resp.usage
-                log_llm_usage(
-                    provider="groq",
-                    model=model_id,
-                    input_tokens=usage.prompt_tokens if usage else 0,
-                    output_tokens=usage.completion_tokens if usage else 0,
-                    purpose="analysis",
-                    assessment_id=assessment_id,
-                    user_id=user_id,
-                )
-                return resp.choices[0].message.content
-            except Exception as e:
-                errors.append(f"groq/{model_id}: {e}")
-
-    gemini = _get_gemini_client()
-    if gemini:
-        try:
-            resp = gemini.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt,
-            )
-            content = resp.text.strip()
-            if content.startswith("```json"):
-                content = content[7:-3].strip()
-            elif content.startswith("```"):
-                content = content[3:-3].strip()
-            meta = resp.usage_metadata
-            log_llm_usage(
-                provider="gemini",
-                model="gemini-2.0-flash",
-                input_tokens=meta.prompt_token_count if meta else 0,
-                output_tokens=meta.candidates_token_count if meta else 0,
-                purpose="analysis",
-                assessment_id=assessment_id,
-                user_id=user_id,
-            )
-            return content
-        except Exception as e:
-            errors.append(f"gemini/gemini-2.0-flash: {e}")
-
-    raise RuntimeError(f"All LLM providers failed: {errors}")
+from utils.llm_client import call_llm
 
 def _generate_timing_summary(words_data: list) -> str:
     if not words_data:
@@ -234,7 +154,13 @@ REQUIRED JSON SCHEMA:
 """
 
     try:
-        content = await _call_llm(prompt, assessment_id=assessment_id, user_id=user_id)
+        content = await call_llm(
+            prompt,
+            system_message="You are a certified speech assessment engine. Return ONLY valid JSON — no markdown, no preamble.",
+            purpose="analysis",
+            assessment_id=assessment_id,
+            user_id=user_id,
+        )
         result  = json.loads(content)
         return _map_consolidated_to_amcat(result, metrics, audio_data, topic_prompt, stutter_data)
     except Exception as e:

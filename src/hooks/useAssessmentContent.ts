@@ -14,7 +14,7 @@ export function useAssessmentContent(topic: string, difficulty: string) {
   return useQuery({
     queryKey: ['assessment-content', topic, difficulty],
     queryFn: () =>
-      apiClient.post<AssessmentPackage>('/assessments/generate-content', {
+      apiClient.post<AssessmentPackage>('/api/assessments/generate-content', {
         topic,
         difficulty,
       }),

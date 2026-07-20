@@ -96,7 +96,15 @@ async def start_assessment(user_id: str):
         eligibility = await get_eligibility(user_id)
         if not eligibility.get("can_assess"):
             raise HTTPException(status_code=403, detail="Assessment not available yet.")
-        return {"status": "success", "sessionId": str(uuid.uuid4())}
+        new_session_id = str(uuid.uuid4())
+        try:
+            supabase.table("assessments").insert({
+                "id": new_session_id,
+                "user_id": user_id,
+            }).execute()
+        except Exception as insert_err:
+            raise internal_error(insert_err, "start_assessment_insert")
+        return {"status": "success", "sessionId": new_session_id}
     except HTTPException:
         raise
     except Exception as e:
@@ -179,6 +187,19 @@ async def upload_assessment(
             await RecommendationService.generate_recommendations(user_id, pre_generated_exercises=practice_exercises)
         except Exception as e:
             logger.warning(f"Adaptive learning update failed: {e}")
+
+        # Update the assessments row with analyzed metrics
+        try:
+            supabase.table("assessments").update({
+                "overall_score": score_data.get("overall_score"),
+                "wpm": audio_data.get("wpm"),
+                "eye_contact_score": video_data.get("eye_contact_percent"),
+                "filler_word_count": audio_data.get("filler_count"),
+                "feedback": score_data.get("feedback"),
+                "transcription": audio_data.get("transcription", ""),
+            }).eq("id", sessionId).execute()
+        except Exception as update_err:
+            logger.error(f"Failed to update assessments row: {update_err}")
 
         # Persist full analysis result to analysis_results table
         try:
