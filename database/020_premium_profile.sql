@@ -1,0 +1,22 @@
+-- SQL Migration for Premium Profile System
+ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS full_name TEXT,
+ADD COLUMN IF NOT EXISTS bio TEXT,
+ADD COLUMN IF NOT EXISTS occupation TEXT,
+ADD COLUMN IF NOT EXISTS current_goal TEXT,
+ADD COLUMN IF NOT EXISTS banner_quote TEXT,
+ADD COLUMN IF NOT EXISTS location_country TEXT,
+ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'GMT+5:30',
+ADD COLUMN IF NOT EXISTS native_languages TEXT[] DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS learning_motivation TEXT[] DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS ai_summary TEXT,
+ADD COLUMN IF NOT EXISTS visibility TEXT DEFAULT 'public',
+ADD COLUMN IF NOT EXISTS verified BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS linkedin_url TEXT,
+ADD COLUMN IF NOT EXISTS twitter_url TEXT,
+ADD COLUMN IF NOT EXISTS github_url TEXT,
+ADD COLUMN IF NOT EXISTS instagram_url TEXT;
+
+-- Enable Realtime for live UI updates
+alter publication supabase_realtime add table profiles;
+alter publication supabase_realtime add table assessments;
