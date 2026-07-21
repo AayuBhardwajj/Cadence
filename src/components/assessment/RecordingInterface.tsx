@@ -35,21 +35,30 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
     const chunksRef = useRef<Blob[]>([]);
     const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
 
-    // Initial Setup
+    const streamRef = useRef<MediaStream | null>(null);
+
+    // Acquire the camera stream once on mount
     useEffect(() => {
-        let activeStream: MediaStream | null = null;
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {
-                activeStream = stream;
+                streamRef.current = stream;
                 if (videoRef.current) videoRef.current.srcObject = stream;
             }).catch(console.error);
 
         return () => {
-            if (activeStream) {
-                activeStream.getTracks().forEach(track => track.stop());
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
             }
         };
     }, []);
+
+    // Re-attach the stream once the <video> element actually mounts
+    // (it doesn't exist yet while contentLoading is true, due to the early return below)
+    useEffect(() => {
+        if (!contentLoading && videoRef.current && streamRef.current) {
+            videoRef.current.srcObject = streamRef.current;
+        }
+    }, [contentLoading]);
 
     // Countdown Logic
     useEffect(() => {
