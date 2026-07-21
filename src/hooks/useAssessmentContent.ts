@@ -10,14 +10,25 @@ export interface AssessmentPackage {
   difficultyLevel: 'beginner' | 'intermediate' | 'advanced';
 }
 
+function toCamelCasePackage(raw: any): AssessmentPackage {
+  return {
+    topicPrompt: raw.topic_prompt,
+    readingPassage: raw.reading_passage,
+    articulationExercises: raw.articulation_exercises,
+    vocabularyChallenge: raw.vocabulary_challenge,
+    followUpQuestions: raw.follow_up_questions,
+    difficultyLevel: raw.difficulty_level,
+  };
+}
+
 export function useAssessmentContent(topic: string, difficulty: string) {
   return useQuery({
     queryKey: ['assessment-content', topic, difficulty],
     queryFn: () =>
-      apiClient.post<AssessmentPackage>('/api/assessments/generate-content', {
+      apiClient.post<any>('/api/assessments/generate-content', {
         topic,
         difficulty,
-      }),
+      }).then(toCamelCasePackage),
     staleTime: 1000 * 60 * 30, // 30 minutes — don't regenerate mid-session
     enabled: Boolean(topic && difficulty),
   });
