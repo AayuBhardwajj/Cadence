@@ -13,6 +13,7 @@ from utils.supabase_client import supabase
 from services.recommendation_service import RecommendationService
 from services.analysis_service import deep_analyze_speech
 from services.content_generation_service import generate_assessment_package
+from services.passage_generation_service import generate_passage
 from services.content_quality_service import evaluate_content_quality
 from utils.ai_usage_logger import log_whisper_usage
 from datetime import datetime
@@ -76,6 +77,24 @@ async def generate_content(body: dict = Body(...)):
         return res
     except Exception as e:
         raise internal_error(e, "generate_content")
+
+
+@app.post("/api/passages/generate")
+async def generate_passage_endpoint(body: dict = Body(...)):
+    try:
+        difficulty = body.get("difficulty")
+        topic = body.get("topic")
+        issue_type = body.get("issue_type")
+        word_count = body.get("word_count", 8)
+        res = await generate_passage(
+            difficulty=difficulty,
+            topic=topic,
+            issue_type=issue_type,
+            word_count=int(word_count)
+        )
+        return res
+    except Exception as e:
+        raise internal_error(e, "generate_passage_endpoint")
 
 
 @app.get("/api/assessment/eligibility")
