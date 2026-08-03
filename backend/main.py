@@ -13,8 +13,10 @@ from utils.supabase_client import supabase
 from services.recommendation_service import RecommendationService
 from services.analysis_service import deep_analyze_speech
 from services.content_generation_service import generate_assessment_package
-from services.passage_generation_service import generate_passage
+from services.passage_generation_service import generate_passage, get_or_generate_passage, refill_passages
 from services.content_quality_service import evaluate_content_quality
+from contextlib import asynccontextmanager
+import asyncio
 from utils.ai_usage_logger import log_whisper_usage
 from datetime import datetime
 import logging
@@ -25,7 +27,38 @@ logging.basicConfig(
 )
 logger = logging.getLogger("cadence")
 
-app = FastAPI(title="Cadence AI Backend")
+# TODO: This cron-based refill is a temporary implementation. Once RabbitMQ 
+# is set up (per MIGRATION_ROADMAP.md), replace this with a queue-based 
+# approach: publish a 'refill_needed' message per combo when pool count drops 
+# low (can be checked opportunistically in get_or_generate_passage's fallback 
+# path, or via a lighter periodic check), consumed by a dedicated worker. 
+# Do not remove this todo until that migration happens.
+async def refill_worker_loop():
+    logger.info("Refill worker loop background task started.")
+    # Wait a few seconds for startup to complete before the first refill cycle
+    await asyncio.sleep(5)
+    while True:
+        try:
+            await refill_passages()
+        except Exception as e:
+            logger.error(f"Error in refill worker cycle: {e}", exc_info=True)
+        # Sleep for 10 minutes (600 seconds)
+        await asyncio.sleep(600)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Start the background worker task
+    refill_task = asyncio.create_task(refill_worker_loop())
+    yield
+    # Shutdown: Cancel the background task
+    logger.info("Cancelling refill worker loop...")
+    refill_task.cancel()
+    try:
+        await refill_task
+    except asyncio.CancelledError:
+        logger.info("Refill worker background task successfully cancelled.")
+
+app = FastAPI(title="Cadence AI Backend", lifespan=lifespan)
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 from services.tip_router import router as tip_router
@@ -86,12 +119,22 @@ async def generate_passage_endpoint(body: dict = Body(...)):
         topic = body.get("topic")
         issue_type = body.get("issue_type")
         word_count = body.get("word_count", 8)
-        res = await generate_passage(
-            difficulty=difficulty,
-            topic=topic,
-            issue_type=issue_type,
-            word_count=int(word_count)
-        )
+        
+        # If both topic and difficulty are provided, use the serving/pooling layer
+        if topic and difficulty:
+            res = await get_or_generate_passage(
+                topic=topic,
+                difficulty=difficulty,
+                issue_type=issue_type,
+                word_count=int(word_count)
+            )
+        else:
+            res = await generate_passage(
+                difficulty=difficulty,
+                topic=topic,
+                issue_type=issue_type,
+                word_count=int(word_count)
+            )
         return res
     except Exception as e:
         raise internal_error(e, "generate_passage_endpoint")

@@ -10,3 +10,4 @@ mediapipe==0.10.31
 groq==1.1.2
 google-genai==1.64.0
 supabase==2.15.3
+jiwer>=3.0.4      # WER computation for evaluation harness (scripts/run_evaluation.py)
