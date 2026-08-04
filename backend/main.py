@@ -170,6 +170,7 @@ async def start_assessment(user_id: str):
         # DUAL-WRITE (expand-contract D6): mirror to assessment_sessions.
         # This table is supplementary during the dual-write phase; a failure
         # here must NOT block the assessments insert or the success response.
+        persistence_warnings: list[str] = []
         try:
             supabase.table("assessment_sessions").insert({
                 "id": new_session_id,
@@ -177,13 +178,16 @@ async def start_assessment(user_id: str):
                 "status": "pending",
                 # created_at intentionally omitted — using column default
             }).execute()
-        except Exception:
+        except Exception as err:
             logger.exception(
                 "dual-write: assessment_sessions insert failed for session %s — continuing",
                 new_session_id,
             )
+            persistence_warnings.append(
+                f"Failed to create assessment_sessions row: {type(err).__name__}"
+            )
 
-        return {"status": "success", "sessionId": new_session_id}
+        return {"status": "success", "sessionId": new_session_id, "persistence_warnings": persistence_warnings}
     except HTTPException:
         raise
     except Exception as e:
@@ -267,6 +271,11 @@ async def upload_assessment(
         except Exception as e:
             logger.warning(f"Adaptive learning update failed: {e}")
 
+        # Accumulates short, frontend-readable strings for any persistence
+        # failures that occurred after expensive work had already completed.
+        # Always present in the response; empty list means full success.
+        persistence_warnings: list[str] = []
+
         # Update the assessments row with analyzed metrics
         try:
             supabase.table("assessments").update({
@@ -277,8 +286,11 @@ async def upload_assessment(
                 "feedback": score_data.get("feedback"),
                 "transcription": audio_data.get("transcription", ""),
             }).eq("id", sessionId).execute()
-        except Exception as update_err:
-            logger.error(f"Failed to update assessments row: {update_err}")
+        except Exception as err:
+            logger.exception("Failed to update assessments row for session %s", sessionId)
+            persistence_warnings.append(
+                f"Failed to persist to assessments: {type(err).__name__}"
+            )
 
         # DUAL-WRITE (expand-contract D6): persist flat score breakdown into
         # assessment_reports. weak_areas is intentionally omitted — see
@@ -303,10 +315,13 @@ async def upload_assessment(
                 "focus_areas": score_data.get("focus_areas"),
                 "feedback": score_data.get("feedback"),
             }).execute()
-        except Exception:
+        except Exception as err:
             logger.exception(
                 "dual-write: assessment_reports insert failed for session %s — continuing",
                 sessionId,
+            )
+            persistence_warnings.append(
+                f"Failed to persist to assessment_reports: {type(err).__name__}"
             )
 
         # DUAL-WRITE (expand-contract D6): backfill topic/duration onto
@@ -318,10 +333,13 @@ async def upload_assessment(
                 "status": "completed",
                 "completed_at": datetime.utcnow().isoformat(),
             }).eq("id", sessionId).execute()
-        except Exception:
+        except Exception as err:
             logger.exception(
                 "dual-write: assessment_sessions update failed for session %s — continuing",
                 sessionId,
+            )
+            persistence_warnings.append(
+                f"Failed to update assessment_sessions: {type(err).__name__}"
             )
 
         # Persist full analysis result to analysis_results table
@@ -344,9 +362,12 @@ async def upload_assessment(
                     "mti_deep": deep_analysis.get("mti_deep", {})
                 }
                 supabase.table("analysis_results").insert(persist_data).execute()
-        except Exception as db_err:
+        except Exception as err:
             # Log but do not fail the request — analysis already completed
-            logger.error(f"Failed to persist analysis_results: {db_err}")
+            logger.exception("Failed to persist analysis_results for session %s", sessionId)
+            persistence_warnings.append(
+                f"Failed to persist to analysis_results: {type(err).__name__}"
+            )
 
         # Content quality scoring
         try:
@@ -369,7 +390,8 @@ async def upload_assessment(
             "status": "completed",
             "results": score_data,
             "transcription": audio_data.get("transcription", ""),
-            "content_quality": score_data.get("content_quality")
+            "content_quality": score_data.get("content_quality"),
+            "persistence_warnings": persistence_warnings,
         }
 
     except HTTPException:
