@@ -329,9 +329,9 @@ async def upload_assessment(
         try:
             supabase.table("assessment_sessions").update({
                 "topic_id": topicId,
-                "duration_seconds": duration,
+                "duration_seconds": int(duration) if duration is not None else None,
                 "status": "completed",
-                "completed_at": datetime.utcnow().isoformat(),
+                "completed_at": datetime.now(datetime.UTC).isoformat(),
             }).eq("id", sessionId).execute()
         except Exception as err:
             logger.exception(
