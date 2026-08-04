@@ -166,6 +166,23 @@ async def start_assessment(user_id: str):
             }).execute()
         except Exception as insert_err:
             raise internal_error(insert_err, "start_assessment_insert")
+
+        # DUAL-WRITE (expand-contract D6): mirror to assessment_sessions.
+        # This table is supplementary during the dual-write phase; a failure
+        # here must NOT block the assessments insert or the success response.
+        try:
+            supabase.table("assessment_sessions").insert({
+                "id": new_session_id,
+                "user_id": user_id,
+                "status": "pending",
+                # created_at intentionally omitted — using column default
+            }).execute()
+        except Exception:
+            logger.exception(
+                "dual-write: assessment_sessions insert failed for session %s — continuing",
+                new_session_id,
+            )
+
         return {"status": "success", "sessionId": new_session_id}
     except HTTPException:
         raise
@@ -262,6 +279,50 @@ async def upload_assessment(
             }).eq("id", sessionId).execute()
         except Exception as update_err:
             logger.error(f"Failed to update assessments row: {update_err}")
+
+        # DUAL-WRITE (expand-contract D6): persist flat score breakdown into
+        # assessment_reports. weak_areas is intentionally omitted — see
+        # BUGS_AND_ISSUES.md for the open issue on that column.
+        try:
+            _breakdown = score_data.get("breakdown", {})
+            supabase.table("assessment_reports").insert({
+                "assessment_session_id": sessionId,
+                "transcription": audio_data.get("transcription", ""),
+                "overall_score": score_data.get("overall_score"),
+                "pronunciation_score": _breakdown.get("pronunciation"),
+                "fluency_score": _breakdown.get("fluency"),
+                "clarity_score": _breakdown.get("clarity"),
+                "grammar_score": _breakdown.get("grammar"),
+                "vocabulary_score": _breakdown.get("vocabulary"),
+                "confidence_score": _breakdown.get("confidence"),
+                "cefr_level": score_data.get("cefr_level"),
+                "wpm": _breakdown.get("wpm"),
+                "filler_word_count": _breakdown.get("fillers"),
+                "eye_contact_score": _breakdown.get("eye_contact"),
+                "strengths": score_data.get("strengths"),
+                "focus_areas": score_data.get("focus_areas"),
+                "feedback": score_data.get("feedback"),
+            }).execute()
+        except Exception:
+            logger.exception(
+                "dual-write: assessment_reports insert failed for session %s — continuing",
+                sessionId,
+            )
+
+        # DUAL-WRITE (expand-contract D6): backfill topic/duration onto
+        # assessment_sessions now that upload parameters are available.
+        try:
+            supabase.table("assessment_sessions").update({
+                "topic_id": topicId,
+                "duration_seconds": duration,
+                "status": "completed",
+                "completed_at": datetime.utcnow().isoformat(),
+            }).eq("id", sessionId).execute()
+        except Exception:
+            logger.exception(
+                "dual-write: assessment_sessions update failed for session %s — continuing",
+                sessionId,
+            )
 
         # Persist full analysis result to analysis_results table
         try:
