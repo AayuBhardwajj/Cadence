@@ -18,7 +18,7 @@ from services.content_quality_service import evaluate_content_quality
 from contextlib import asynccontextmanager
 import asyncio
 from utils.ai_usage_logger import log_whisper_usage
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logging.basicConfig(
@@ -331,7 +331,7 @@ async def upload_assessment(
                 "topic_id": topicId,
                 "duration_seconds": int(duration) if duration is not None else None,
                 "status": "completed",
-                "completed_at": datetime.now(datetime.UTC).isoformat(),
+                "completed_at": datetime.now(timezone.utc).isoformat(),
             }).eq("id", sessionId).execute()
         except Exception as err:
             logger.exception(
