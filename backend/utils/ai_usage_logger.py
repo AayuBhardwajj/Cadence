@@ -14,8 +14,10 @@ logger = logging.getLogger(__name__)
 COST_RATES = {
     "groq": {
         "llama-3.1-8b-instant": {"input": 0.05, "output": 0.08},
-        "gemma2-9b-it":         {"input": 0.20, "output": 0.20},
-        "llama-3.1-70b-versatile": {"input": 0.59, "output": 0.79},
+        "llama-3.3-70b-versatile": {"input": 0.59, "output": 0.79},
+        "openai/gpt-oss-120b": {"input": 0.15, "output": 0.60},
+        "qwen/qwen3.6-27b": {"input": 0.10, "output": 0.30},
+        "openai/gpt-oss-safeguard-20b": {"input": 0.07, "output": 0.20},
     },
     "gemini": {
         "gemini-2.0-flash": {"input": 0.075, "output": 0.30},

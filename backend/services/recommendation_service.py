@@ -1,50 +1,14 @@
-from groq import Groq
-from google import genai
 import os
+import logging
+from utils.llm_client import call_llm
 from utils.supabase_client import supabase
 from datetime import datetime
 from typing import Dict, List, Any
 import json
 
+logger = logging.getLogger(__name__)
+
 class RecommendationService:
-
-    @staticmethod
-    def _get_llm_client():
-        """Returns (client, 'groq') or (client, 'gemini') or (None, None)."""
-        groq_key = os.environ.get("GROQ_API_KEY")
-        if groq_key:
-            return Groq(api_key=groq_key), "groq"
-        gemini_key = os.environ.get("GEMINI_API_KEY")
-        if gemini_key:
-            return genai.Client(api_key=gemini_key), "gemini"
-        return None, None
-
-    @staticmethod
-    def _call_llm_sync(client, provider: str, prompt: str) -> str:
-        if provider == "groq":
-            for model_id in ("llama-3.1-8b-instant", "gemma2-9b-it"):
-                try:
-                    resp = client.chat.completions.create(
-                        model=model_id,
-                        messages=[
-                            {"role": "system", "content": "You are a speech coaching assistant. Return only plain text — no JSON, no markdown."},
-                            {"role": "user",   "content": prompt}
-                        ],
-                        temperature=0.3,
-                        max_tokens=200,
-                    )
-                    return resp.choices[0].message.content.strip()
-                except Exception as e:
-                    print(f"Groq/{model_id} error in recommendation: {e}")
-        gemini_key = os.environ.get("GEMINI_API_KEY")
-        if gemini_key:
-            try:
-                gemini = genai.Client(api_key=gemini_key)
-                resp = gemini.models.generate_content(model="gemini-2.0-flash", contents=prompt)
-                return resp.text.strip()
-            except Exception as e:
-                print(f"Gemini fallback error in recommendation: {e}")
-        return ""
 
     @staticmethod
     async def generate_speech_profile(user_id: str, assessment_id: str, scores: Dict[str, int], metrics: Dict[str, Any]):
@@ -115,7 +79,6 @@ class RecommendationService:
             return []
         profile    = profile_res.data[0]
         weaknesses = [profile['weakness_priority_1'], profile['weakness_priority_2'], profile['weakness_priority_3']]
-        client, provider = RecommendationService._get_llm_client() if not pre_generated_exercises else (None, None)
         recommendations  = []
         pre_gen_idx      = 0
 
@@ -132,11 +95,20 @@ class RecommendationService:
                     pre_gen_idx   += 1
                 else:
                     dynamic_content = f"Practice your {category} skills."
-                    if client and issues:
-                        prompt  = f"Generate a short, engaging 3-sentence speaking exercise for a user struggling with {category}. Specific issues: {', '.join(issues)}. Style: Encouraging."
-                        result  = RecommendationService._call_llm_sync(client, provider, prompt)
-                        if result:
-                            dynamic_content = result
+                    if issues and not pre_generated_exercises:
+                        try:
+                            prompt = f"Generate a short, engaging 3-sentence speaking exercise for a user struggling with {category}. Specific issues: {', '.join(issues)}. Style: Encouraging."
+                            result = await call_llm(
+                                task="core_analysis",
+                                prompt=prompt,
+                                system_message="You are a speech coaching assistant. Return only plain text — no JSON, no markdown.",
+                                user_id=user_id,
+                                response_format_json=False,
+                            )
+                            if result:
+                                dynamic_content = result
+                        except Exception as e:
+                            logger.warning(f"Recommendation LLM call failed: {e}")
 
                 recommendations.append({
                     "user_id":     user_id,

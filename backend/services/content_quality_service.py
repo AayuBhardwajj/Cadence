@@ -1,14 +1,6 @@
-import os
 import json
-from groq import Groq
 from utils.supabase_client import supabase
-from utils.ai_usage_logger import log_llm_usage
-
-def _get_groq_client():
-    api_key = os.environ.get("GROQ_API_KEY")
-    if not api_key:
-        return None
-    return Groq(api_key=api_key)
+from utils.llm_client import call_llm
 
 async def evaluate_content_quality(
     transcript: str,
@@ -17,23 +9,9 @@ async def evaluate_content_quality(
     assessment_id: str | None = None
 ) -> dict:
     """
-    Sends transcript + original prompt to Groq.
-    Groq returns structured JSON evaluation.
-    Returns:
-    {
-        "topic_relevance": {"score": float, "evidence": str},
-        "idea_organization": {"score": float, "evidence": str},
-        "argument_strength": {"score": float, "evidence": str},
-        "communication_effectiveness": {"score": float, "evidence": str},
-        "content_completeness": {"score": float, "evidence": str},
-        "overall_content_score": float,
-        "coaching_notes": str
-    }
+    Sends transcript + original prompt to LLM client.
+    LLM returns structured JSON evaluation.
     """
-    client = _get_groq_client()
-    if not client:
-        raise RuntimeError("Groq API key is not configured.")
-
     prompt = f"""
 You are an expert communication scorer. Evaluate the quality of the candidate's spoken response transcript based on the original prompt and topic.
 Topic: "{topic}"
@@ -81,31 +59,14 @@ JSON Schema:
 }}
 """
 
-    model_name = "llama-3.1-8b-instant"
     try:
-        resp = client.chat.completions.create(
-            model=model_name,
-            messages=[
-                {"role": "system", "content": "You are a communication quality evaluator. Return ONLY valid JSON."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.1,
-            max_tokens=1000,
-            response_format={"type": "json_object"}
-        )
-        content = resp.choices[0].message.content.strip()
-        result = json.loads(content)
-
-        # Log token usage
-        usage = resp.usage
-        log_llm_usage(
-            provider="groq",
-            model=model_name,
-            input_tokens=usage.prompt_tokens if usage else 0,
-            output_tokens=usage.completion_tokens if usage else 0,
-            purpose="content_quality",
+        content = await call_llm(
+            task="content_quality",
+            prompt=prompt,
+            system_message="You are a communication quality evaluator. Return ONLY valid JSON.",
             assessment_id=assessment_id,
         )
+        result = json.loads(content)
 
         # Persist content quality scores if assessment_id is provided
         if assessment_id:

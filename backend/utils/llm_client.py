@@ -1,7 +1,17 @@
 import os
+import logging
 from groq import Groq
 from google import genai
 from utils.ai_usage_logger import log_llm_usage
+
+logger = logging.getLogger(__name__)
+
+TASK_CHAINS: dict[str, list[str]] = {
+    "core_analysis": ["llama-3.3-70b-versatile", "gemini-2.0-flash"],
+    "passage_generation": ["openai/gpt-oss-120b", "gemini-2.0-flash"],
+    "content_generation": ["qwen/qwen3.6-27b", "gemini-2.0-flash"],
+    "content_quality": ["openai/gpt-oss-safeguard-20b", "gemini-2.0-flash"],
+}
 
 
 def _get_groq_client():
@@ -19,44 +29,79 @@ def _get_gemini_client():
 
 
 async def call_llm(
+    task: str,
     prompt: str,
     system_message: str = "Return ONLY valid JSON — no markdown, no preamble.",
-    purpose: str = "general",
     assessment_id: str | None = None,
     user_id: str | None = None,
+    response_format_json: bool = True,
 ) -> str:
     """
-    Shared fallback chain used across services:
-      1. Groq  llama-3.1-8b-instant  (fastest, json_object mode)
-      2. Groq  gemma2-9b-it          (backup model)
-      3. Gemini gemini-2.0-flash     (Google free tier)
-    Raises RuntimeError if all fail so caller can use a heuristic fallback.
-
-    `system_message` and `purpose` are caller-supplied so usage logs and prompts
-    stay accurate per call-site (e.g. "analysis" vs "content_generation").
+    Task-routed LLM client with model fallback chains.
     """
+    if task not in TASK_CHAINS:
+        logger.warning(f"Unrecognized LLM task '{task}'. Falling back to 'core_analysis' chain.")
+        chain = TASK_CHAINS["core_analysis"]
+    else:
+        chain = TASK_CHAINS[task]
+
     errors = []
     groq_client = _get_groq_client()
-    if groq_client:
-        for model_id in ("llama-3.1-8b-instant", "gemma2-9b-it"):
+    gemini_client = _get_gemini_client()
+
+    for model_id in chain:
+        if model_id.startswith("gemini"):
+            if not gemini_client:
+                errors.append(f"gemini/{model_id}: client not initialized (missing API key)")
+                continue
             try:
-                resp = groq_client.chat.completions.create(
+                resp = gemini_client.models.generate_content(
                     model=model_id,
-                    messages=[
+                    contents=prompt,
+                )
+                content = resp.text.strip()
+                if content.startswith("```json"):
+                    content = content[7:-3].strip()
+                elif content.startswith("```"):
+                    content = content[3:-3].strip()
+                meta = resp.usage_metadata
+                log_llm_usage(
+                    provider="gemini",
+                    model=model_id,
+                    input_tokens=meta.prompt_token_count if meta else 0,
+                    output_tokens=meta.candidates_token_count if meta else 0,
+                    purpose=task,
+                    assessment_id=assessment_id,
+                    user_id=user_id,
+                )
+                return content
+            except Exception as e:
+                errors.append(f"gemini/{model_id}: {e}")
+        else:
+            if not groq_client:
+                errors.append(f"groq/{model_id}: client not initialized (missing API key)")
+                continue
+            try:
+                kwargs = {
+                    "model": model_id,
+                    "messages": [
                         {"role": "system", "content": system_message},
                         {"role": "user", "content": prompt},
                     ],
-                    temperature=0.1,
-                    max_tokens=3000,
-                    response_format={"type": "json_object"},
-                )
+                    "temperature": 0.1,
+                    "max_tokens": 3000,
+                }
+                if response_format_json:
+                    kwargs["response_format"] = {"type": "json_object"}
+
+                resp = groq_client.chat.completions.create(**kwargs)
                 usage = resp.usage
                 log_llm_usage(
                     provider="groq",
                     model=model_id,
                     input_tokens=usage.prompt_tokens if usage else 0,
                     output_tokens=usage.completion_tokens if usage else 0,
-                    purpose=purpose,
+                    purpose=task,
                     assessment_id=assessment_id,
                     user_id=user_id,
                 )
@@ -64,30 +109,5 @@ async def call_llm(
             except Exception as e:
                 errors.append(f"groq/{model_id}: {e}")
 
-    gemini = _get_gemini_client()
-    if gemini:
-        try:
-            resp = gemini.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt,
-            )
-            content = resp.text.strip()
-            if content.startswith("```json"):
-                content = content[7:-3].strip()
-            elif content.startswith("```"):
-                content = content[3:-3].strip()
-            meta = resp.usage_metadata
-            log_llm_usage(
-                provider="gemini",
-                model="gemini-2.0-flash",
-                input_tokens=meta.prompt_token_count if meta else 0,
-                output_tokens=meta.candidates_token_count if meta else 0,
-                purpose=purpose,
-                assessment_id=assessment_id,
-                user_id=user_id,
-            )
-            return content
-        except Exception as e:
-            errors.append(f"gemini/gemini-2.0-flash: {e}")
+    raise RuntimeError(f"All LLM providers for task '{task}' failed: {errors}")
 
-    raise RuntimeError(f"All LLM providers failed: {errors}")

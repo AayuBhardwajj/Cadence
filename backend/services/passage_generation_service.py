@@ -174,14 +174,14 @@ JSON Schema:
 """
 
     system_msg = "You are an expert English speech assessment system. Return ONLY valid JSON — no markdown, no preamble."
-    purpose = "passage_generation"
+    task_name = "passage_generation"
 
     # Call LLM (first attempt)
     try:
         raw_output = await call_llm(
+            task=task_name,
             prompt=prompt,
             system_message=system_msg,
-            purpose=purpose
         )
         content = raw_output.strip()
         if content.startswith("```json"):
@@ -223,9 +223,9 @@ JSON Schema:
 """
         try:
             raw_output = await call_llm(
+                task=task_name,
                 prompt=retry_prompt,
                 system_message=system_msg,
-                purpose=purpose
             )
             content = raw_output.strip()
             if content.startswith("```json"):

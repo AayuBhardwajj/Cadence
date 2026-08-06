@@ -11,9 +11,9 @@ Logic:
 import hashlib
 import logging
 from datetime import date, datetime
-from typing import Optional
+from typing import Optional, Any
 
-from groq import Groq, APIError
+from utils.llm_client import call_llm
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ async def get_tip_of_the_day(
     user_id: str,
     tier: str,
     supabase,
-    groq_client: Groq,
+    groq_client: Optional[Any] = None,
     weak_areas: Optional[list[str]] = None,
     recent_score: Optional[float] = None,
 ) -> dict:
@@ -125,21 +125,18 @@ async def get_tip_of_the_day(
         )
         is_personalized = False
 
-    # ── 3. Call Groq ──────────────────────────────────────────────────────────
+    # ── 3. Call LLM ───────────────────────────────────────────────────────────
     tip_text = None
     try:
-        response = groq_client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            max_tokens=120,
-            temperature=0.8,
+        tip_text = await call_llm(
+            task="content_generation",
+            prompt=user_prompt,
+            system_message=system_prompt,
+            user_id=user_id,
+            response_format_json=False,
         )
-        tip_text = response.choices[0].message.content.strip()
-    except APIError as e:
-        logger.warning(f"Groq tip generation failed: {e}. Using fallback.")
+    except Exception as e:
+        logger.warning(f"Groq/LLM tip generation failed: {e}. Using fallback.")
 
     # ── 4. Fallback if Groq fails ─────────────────────────────────────────────
     if not tip_text:

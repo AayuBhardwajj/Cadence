@@ -68,9 +68,9 @@ JSON Schema:
 
     try:
         content = await call_llm(
-            prompt,
+            task="content_generation",
+            prompt=prompt,
             system_message="You are an expert English speech assessment system. Return ONLY valid JSON — no markdown, no preamble.",
-            purpose="content_generation",
             assessment_id=assessment_id,
         )
         content = content.strip()
