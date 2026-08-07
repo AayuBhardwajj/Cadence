@@ -61,7 +61,7 @@ JSON Schema:
 
     try:
         content = await call_llm(
-            task="content_quality",
+            chain="volume_tier",
             prompt=prompt,
             system_message="You are a communication quality evaluator. Return ONLY valid JSON.",
             assessment_id=assessment_id,

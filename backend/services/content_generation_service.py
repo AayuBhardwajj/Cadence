@@ -68,7 +68,7 @@ JSON Schema:
 
     try:
         content = await call_llm(
-            task="content_generation",
+            chain="volume_tier",
             prompt=prompt,
             system_message="You are an expert English speech assessment system. Return ONLY valid JSON — no markdown, no preamble.",
             assessment_id=assessment_id,

@@ -179,7 +179,7 @@ JSON Schema:
     # Call LLM (first attempt)
     try:
         raw_output = await call_llm(
-            task=task_name,
+            chain="volume_tier",
             prompt=prompt,
             system_message=system_msg,
         )
@@ -223,7 +223,7 @@ JSON Schema:
 """
         try:
             raw_output = await call_llm(
-                task=task_name,
+                chain="volume_tier",
                 prompt=retry_prompt,
                 system_message=system_msg,
             )

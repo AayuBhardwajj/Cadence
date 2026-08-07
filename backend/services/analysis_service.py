@@ -155,7 +155,7 @@ REQUIRED JSON SCHEMA:
 
     try:
         content = await call_llm(
-            task="core_analysis",
+            chain="diagnostic_tier",
             prompt=prompt,
             system_message="You are a certified speech assessment engine. Return ONLY valid JSON — no markdown, no preamble.",
             assessment_id=assessment_id,

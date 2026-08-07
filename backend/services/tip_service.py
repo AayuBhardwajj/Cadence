@@ -129,7 +129,7 @@ async def get_tip_of_the_day(
     tip_text = None
     try:
         tip_text = await call_llm(
-            task="content_generation",
+            chain="volume_tier",
             prompt=user_prompt,
             system_message=system_prompt,
             user_id=user_id,

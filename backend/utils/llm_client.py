@@ -6,22 +6,33 @@ from utils.ai_usage_logger import log_llm_usage
 
 logger = logging.getLogger(__name__)
 
+# Two explicit stakes-tiers for LLM routing. See .ai/Decisions.md D9 for rationale.
+#
+# diagnostic_tier — reserved for analysis_service.deep_analyze_speech() only.
+#   High-quality, large-context model first; Gemini as last resort.
+#   Uses llama-3.3-70b-versatile (its own Groq rate-limit pool) so volume calls
+#   never starve the core diagnostic pipeline.
+#
+# volume_tier — all high-frequency, low-stakes generation tasks:
+#   tips, passages, content packages, content quality checks, recommendations.
+#   Uses openai/gpt-oss-20b (a separate Groq model pool) with gemini-2.5-flash-lite
+#   as its last resort, keeping costs lower for bulk work.
 TASK_CHAINS: dict[str, list[str]] = {
-    "core_analysis": ["llama-3.3-70b-versatile", "gemini-2.0-flash"],
-    "passage_generation": ["openai/gpt-oss-120b", "gemini-2.0-flash"],
-    "content_generation": ["qwen/qwen3.6-27b", "gemini-2.0-flash"],
-    "content_quality": ["openai/gpt-oss-safeguard-20b", "gemini-2.0-flash"],
+    "diagnostic_tier": ["llama-3.3-70b-versatile", "gemini-2.5-flash"],
+    "volume_tier": ["openai/gpt-oss-20b", "gemini-2.5-flash-lite"],
 }
 
+_DEFAULT_CHAIN = "volume_tier"
 
-def _get_groq_client():
+
+def _get_groq_client() -> Groq | None:
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         return None
     return Groq(api_key=api_key)
 
 
-def _get_gemini_client():
+def _get_gemini_client() -> genai.Client | None:
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         return None
@@ -29,7 +40,7 @@ def _get_gemini_client():
 
 
 async def call_llm(
-    task: str,
+    chain: str,
     prompt: str,
     system_message: str = "Return ONLY valid JSON — no markdown, no preamble.",
     assessment_id: str | None = None,
@@ -37,22 +48,41 @@ async def call_llm(
     response_format_json: bool = True,
 ) -> str:
     """
-    Task-routed LLM client with model fallback chains.
-    """
-    if task not in TASK_CHAINS:
-        logger.warning(f"Unrecognized LLM task '{task}'. Falling back to 'core_analysis' chain.")
-        chain = TASK_CHAINS["core_analysis"]
-    else:
-        chain = TASK_CHAINS[task]
+    Stakes-tiered LLM client with per-tier model fallback chains.
 
-    errors = []
+    Args:
+        chain: Which tier to use. Must be one of:
+            - "diagnostic_tier": Groq llama-3.3-70b-versatile → Gemini gemini-2.5-flash
+            - "volume_tier":     Groq openai/gpt-oss-20b      → Gemini gemini-2.5-flash-lite
+        prompt: The user/task prompt to send.
+        system_message: Overrides the default system instruction.
+        assessment_id: Passed through to ai_usage_logs for cost attribution.
+        user_id: Passed through to ai_usage_logs for cost attribution.
+        response_format_json: If True, instructs Groq to return JSON mode output.
+
+    Returns:
+        The model's text response (stripped of markdown fences if present).
+
+    Raises:
+        RuntimeError: If every model in the chain fails.
+
+    See .ai/Decisions.md D9 for the rationale behind the tier split.
+    """
+    if chain not in TASK_CHAINS:
+        logger.warning(
+            "Unrecognized LLM chain '%s'. Falling back to '%s'.", chain, _DEFAULT_CHAIN
+        )
+        chain = _DEFAULT_CHAIN
+
+    errors: list[str] = []
     groq_client = _get_groq_client()
     gemini_client = _get_gemini_client()
 
-    for model_id in chain:
+    for model_id in TASK_CHAINS[chain]:
         if model_id.startswith("gemini"):
+            # ── Gemini branch ──────────────────────────────────────────────────
             if not gemini_client:
-                errors.append(f"gemini/{model_id}: client not initialized (missing API key)")
+                errors.append(f"gemini/{model_id}: client not initialized (missing GEMINI_API_KEY)")
                 continue
             try:
                 resp = gemini_client.models.generate_content(
@@ -70,7 +100,8 @@ async def call_llm(
                     model=model_id,
                     input_tokens=meta.prompt_token_count if meta else 0,
                     output_tokens=meta.candidates_token_count if meta else 0,
-                    purpose=task,
+                    purpose=chain,
+                    chain=chain,
                     assessment_id=assessment_id,
                     user_id=user_id,
                 )
@@ -78,11 +109,12 @@ async def call_llm(
             except Exception as e:
                 errors.append(f"gemini/{model_id}: {e}")
         else:
+            # ── Groq branch ────────────────────────────────────────────────────
             if not groq_client:
-                errors.append(f"groq/{model_id}: client not initialized (missing API key)")
+                errors.append(f"groq/{model_id}: client not initialized (missing GROQ_API_KEY)")
                 continue
             try:
-                kwargs = {
+                kwargs: dict = {
                     "model": model_id,
                     "messages": [
                         {"role": "system", "content": system_message},
@@ -101,7 +133,8 @@ async def call_llm(
                     model=model_id,
                     input_tokens=usage.prompt_tokens if usage else 0,
                     output_tokens=usage.completion_tokens if usage else 0,
-                    purpose=task,
+                    purpose=chain,
+                    chain=chain,
                     assessment_id=assessment_id,
                     user_id=user_id,
                 )
@@ -109,5 +142,4 @@ async def call_llm(
             except Exception as e:
                 errors.append(f"groq/{model_id}: {e}")
 
-    raise RuntimeError(f"All LLM providers for task '{task}' failed: {errors}")
-
+    raise RuntimeError(f"All LLM providers for chain '{chain}' failed: {errors}")

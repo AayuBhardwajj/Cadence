@@ -16,11 +16,14 @@ COST_RATES = {
         "llama-3.1-8b-instant": {"input": 0.05, "output": 0.08},
         "llama-3.3-70b-versatile": {"input": 0.59, "output": 0.79},
         "openai/gpt-oss-120b": {"input": 0.15, "output": 0.60},
+        "openai/gpt-oss-20b": {"input": 0.07, "output": 0.20},
         "qwen/qwen3.6-27b": {"input": 0.10, "output": 0.30},
         "openai/gpt-oss-safeguard-20b": {"input": 0.07, "output": 0.20},
     },
     "gemini": {
         "gemini-2.0-flash": {"input": 0.075, "output": 0.30},
+        "gemini-2.5-flash": {"input": 0.075, "output": 0.30},
+        "gemini-2.5-flash-lite": {"input": 0.0375, "output": 0.15},
     },
     "whisper": {
         "base": {"per_minute": 0.006},
@@ -46,6 +49,7 @@ def log_llm_usage(
     input_tokens: int,
     output_tokens: int,
     purpose: str,
+    chain: str | None = None,
     assessment_id: str | None = None,
     user_id: str | None = None,
 ) -> None:
@@ -55,7 +59,7 @@ def log_llm_usage(
     """
     try:
         cost = _estimate_cost(provider, model, input_tokens, output_tokens)
-        supabase.table("ai_usage_logs").insert({
+        payload = {
             "user_id": user_id,
             "assessment_id": assessment_id,
             "provider": provider,
@@ -64,7 +68,11 @@ def log_llm_usage(
             "output_tokens": output_tokens,
             "estimated_cost_usd": cost,
             "purpose": purpose,
-        }).execute()
+        }
+        if chain is not None:
+            payload["chain"] = chain
+
+        supabase.table("ai_usage_logs").insert(payload).execute()
     except Exception as e:
         logger.warning(f"ai_usage_logs insert failed (non-blocking): {e}")
 

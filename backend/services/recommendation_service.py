@@ -99,7 +99,7 @@ class RecommendationService:
                         try:
                             prompt = f"Generate a short, engaging 3-sentence speaking exercise for a user struggling with {category}. Specific issues: {', '.join(issues)}. Style: Encouraging."
                             result = await call_llm(
-                                task="core_analysis",
+                                chain="volume_tier",
                                 prompt=prompt,
                                 system_message="You are a speech coaching assistant. Return only plain text — no JSON, no markdown.",
                                 user_id=user_id,
