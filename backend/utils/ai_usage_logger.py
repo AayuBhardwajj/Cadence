@@ -16,12 +16,16 @@ COST_RATES = {
         "llama-3.1-8b-instant": {"input": 0.05, "output": 0.08},
         "llama-3.3-70b-versatile": {"input": 0.59, "output": 0.79},
         "openai/gpt-oss-120b": {"input": 0.15, "output": 0.60},
-        "openai/gpt-oss-20b": {"input": 0.07, "output": 0.20},
+        "openai/gpt-oss-20b": {"input": 0.075, "output": 0.30},
         "qwen/qwen3.6-27b": {"input": 0.10, "output": 0.30},
         "openai/gpt-oss-safeguard-20b": {"input": 0.07, "output": 0.20},
     },
     "gemini": {
+        "gemini-3.6-flash": {"input": 1.50, "output": 7.50},
+        "gemini-3.1-flash-lite": {"input": 0.25, "output": 1.50},
+        # Historical rates retained for log cost estimation prior to 2026-06-01 shut down:
         "gemini-2.0-flash": {"input": 0.075, "output": 0.30},
+        "gemini-2.0-flash-lite": {"input": 0.075, "output": 0.30},
         "gemini-2.5-flash": {"input": 0.075, "output": 0.30},
         "gemini-2.5-flash-lite": {"input": 0.0375, "output": 0.15},
     },

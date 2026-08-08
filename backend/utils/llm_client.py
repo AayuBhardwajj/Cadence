@@ -9,18 +9,17 @@ logger = logging.getLogger(__name__)
 # Two explicit stakes-tiers for LLM routing. See .ai/Decisions.md D9 for rationale.
 #
 # diagnostic_tier — reserved for analysis_service.deep_analyze_speech() only.
-#   High-quality, large-context model first; Gemini as last resort.
+#   High-quality, large-context model first; Gemini 3.6 Flash as last resort.
 #   Uses llama-3.3-70b-versatile (its own Groq rate-limit pool) so volume calls
 #   never starve the core diagnostic pipeline.
 #
 # volume_tier — all high-frequency, low-stakes generation tasks:
 #   tips, passages, content packages, content quality checks, recommendations.
-#   Uses openai/gpt-oss-20b (a separate Groq model pool) with gemini-2.0-flash-lite
+#   Uses openai/gpt-oss-20b (a separate Groq model pool) with gemini-3.1-flash-lite
 #   as its last resort, keeping costs lower for bulk work.
-#   Note: gemini-2.5-flash-lite returns 403 on this project's API key (see D9 in Decisions.md).
 TASK_CHAINS: dict[str, list[str]] = {
-    "diagnostic_tier": ["llama-3.3-70b-versatile", "gemini-2.0-flash"],
-    "volume_tier": ["openai/gpt-oss-20b", "gemini-2.0-flash-lite"],
+    "diagnostic_tier": ["llama-3.3-70b-versatile", "gemini-3.6-flash"],
+    "volume_tier": ["openai/gpt-oss-20b", "gemini-3.1-flash-lite"],
 }
 
 _DEFAULT_CHAIN = "volume_tier"
@@ -53,8 +52,8 @@ async def call_llm(
 
     Args:
         chain: Which tier to use. Must be one of:
-            - "diagnostic_tier": Groq llama-3.3-70b-versatile → Gemini gemini-2.5-flash
-            - "volume_tier":     Groq openai/gpt-oss-20b      → Gemini gemini-2.5-flash-lite
+            - "diagnostic_tier": Groq llama-3.3-70b-versatile → Gemini gemini-3.6-flash
+            - "volume_tier":     Groq openai/gpt-oss-20b      → Gemini gemini-3.1-flash-lite
         prompt: The user/task prompt to send.
         system_message: Overrides the default system instruction.
         assessment_id: Passed through to ai_usage_logs for cost attribution.
@@ -127,7 +126,17 @@ async def call_llm(
                 if response_format_json:
                     kwargs["response_format"] = {"type": "json_object"}
 
-                resp = groq_client.chat.completions.create(**kwargs)
+                try:
+                    resp = groq_client.chat.completions.create(**kwargs)
+                except Exception as groq_err:
+                    if "json_validate_failed" in str(groq_err):
+                        logger.warning(
+                            "Groq model '%s' returned 400 json_validate_failed. Retrying call once...", model_id
+                        )
+                        resp = groq_client.chat.completions.create(**kwargs)
+                    else:
+                        raise groq_err
+
                 usage = resp.usage
                 log_llm_usage(
                     provider="groq",
