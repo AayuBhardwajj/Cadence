@@ -2,6 +2,7 @@ import re
 import logging
 import json
 import uuid
+import asyncio
 from datetime import datetime
 from utils.supabase_client import supabase
 from utils.llm_client import call_llm
@@ -463,6 +464,10 @@ async def refill_passages() -> None:
                                 }).execute()
                                 generated_for_combo += 1
                                 total_generated += 1
+                                # Math: 1 generate_passage call = ~992 tokens (309 prompt + 683 completion).
+                                # Groq free-tier openai/gpt-oss-20b cap = 8,000 TPM.
+                                # 1.5s delay prevents rapid token accumulation under Groq's 8,000 TPM limit.
+                                await asyncio.sleep(1.5)
                             except Exception as gen_err:
                                 logger.error(
                                     f"Failed to generate for pool top-up "

@@ -15,11 +15,12 @@ logger = logging.getLogger(__name__)
 #
 # volume_tier — all high-frequency, low-stakes generation tasks:
 #   tips, passages, content packages, content quality checks, recommendations.
-#   Uses openai/gpt-oss-20b (a separate Groq model pool) with gemini-2.5-flash-lite
+#   Uses openai/gpt-oss-20b (a separate Groq model pool) with gemini-2.0-flash-lite
 #   as its last resort, keeping costs lower for bulk work.
+#   Note: gemini-2.5-flash-lite returns 403 on this project's API key (see D9 in Decisions.md).
 TASK_CHAINS: dict[str, list[str]] = {
-    "diagnostic_tier": ["llama-3.3-70b-versatile", "gemini-2.5-flash"],
-    "volume_tier": ["openai/gpt-oss-20b", "gemini-2.5-flash-lite"],
+    "diagnostic_tier": ["llama-3.3-70b-versatile", "gemini-2.0-flash"],
+    "volume_tier": ["openai/gpt-oss-20b", "gemini-2.0-flash-lite"],
 }
 
 _DEFAULT_CHAIN = "volume_tier"

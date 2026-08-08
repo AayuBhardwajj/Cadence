@@ -317,6 +317,7 @@ async def run_pool_tests():
                 "status": "available"
             }).execute()
             all_pool_passage_ids.append(seed["passage_id"])
+            await asyncio.sleep(1.5)
 
         verify_seed = supabase.table("passage_pool") \
             .select("id", count="exact") \
