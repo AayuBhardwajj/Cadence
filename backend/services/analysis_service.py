@@ -217,9 +217,12 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
             "clarity":       {"score": _clamp(metrics["breakdown"].get("clarity", fluency_score-5)), "end_consonants": _clamp(pron_score-8), "enunciation": _clamp(pron_score-3), "pace": wpm_score},
             "mti": {
                 "score": mti_score,
-                "l1_interference": _clamp(mti_score - 5 if data.get("mti_detected") else 90),
-                "retroflex": _clamp(mti_score - 15 if any("retroflex" in (p.get("pattern","") + str(p.get("behaviors",[]))).lower() for p in mti_patterns_raw) else 95),
-                "vowel_shift": _clamp(mti_score - 12 if any(any(k in (p.get("pattern","") + str(p.get("behaviors",[]))).lower() for k in ["vowel","v/w"]) for p in mti_patterns_raw) else 95)
+                # mti_detected has never fired in 6/6 production sessions (including 2 with real MTI evidence).
+                # Root cause: prompt gives LLM null as the only example, no definition, no positive cases.
+                # Sub-scores are flat placeholders until MTI detection is redesigned. See BUGS_AND_ISSUES.md.
+                "l1_interference": mti_score,
+                "retroflex":       mti_score,
+                "vowel_shift":     mti_score,
             },
             "relevancy":     {"score": _clamp(topic_relevancy.get("score", 85)), "feedback": topic_relevancy.get("feedback", "Topic relevancy assessed.")}
         },
