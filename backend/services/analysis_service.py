@@ -128,28 +128,7 @@ REQUIRED JSON SCHEMA:
     "week_3": {{"focus": "", "exercise": "", "daily_minutes": 15}}
   }},
   "practice_exercises": [{{"title": "", "description": "", "duration_minutes": 10}}],
-  "next_topic_suggestion": "",
-  "stutter_analysis": {{
-    "stutter_count": 0,
-    "stutter_rate_percent": 0.0,
-    "most_stuttered_words": [],
-    "trigger_sounds": [],
-    "stutter_pattern": "none",
-    "severity": "none",
-    "severity_rationale": "",
-    "coaching_tip": ""
-  }},
-  "mti_deep": {{
-    "mti_detected": null,
-    "confidence": "low",
-    "accent_summary": "",
-    "phoneme_errors": [],
-    "prosody_issues": [],
-    "vowel_issues": [],
-    "retroflex_usage": {{"detected": false, "affected_sounds": [], "example_words": [], "severity": "none"}},
-    "l1_interference_details": {{"score": 70, "primary_interference_areas": [], "strength_areas": []}},
-    "recommendations": []
-  }}
+  "next_topic_suggestion": ""
 }}
 """
 
@@ -238,18 +217,9 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
             "clarity":       {"score": _clamp(metrics["breakdown"].get("clarity", fluency_score-5)), "end_consonants": _clamp(pron_score-8), "enunciation": _clamp(pron_score-3), "pace": wpm_score},
             "mti": {
                 "score": mti_score,
-                "l1_interference": _clamp(
-                    data.get("mti_deep", {}).get("l1_interference_details", {}).get("score", mti_score - 5)
-                ),
-                "retroflex": _clamp({
-                    "none": 95, "mild": 75, "moderate": 55, "severe": 35
-                }.get(
-                    data.get("mti_deep", {}).get("retroflex_usage", {}).get("severity", "none"), 
-                    mti_score - 10
-                )),
-                "vowel_shift": _clamp(
-                    100 - len(data.get("mti_deep", {}).get("vowel_issues", [])) * 12
-                )
+                "l1_interference": _clamp(mti_score - 5 if data.get("mti_detected") else 90),
+                "retroflex": _clamp(mti_score - 15 if any("retroflex" in (p.get("pattern","") + str(p.get("behaviors",[]))).lower() for p in mti_patterns_raw) else 95),
+                "vowel_shift": _clamp(mti_score - 12 if any(any(k in (p.get("pattern","") + str(p.get("behaviors",[]))).lower() for k in ["vowel","v/w"]) for p in mti_patterns_raw) else 95)
             },
             "relevancy":     {"score": _clamp(topic_relevancy.get("score", 85)), "feedback": topic_relevancy.get("feedback", "Topic relevancy assessed.")}
         },
@@ -279,7 +249,7 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
             },
             "error_summary": {
                 "mispronunciation":  len(error_log),
-                "stutters":          data.get("stutter_analysis", {}).get("stutter_count", 0),
+                "stutters":          stutter_data.get("stutter_count", 0),
                 "unnatural_pauses":  timing_summary_count(audio_data.get("words_data", [])),
                 "filler_words":      filler_count,
                 "mti_substitutions": len([e for e in error_log if e.get("category") == "MTI"])
@@ -295,12 +265,6 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
         "practice_exercises":    data.get("practice_exercises", []),
         "improvement_plan":      data.get("improvement_plan", {}),
         "next_topic_suggestion": data.get("next_topic_suggestion", ""),
-        "stutter_analysis": {
-            **data.get("stutter_analysis", {}),
-            # Merge in programmatic events not returned by LLM
-            "stutter_events": stutter_data.get("stutter_events", [])
-        },
-        "mti_deep": data.get("mti_deep", {}),
         "api_error": False
     }
 
@@ -328,7 +292,7 @@ def _build_learning_resources(weaknesses: list) -> list:
     if any(w in weakness_str for w in ["mti","accent","interference","retroflex"]):
         resources.append({"area":"Accent Neutralization","items":[{"title":"Accent Reduction with Rachel's English","type":"YouTube"},{"title":"ChatterFox - AI Accent Coach","type":"Paid | App"}]})
     if not resources:
-        resources.append({"area":"General Communication","items":[{"title":"Toastmasters International","type":"Web"},{"title":"TED Talks","type":"Web"}]})
+        resources.append({"area":"General Practice","items":[{"title":"BBC Learning English","type":"Web"}]})
     return resources
 
 def _get_fallback_analysis(metrics: Dict[str, Any], audio_data: Dict[str, Any], topic_prompt: str = "") -> Dict[str, Any]:
@@ -353,7 +317,7 @@ def _get_fallback_analysis(metrics: Dict[str, Any], audio_data: Dict[str, Any], 
             "fluency":       {"score":fluency, "rate":wpm_score,              "pause":_clamp(100-fluency+10), "fillers":filler_score},
             "intonation":    {"score":_clamp(fluency-5), "sentence":_clamp(fluency-3), "rise_fall":_clamp(fluency-8), "pitch":_clamp(fluency-5)},
             "clarity":       {"score":clarity, "end_consonants":_clamp(pron-8),"enunciation":_clamp(pron-3),"pace":wpm_score},
-            "mti":           {"score":70,"l1_interference":70,"retroflex":65,"vowel_shift":70},
+            "mti":           {"score":80,"l1_interference":80,"retroflex":85,"vowel_shift":85},
             "relevancy":     {"score":80,"feedback":"Topic relevancy analysis unavailable — AI processing limit reached."}
         },
         "amcat_insights":[
@@ -361,37 +325,15 @@ def _get_fallback_analysis(metrics: Dict[str, Any], audio_data: Dict[str, Any], 
             {"dimension":"Fluency & Rhythm",       "score":fluency, "definition":"Smoothness of speech delivery.","feedback":f"Heuristic analysis: Speech rate was {wpm} WPM. Ideal range is 130–160 WPM."},
             {"dimension":"Oral Communication",     "score":metrics.get("overall_score",0),"definition":"Overall effectiveness of spoken communication.","feedback":"Successfully delivered a spoken sample. Upgrade for AI-detailed feedback."}
         ],
-        "amcat_mti_deep_dive":{"detected_accent":"Heuristic Analysis Only","patterns":[]},
+        "amcat_mti_deep_dive": {"detected_accent": "Heuristic Analysis Only", "patterns": []},
         "amcat_transcript":{
             "reference_text":topic_prompt or "Candidate spoke on a topic of their choice.",
             "user_text":transcription,"error_words":[],
             "stats":{"total_words":len(transcription.split()),"speech_rate_wpm":wpm,"ideal_wpm_range":"130-160","total_sentences":transcription.count('.'),"avg_sentence_duration":0,"longest_pause":0,"filler_count":filler_count},
-            "error_summary":{"mispronunciation":0,"stutters":0,"unnatural_pauses":0,"filler_words":filler_count,"mti_substitutions":0}
+            "error_summary":{"mispronunciation":0,"stutters":audio_data.get("stutter_count", 0),"unnatural_pauses":0,"filler_words":filler_count,"mti_substitutions":0}
         },
         "amcat_error_log":[],"amcat_sentences":[],
         "amcat_summary":{"top_strengths":metrics.get("strengths",[]),"top_improvements":metrics.get("focus_areas",[]),"learning_resources":[{"area":"Pronunciation","items":[{"title":"BBC Learning English","type":"Web"}]},{"area":"Fluency","items":[{"title":"Shadowing Technique","type":"YouTube"}]}]},
         "practice_exercises":[],"improvement_plan":{},"next_topic_suggestion":"Public Speaking Basics",
-        "stutter_analysis": {
-            "stutter_count": 0,
-            "stutter_rate_percent": 0.0,
-            "most_stuttered_words": [],
-            "trigger_sounds": [],
-            "stutter_pattern": "none",
-            "severity": "none",
-            "severity_rationale": "LLM unavailable — heuristic fallback",
-            "coaching_tip": "Practice reading aloud slowly, one sentence at a time.",
-            "stutter_events": []
-        },
-        "mti_deep": {
-            "mti_detected": None,
-            "confidence": "low",
-            "accent_summary": "MTI analysis unavailable — heuristic fallback",
-            "phoneme_errors": [],
-            "prosody_issues": [],
-            "vowel_issues": [],
-            "retroflex_usage": {"detected": False, "affected_sounds": [], "example_words": [], "severity": "none"},
-            "l1_interference_details": {"score": 70, "primary_interference_areas": [], "strength_areas": []},
-            "recommendations": []
-        },
         "api_error":True
     }

@@ -372,9 +372,7 @@ async def upload_assessment(
                     "amcat_mti_deep_dive": deep_analysis.get("amcat_mti_deep_dive", amcat_block.get("mti_deep_dive", {})),
                     "amcat_transcript": deep_analysis.get("amcat_transcript", amcat_block.get("transcript", {})),
                     "amcat_error_log": deep_analysis.get("amcat_error_log", amcat_block.get("error_log", [])),
-                    "amcat_sentences": deep_analysis.get("amcat_sentences", amcat_block.get("sentences", [])),
-                    "stutter_analysis": deep_analysis.get("stutter_analysis", {}),
-                    "mti_deep": deep_analysis.get("mti_deep", {})
+                    "amcat_sentences": deep_analysis.get("amcat_sentences", amcat_block.get("sentences", []))
                 }
                 supabase.table("analysis_results").insert(persist_data).execute()
         except Exception as err:
