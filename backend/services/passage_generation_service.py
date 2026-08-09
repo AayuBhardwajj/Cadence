@@ -408,7 +408,8 @@ async def refill_passages() -> None:
     Refill worker: for each of the 15 (topic, difficulty) combos, count available
     rows and generate enough passages to reach TARGET_POOL_SIZE.
 
-    Called every 10 minutes via the asyncio background loop in main.py.
+    Called on a configurable interval (REFILL_INTERVAL_SECONDS, default 600 s)
+    via the asyncio background loop in main.py.
     Uses a DB-level advisory lock (refill_lock table + try_refill_lock RPC) so
     that only one process performs the refill cycle at a time when running under
     multiple workers or deployed instances.
@@ -423,7 +424,45 @@ async def refill_passages() -> None:
         logger.error(f"Failed to check/acquire refill lock: {lock_err}", exc_info=True)
         return
 
-    logger.info("Refill lock acquired. Starting top-up cycle...")
+    logger.info("Refill lock acquired. Counting pool demand (single pass)...")
+
+    # ── Single-pass combo count ────────────────────────────────────────────────
+    # Build a dict of available counts for all 15 combos in one sweep.
+    # The top-up loop below reads directly from this dict — each combo is
+    # queried exactly once per cycle. See DECISIONS.md D7.
+    combo_counts: dict[tuple[str, str], int] = {}
+    for _topic in FIXED_TOPICS:
+        for _diff in DIFFICULTIES:
+            try:
+                _cr = supabase.table("passage_pool") \
+                    .select("id", count="exact") \
+                    .eq("topic", _topic) \
+                    .eq("difficulty", _diff) \
+                    .eq("status", "available") \
+                    .execute()
+                combo_counts[(_topic, _diff)] = _cr.count if _cr.count is not None else 0
+            except Exception as count_err:
+                # Log with full traceback so a persistently-failing combo is
+                # visible in logs, not silently folded into the demand count.
+                logger.warning(
+                    f"Pre-cycle count query failed for {_topic}/{_diff} "
+                    f"(will attempt top-up conservatively): {count_err}",
+                    exc_info=True,
+                )
+                # Treat as 0 so the top-up loop attempts this combo rather than skipping it.
+                combo_counts[(_topic, _diff)] = 0
+
+    combos_needing_refill = sum(
+        1 for cnt in combo_counts.values() if cnt < TARGET_POOL_SIZE
+    )
+    combos_already_full = len(combo_counts) - combos_needing_refill
+    total_combos = len(FIXED_TOPICS) * len(DIFFICULTIES)
+    logger.info(
+        f"Pool demand: {combos_needing_refill}/{total_combos} combos need refilling "
+        f"(below TARGET_POOL_SIZE={TARGET_POOL_SIZE}), "
+        f"{combos_already_full}/{total_combos} already full."
+    )
+    # ── End single-pass combo count ───────────────────────────────────────────
 
     total_generated = 0
     topped_up_combos: list[str] = []
@@ -432,14 +471,8 @@ async def refill_passages() -> None:
         for topic in FIXED_TOPICS:
             for difficulty in DIFFICULTIES:
                 try:
-                    count_res = supabase.table("passage_pool") \
-                        .select("id", count="exact") \
-                        .eq("topic", topic) \
-                        .eq("difficulty", difficulty) \
-                        .eq("status", "available") \
-                        .execute()
-
-                    current_count = count_res.count if count_res.count is not None else 0
+                    # Reuse the count already fetched above — no second query per combo.
+                    current_count = combo_counts.get((topic, difficulty), 0)
 
                     if current_count < TARGET_POOL_SIZE:
                         needed = TARGET_POOL_SIZE - current_count

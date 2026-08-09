@@ -33,8 +33,24 @@ logger = logging.getLogger("cadence")
 # low (can be checked opportunistically in get_or_generate_passage's fallback 
 # path, or via a lighter periodic check), consumed by a dedicated worker. 
 # Do not remove this todo until that migration happens.
+
+# Refill cadence: default 600 s (10 min) — override via REFILL_INTERVAL_SECONDS
+# to tune without a code change (D7: refill worker is the actual Groq quota lever).
+_raw_refill_interval = os.environ.get("REFILL_INTERVAL_SECONDS", "600")
+try:
+    REFILL_INTERVAL_SECONDS = max(1, int(_raw_refill_interval))
+except ValueError:
+    logger.warning(
+        f"Invalid REFILL_INTERVAL_SECONDS value '{_raw_refill_interval}'; "
+        "falling back to 600 seconds."
+    )
+    REFILL_INTERVAL_SECONDS = 600
+
 async def refill_worker_loop():
-    logger.info("Refill worker loop background task started.")
+    logger.info(
+        f"Refill worker loop background task started "
+        f"(interval={REFILL_INTERVAL_SECONDS}s)."
+    )
     # Wait a few seconds for startup to complete before the first refill cycle
     await asyncio.sleep(5)
     while True:
@@ -42,8 +58,7 @@ async def refill_worker_loop():
             await refill_passages()
         except Exception as e:
             logger.error(f"Error in refill worker cycle: {e}", exc_info=True)
-        # Sleep for 10 minutes (600 seconds)
-        await asyncio.sleep(600)
+        await asyncio.sleep(REFILL_INTERVAL_SECONDS)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
