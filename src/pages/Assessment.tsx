@@ -224,6 +224,7 @@ export function Assessment() {
                         userName={userName}
                         topicId={topicId}
                         difficulty={selectedDifficulty}
+                        sessionId={sessionId}
                         onRecordingComplete={handleRecordingComplete}
                         onCancel={() => setStep('topic-selection')}
                     />

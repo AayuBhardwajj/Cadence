@@ -10,6 +10,7 @@ interface RecordingInterfaceProps {
     userName?: string;
     topicId?: string;
     difficulty?: string;
+    sessionId?: string | null;
 }
 
 export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
@@ -17,13 +18,14 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
     onCancel,
     userName = "User",
     topicId = "custom",
-    difficulty = "intermediate"
+    difficulty = "intermediate",
+    sessionId = null
 }) => {
     const {
       data: assessmentContent,
       isLoading: contentLoading,
       isError: contentError,
-    } = useAssessmentContent(topicId || '', difficulty || 'intermediate');
+    } = useAssessmentContent(topicId || '', difficulty || 'intermediate', sessionId);
 
     const isFullAssessment = topicId !== 'default'; // Assume 'default' is the old paragraph mode
     const MAX_TIME = isFullAssessment ? 300 : 60;

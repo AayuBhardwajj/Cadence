@@ -1,3 +1,13 @@
+# -----------------------------------------------------------------------------
+# DEPRECATED / SUPERSEDED:
+# As of the passage_pool migration, dynamic package generation in this service
+# has been superseded by the passage pool serving system (/api/passages/generate &
+# passage_generation_service.py).
+#
+# This file and route are no longer called by the live frontend flow.
+# Preserved for backward compatibility / reference. Pending complete removal (see ROADMAP.md).
+# -----------------------------------------------------------------------------
+
 import os
 import json
 from utils.supabase_client import supabase

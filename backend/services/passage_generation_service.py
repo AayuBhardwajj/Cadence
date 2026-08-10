@@ -306,6 +306,14 @@ DIFFICULTIES = [
 ]
 
 
+TOPIC_ALIAS_MAP = {
+    "workplace": "workplace_communication",
+    "social": "social_situations",
+    "academic": "academic_english",
+    "interview": "job_interview",
+    "tech": "technology",
+}
+
 async def get_or_generate_passage(
     topic: str,
     difficulty: str,
@@ -318,12 +326,13 @@ async def get_or_generate_passage(
 
     Returns dict containing passage fields plus metadata tag `source` ('pool' or 'fallback').
     """
+    resolved_topic = TOPIC_ALIAS_MAP.get(topic, topic)
     # Only pool-route fixed combos; everything else goes straight to generate_passage
-    if topic in FIXED_TOPICS and difficulty in DIFFICULTIES:
+    if resolved_topic in FIXED_TOPICS and difficulty in DIFFICULTIES:
         try:
             # Single atomic UPDATE...WHERE status='available' RETURNING * via RPC
             claim_res = supabase.rpc("claim_pooled_passage", {
-                "p_topic": topic,
+                "p_topic": resolved_topic,
                 "p_difficulty": difficulty
             }).execute()
 

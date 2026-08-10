@@ -113,6 +113,10 @@ def read_root():
 
 from fastapi import Body
 
+# DEPRECATED / SUPERSEDED:
+# As of the passage_pool migration, /api/assessments/generate-content is superseded
+# by /api/passages/generate (passage_pool serving layer). It is no longer invoked
+# by the live frontend flow. Preserved for backward compatibility / legacy consumers.
 @app.post("/api/assessments/generate-content")
 async def generate_content(body: dict = Body(...)):
     try:
@@ -127,14 +131,43 @@ async def generate_content(body: dict = Body(...)):
         raise internal_error(e, "generate_content")
 
 
+STATIC_TOPIC_PROMPTS = {
+    'workplace': 'An ideal workplace reflects values like collaboration, respect, and innovation.',
+    'workplace_communication': 'An ideal workplace reflects values like collaboration, respect, and innovation.',
+    'tech': 'Technology has transformed communication, relationships, education, and work.',
+    'technology': 'Technology has transformed communication, relationships, education, and work.',
+    'social': 'Social media influences friendships, relationships, identity, and self-expression.',
+    'social_situations': 'Social media influences friendships, relationships, identity, and self-expression.',
+    'academic': 'Learning multiple languages improves communication and career opportunities.',
+    'academic_english': 'Learning multiple languages improves communication and career opportunities.',
+    'interview': 'Preparing for an interview requires reflection on career goals and key strengths.',
+    'job_interview': 'Preparing for an interview requires reflection on career goals and key strengths.',
+    'custom': 'Please speak on a topic of your choice.'
+}
+
+
 @app.post("/api/passages/generate")
 async def generate_passage_endpoint(body: dict = Body(...)):
     try:
         difficulty = body.get("difficulty")
-        topic = body.get("topic")
+        raw_topic = body.get("topic")
         issue_type = body.get("issue_type")
         word_count = body.get("word_count", 8)
-        
+        session_id = body.get("sessionId") or body.get("session_id")
+
+        # Normalize short TopicSelection.tsx slugs to the canonical keys expected
+        # by TOPIC_TO_WORD_BANK_MAP and the passage pool system. Without this,
+        # 4/5 topics ('workplace','social','academic','interview') silently miss
+        # pool inventory and fall back to the 'general' word-bank bucket.
+        _TOPIC_ALIAS: dict[str, str] = {
+            "workplace": "workplace_communication",
+            "social":    "social_situations",
+            "academic":  "academic_english",
+            "interview": "job_interview",
+            "tech":      "technology",
+        }
+        topic = _TOPIC_ALIAS.get((raw_topic or "").lower(), raw_topic)
+
         # If both topic and difficulty are provided, use the serving/pooling layer
         if topic and difficulty:
             res = await get_or_generate_passage(
@@ -150,6 +183,26 @@ async def generate_passage_endpoint(body: dict = Body(...)):
                 issue_type=issue_type,
                 word_count=int(word_count)
             )
+
+        passage_id = res.get("passage_id")
+        if session_id and passage_id:
+            try:
+                supabase.table("assessment_sessions").update({
+                    "passage_id": passage_id
+                }).eq("id", session_id).execute()
+                logger.info(
+                    "Successfully linked passage_id %s to assessment_session %s",
+                    passage_id, session_id
+                )
+            except Exception as err:
+                logger.exception(
+                    "Failed to write passage_id to assessment_sessions for session %s: %s",
+                    session_id, err
+                )
+
+        # Use the resolved (canonical) topic key for the static prompt lookup
+        topic_key = (topic or "custom").lower()
+        res["topic_prompt"] = STATIC_TOPIC_PROMPTS.get(topic_key, STATIC_TOPIC_PROMPTS['custom'])
         return res
     except Exception as e:
         raise internal_error(e, "generate_passage_endpoint")
