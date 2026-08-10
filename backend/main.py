@@ -312,12 +312,28 @@ async def upload_assessment(
             'custom': 'Please speak on a topic of your choice.'
         }
 
+        # Query real passage_text from linked generated_passages via assessment_sessions.passage_id
+        real_passage_text = None
+        if sessionId:
+            try:
+                sess_res = supabase.table("assessment_sessions").select("passage_id").eq("id", sessionId).limit(1).execute()
+                if sess_res.data and sess_res.data[0].get("passage_id"):
+                    pid = sess_res.data[0]["passage_id"]
+                    pass_res = supabase.table("generated_passages").select("passage_text").eq("id", pid).limit(1).execute()
+                    if pass_res.data and pass_res.data[0].get("passage_text"):
+                        real_passage_text = pass_res.data[0]["passage_text"]
+                        logger.info("Successfully fetched real passage_text for session %s (passage_id=%s)", sessionId, pid)
+            except Exception as passage_err:
+                logger.warning("Failed to fetch linked passage_text for session %s: %s", sessionId, passage_err)
+
+        chosen_topic_prompt = real_passage_text or TOPIC_PROMPTS.get(topicId, TOPIC_PROMPTS['custom'])
+
         logger.info(f"Starting deep analysis for user {user_id[:8]}...")
         deep_analysis = await deep_analyze_speech(
             audio_data,
             score_data,
             topic_id=topicId,
-            topic_prompt=TOPIC_PROMPTS.get(topicId, TOPIC_PROMPTS['custom']),
+            topic_prompt=chosen_topic_prompt,
             assessment_id=sessionId,
             user_id=user_id,
         )

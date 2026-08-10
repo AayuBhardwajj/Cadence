@@ -446,10 +446,10 @@ const s = StyleSheet.create({
 
 // ─── Reusable sub-components ─────────────────────────────────────────────────
 
-const PageFooter = ({ pageNum, total }: { pageNum: number; total: number }) => (
+const PageFooter = () => (
     <View style={s.footer} fixed>
         <Text style={s.footerText}>CADENCE SPEECH ASSESSMENT REPORT — CONFIDENTIAL</Text>
-        <Text style={s.footerText}>Page {pageNum} of {total}</Text>
+        <Text style={s.footerText} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
     </View>
 );
 
@@ -479,7 +479,6 @@ const DimBlock = ({ label, score, subs }: { label: string; score: number; subs: 
 
 export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userName, sessionId, result }) => {
     const today = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
-    const TOTAL_PAGES = 10;
 
     const m = result.amcat_metrics || {
         pronunciation: { score: 0, consonant: 0, vowel: 0, stress: 0 },
@@ -510,6 +509,10 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
         { name: 'Intonation & Stress', score: m.intonation.score },
         { name: 'Clarity & Articulation', score: m.clarity.score },
     ];
+
+    const isMtiDetected = Boolean(
+        mti_deep_dive.patterns && mti_deep_dive.patterns.length > 0
+    );
 
     return (
         <Document title={`${userName} — Cadence Assessment Report`} author="Cadence">
@@ -594,7 +597,7 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                     </View>
                 </View>
 
-                <PageFooter pageNum={1} total={TOTAL_PAGES} />
+                <PageFooter />
             </Page>
 
             {/* ══════════════════════ PAGE 2: Introduction ══════════════════════ */}
@@ -635,7 +638,7 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                     </View>
                 </View>
 
-                <PageFooter pageNum={2} total={TOTAL_PAGES} />
+                <PageFooter />
             </Page>
 
             {/* ══════════════════════ PAGE 3: Insights ══════════════════════ */}
@@ -660,48 +663,50 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                     </Text>
                 )}
 
-                <PageFooter pageNum={3} total={TOTAL_PAGES} />
+                <PageFooter />
             </Page>
 
             {/* ══════════════════════ PAGE 4: MTI Deep Dive ══════════════════════ */}
-            <Page size="A4" style={s.page}>
-                <SectionHeading>MTI Deep Dive</SectionHeading>
+            {isMtiDetected && (
+                <Page size="A4" style={s.page}>
+                    <SectionHeading>MTI Deep Dive</SectionHeading>
 
-                <View style={s.mtiAccentBox}>
-                    <Text style={s.mtiAccentText}>
-                        Detected L1 Influence: {mti_deep_dive.detected_accent || 'No obvious accent detected'}
-                    </Text>
-                </View>
-
-                {mti_deep_dive.patterns.length > 0 ? mti_deep_dive.patterns.map((item: any, idx: number) => (
-                    <View key={idx} style={s.mtiPattern}>
-                        <View style={s.mtiPatternHeader}>
-                            <Text style={s.mtiPatternName}>{item.pattern}</Text>
-                            <Text style={[s.badge, {
-                                backgroundColor: item.score > 60 ? '#FED7D7' : item.score > 30 ? '#FEFCBF' : '#C6F6D5',
-                                color: item.score > 60 ? '#742A2A' : item.score > 30 ? '#744210' : '#276749',
-                            }]}>
-                                Score: {item.score}
-                            </Text>
-                        </View>
-
-                        {/* Simple score bar */}
-                        <View style={s.barBg}>
-                            <View style={[s.barFill, { width: `${item.score}%`, backgroundColor: item.score > 60 ? '#FC8181' : item.score > 30 ? '#F6E05E' : '#68D391' }]} />
-                        </View>
-
-                        {item.behaviors?.map((b: string, i: number) => (
-                            <Text key={i} style={s.bulletText}>• {b}</Text>
-                        ))}
+                    <View style={s.mtiAccentBox}>
+                        <Text style={s.mtiAccentText}>
+                            Detected L1 Influence: {mti_deep_dive.detected_accent || 'No obvious accent detected'}
+                        </Text>
                     </View>
-                )) : (
-                    <Text style={{ fontSize: 8, color: '#A0AEC0', fontStyle: 'italic' }}>
-                        No specific MTI patterns detected.
-                    </Text>
-                )}
 
-                <PageFooter pageNum={4} total={TOTAL_PAGES} />
-            </Page>
+                    {mti_deep_dive.patterns.length > 0 ? mti_deep_dive.patterns.map((item: any, idx: number) => (
+                        <View key={idx} style={s.mtiPattern}>
+                            <View style={s.mtiPatternHeader}>
+                                <Text style={s.mtiPatternName}>{item.pattern}</Text>
+                                <Text style={[s.badge, {
+                                    backgroundColor: item.score > 60 ? '#FED7D7' : item.score > 30 ? '#FEFCBF' : '#C6F6D5',
+                                    color: item.score > 60 ? '#742A2A' : item.score > 30 ? '#744210' : '#276749',
+                                }]}>
+                                    Score: {item.score}
+                                </Text>
+                            </View>
+
+                            {/* Simple score bar */}
+                            <View style={s.barBg}>
+                                <View style={[s.barFill, { width: `${item.score}%`, backgroundColor: item.score > 60 ? '#FC8181' : item.score > 30 ? '#F6E05E' : '#68D391' }]} />
+                            </View>
+
+                            {item.behaviors?.map((b: string, i: number) => (
+                                <Text key={i} style={s.bulletText}>• {b}</Text>
+                            ))}
+                        </View>
+                    )) : (
+                        <Text style={{ fontSize: 8, color: '#A0AEC0', fontStyle: 'italic' }}>
+                            No specific MTI patterns detected.
+                        </Text>
+                    )}
+
+                    <PageFooter />
+                </Page>
+            )}
 
             {/* ══════════════════════ PAGE 5: Response / Transcript ══════════════════════ */}
             <Page size="A4" style={s.page}>
@@ -766,7 +771,7 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                     </View>
                 </View>
 
-                <PageFooter pageNum={5} total={TOTAL_PAGES} />
+                <PageFooter />
             </Page>
 
             {/* ══════════════════════ PAGE 6: Error Log ══════════════════════ */}
@@ -800,7 +805,7 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                     </View>
                 )}
 
-                <PageFooter pageNum={6} total={TOTAL_PAGES} />
+                <PageFooter />
             </Page>
 
             {/* ══════════════════════ PAGE 7: Sentence Breakdown ══════════════════════ */}
@@ -829,7 +834,7 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                     </Text>
                 )}
 
-                <PageFooter pageNum={7} total={TOTAL_PAGES} />
+                <PageFooter />
             </Page>
 
             {/* ══════════════════════ PAGE 8: Summary + Learning Resources ══════════════════════ */}
@@ -898,7 +903,7 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                     : <Text style={{ fontSize: 8, color: '#A0AEC0', fontStyle: 'italic' }}>No specific learning resources matched yet.</Text>
                 }
 
-                <PageFooter pageNum={8} total={TOTAL_PAGES} />
+                <PageFooter />
             </Page>
 
             {/* ══════════════════════ PAGE 9: 3-Week Plan ══════════════════════ */}
@@ -925,7 +930,7 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                     </Text>
                 }
 
-                <PageFooter pageNum={9} total={TOTAL_PAGES} />
+                <PageFooter />
             </Page>
 
             {/* ══════════════════════ PAGE 10: Practice Exercises ══════════════════════ */}
@@ -959,7 +964,7 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                     </View>
                 </View>
 
-                <PageFooter pageNum={10} total={TOTAL_PAGES} />
+                <PageFooter />
             </Page>
 
         </Document>

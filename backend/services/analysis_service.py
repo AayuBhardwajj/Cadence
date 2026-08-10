@@ -58,7 +58,85 @@ async def deep_analyze_speech(
 
     timing_summary  = _generate_timing_summary(words_data)
     transcript_trunc = transcription[:900]
-    sentences_raw   = [s.strip() for s in transcription.replace('!','.').replace('?','.').split('.') if len(s.strip()) > 10]
+def _segment_into_sentences(transcription: str, words_data: list = None) -> list:
+    """
+    Segments speech transcription into sentences using word-level timestamp gaps
+    (pause >= 1.2s) and punctuation (.!?), with word-chunk fallback for long unpunctuated text.
+    """
+    if words_data and len(words_data) > 0:
+        sentences = []
+        curr_words = []
+        last_end = 0.0
+        for i, w in enumerate(words_data):
+            word_str = str(w.get("word") or w.get("original") or "").strip()
+            if not word_str:
+                continue
+            start = w.get("start", 0.0)
+            end = w.get("end", 0.0)
+
+            # Sentence boundary: pause >= 1.2s or preceding word ends with punctuation
+            is_pause_boundary = (i > 0 and (start - last_end) >= 1.2)
+            is_punct_boundary = len(curr_words) > 0 and curr_words[-1].endswith(('.', '!', '?'))
+
+            if (is_pause_boundary or is_punct_boundary) and curr_words:
+                sentence_text = " ".join(curr_words).strip()
+                if len(sentence_text) > 5:
+                    sentences.append(sentence_text)
+                curr_words = []
+
+            curr_words.append(word_str)
+            last_end = end
+
+        if curr_words:
+            sentence_text = " ".join(curr_words).strip()
+            if len(sentence_text) > 5:
+                sentences.append(sentence_text)
+
+        if sentences:
+            return sentences
+
+    # Fallback 1: Split by punctuation marks if present
+    raw_splits = [s.strip() for s in transcription.replace('!', '.').replace('?', '.').split('.') if len(s.strip()) > 5]
+    if len(raw_splits) > 1 or not transcription:
+        return raw_splits if raw_splits else [transcription]
+
+    # Fallback 2: Long unpunctuated text without timestamps — chunk into ~15 words per sentence
+    words = transcription.split()
+    if len(words) <= 15:
+        return [transcription]
+    chunk_size = 15
+    return [" ".join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
+
+
+async def deep_analyze_speech(
+    audio_data: Dict[str, Any],
+    metrics: Dict[str, Any],
+    topic_id: str = "custom",
+    topic_prompt: str = "",
+    assessment_id: str | None = None,
+    user_id: str | None = None
+) -> Dict[str, Any]:
+    transcription = audio_data.get("transcription", "")
+    words_data    = audio_data.get("words_data", [])
+
+    stutter_data = {
+        "stutter_count": audio_data.get("stutter_count", 0),
+        "stutter_events": audio_data.get("stutter_events", [])
+    }
+    if not stutter_data["stutter_events"] and words_data:
+        stutter_data = detect_stutters(words_data)
+
+    if not transcription or transcription == "Could not analyze audio." or metrics.get("overall_score") == 0:
+        print("Skiipping deep analysis — missing/failed transcription.")
+        return _get_fallback_analysis(metrics, audio_data, topic_prompt)
+
+    if not os.environ.get("GROQ_API_KEY") and not os.environ.get("GEMINI_API_KEY"):
+        print("Skipping deep analysis — no LLM API keys found.")
+        return _get_fallback_analysis(metrics, audio_data, topic_prompt)
+
+    timing_summary  = _generate_timing_summary(words_data)
+    transcript_trunc = transcription[:900]
+    sentences_raw   = _segment_into_sentences(transcription, words_data)
     sentences_json  = json.dumps(sentences_raw[:12])
 
     prompt = f"""
@@ -99,6 +177,7 @@ STRICT RULES:
 - Return ONLY a valid JSON object matching the schema below.
 - No markdown. No preamble. No trailing text.
 - Qualitative fields must reference actual words/phrases from the transcript.
+- Distinct feedback must be provided for delivery_notes vs intonation_notes (do NOT duplicate text between fields).
 - If transcript < 20 words, set all qualitative text to: "insufficient_sample"
 - Arrays must be actual arrays, even if empty.
 
@@ -120,7 +199,7 @@ REQUIRED JSON SCHEMA:
   "strengths": ["", "", ""],
   "weaknesses": ["", "", ""],
   "filler_analysis": {{"most_used": "none", "impact_level": "low", "replacement_tip": ""}},
-  "qualitative_feedback": {{"overall_summary": "", "delivery_notes": "", "vocabulary_notes": "", "grammar_notes": ""}},
+  "qualitative_feedback": {{"overall_summary": "", "delivery_notes": "", "vocabulary_notes": "", "grammar_notes": "", "intonation_notes": ""}},
   "topic_relevancy": {{"score": 85, "feedback": ""}},
   "improvement_plan": {{
     "week_1": {{"focus": "", "exercise": "", "daily_minutes": 15}},
@@ -166,6 +245,7 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
     mti_score = 80 if not data.get("mti_detected") else _clamp(100 - len(mti_patterns_raw) * 10)
 
     error_log = []
+    # 1. LLM-identified pronunciation errors
     for err in data.get("pronunciation_errors", []):
         error_log.append({
             "timestamp":   err.get("timestamp", "0:00"),
@@ -175,6 +255,21 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
             "error_type":  err.get("error_type", "substitution"),
             "severity":    err.get("severity", "minor"),
             "category":    err.get("category", "Pronunciation")
+        })
+
+    # 2. Deterministic stutter events merged into error_log
+    for st in stutter_data.get("stutter_events", []):
+        ts_sec = float(st.get("timestamp", 0))
+        ts_str = f"{int(ts_sec // 60)}:{int(ts_sec % 60):02d}"
+        st_type = str(st.get("type", "repetition")).lower()
+        error_log.append({
+            "timestamp":   ts_str,
+            "word":        st.get("word", ""),
+            "said_as":     f"Stutter ({st_type.capitalize()})",
+            "correct_ipa": "",
+            "error_type":  st_type,
+            "severity":    "moderate" if st_type == "repetition" else "minor",
+            "category":    "Fluency"
         })
 
     amcat_sentences = []
@@ -191,6 +286,7 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
     mti_patterns = [{"pattern": p.get("pattern","Unknown Pattern"), "score": _clamp(p.get("score",0)), "behaviors": p.get("behaviors",[])} for p in mti_patterns_raw]
 
     topic_relevancy = data.get("topic_relevancy", {})
+    q_feedback = data.get("qualitative_feedback", {})
 
     return {
         "overall_score": overall_score,
@@ -209,7 +305,7 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
         },
         "strengths":   data.get("strengths",  metrics.get("strengths", [])),
         "focus_areas": data.get("weaknesses", metrics.get("focus_areas", [])),
-        "feedback":    data.get("qualitative_feedback", {}).get("overall_summary", metrics.get("feedback", "")),
+        "feedback":    q_feedback.get("overall_summary", metrics.get("feedback", "")),
         "amcat_metrics": {
             "pronunciation": {"score": pron_score,    "consonant": _clamp(pron_score-3),    "vowel": _clamp(pron_score+2),       "stress": _clamp(pron_score-5)},
             "fluency":       {"score": fluency_score, "rate": wpm_score,                    "pause": _clamp(100-fluency_score+10), "fillers": filler_score},
@@ -227,11 +323,11 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
             "relevancy":     {"score": _clamp(topic_relevancy.get("score", 85)), "feedback": topic_relevancy.get("feedback", "Topic relevancy assessed.")}
         },
         "amcat_insights": [
-            {"dimension": "Pronunciation Accuracy", "score": pron_score,    "definition": "Measures the precision of individual sounds, consonants, vowels, and word stress.",        "feedback": data.get("qualitative_feedback",{}).get("delivery_notes",  "Pronunciation assessed from transcript.")},
-            {"dimension": "Fluency & Rhythm",       "score": fluency_score, "definition": "Smoothness of speech delivery, including pace, pausing, and absence of filler words.",      "feedback": data.get("qualitative_feedback",{}).get("overall_summary", "Fluency assessed from timing data.")},
-            {"dimension": "Grammar & Vocabulary",   "score": grammar_score, "definition": "Grammatical accuracy and range and precision of vocabulary used.",                          "feedback": data.get("qualitative_feedback",{}).get("grammar_notes","") + " " + data.get("qualitative_feedback",{}).get("vocabulary_notes","")},
-            {"dimension": "Oral Communication",     "score": overall_score, "definition": "Overall effectiveness of spoken communication including clarity, coherence, and impact.",   "feedback": data.get("qualitative_feedback",{}).get("overall_summary", "Overall communication assessed.")},
-            {"dimension": "Intonation & Stress",    "score": _clamp(fluency_score-5), "definition": "Pitch modulation, sentence stress patterns, and natural rise/fall patterns.",    "feedback": data.get("qualitative_feedback",{}).get("delivery_notes",  "Intonation assessed from speech patterns.")}
+            {"dimension": "Pronunciation Accuracy", "score": pron_score,    "definition": "Measures the precision of individual sounds, consonants, vowels, and word stress.",        "feedback": q_feedback.get("delivery_notes", "Pronunciation assessed from transcript.")},
+            {"dimension": "Fluency & Rhythm",       "score": fluency_score, "definition": "Smoothness of speech delivery, including pace, pausing, and absence of filler words.",      "feedback": q_feedback.get("overall_summary", "Fluency assessed from timing data.")},
+            {"dimension": "Grammar & Vocabulary",   "score": grammar_score, "definition": "Grammatical accuracy and range and precision of vocabulary used.",                          "feedback": (q_feedback.get("grammar_notes","") + " " + q_feedback.get("vocabulary_notes","")).strip() or "Grammar and vocabulary assessed."},
+            {"dimension": "Oral Communication",     "score": overall_score, "definition": "Overall effectiveness of spoken communication including clarity, coherence, and impact.",   "feedback": q_feedback.get("overall_summary", "Overall communication assessed.")},
+            {"dimension": "Intonation & Stress",    "score": _clamp(fluency_score-5), "definition": "Pitch modulation, sentence stress patterns, and natural rise/fall patterns.",    "feedback": q_feedback.get("intonation_notes") or q_feedback.get("delivery_notes", "Intonation assessed from speech patterns.")}
         ],
         "amcat_mti_deep_dive": {
             "detected_accent": data.get("mti_detected") or "Neutral / No strong L1 influence detected",
