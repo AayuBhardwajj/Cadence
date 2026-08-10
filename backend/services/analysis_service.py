@@ -288,6 +288,8 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
     topic_relevancy = data.get("topic_relevancy", {})
     q_feedback = data.get("qualitative_feedback", {})
 
+    sentences_raw_count = max(len(_segment_into_sentences(transcription, audio_data.get("words_data", []))), 1)
+
     return {
         "overall_score": overall_score,
         "cefr_level":    data.get("cefr_level", metrics.get("cefr_level", "B1")),
@@ -341,8 +343,8 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
                 "total_words":          len(transcription.split()),
                 "speech_rate_wpm":      wpm,
                 "ideal_wpm_range":      "130-160",
-                "total_sentences":      len(amcat_sentences) or transcription.count('.'),
-                "avg_sentence_duration": round(audio_data.get("duration", 0) / max(len(amcat_sentences), 1), 1),
+                "total_sentences":      sentences_raw_count,
+                "avg_sentence_duration": round(audio_data.get("duration", 0) / sentences_raw_count, 1),
                 "longest_pause":        audio_data.get("longest_pause", 0),
                 "filler_count":         filler_count
             },
@@ -428,7 +430,15 @@ def _get_fallback_analysis(metrics: Dict[str, Any], audio_data: Dict[str, Any], 
         "amcat_transcript":{
             "reference_text":topic_prompt or "Candidate spoke on a topic of their choice.",
             "user_text":transcription,"error_words":[],
-            "stats":{"total_words":len(transcription.split()),"speech_rate_wpm":wpm,"ideal_wpm_range":"130-160","total_sentences":transcription.count('.'),"avg_sentence_duration":0,"longest_pause":0,"filler_count":filler_count},
+            "stats":{
+                "total_words":len(transcription.split()),
+                "speech_rate_wpm":wpm,
+                "ideal_wpm_range":"130-160",
+                "total_sentences":max(len(_segment_into_sentences(transcription, audio_data.get("words_data", []))), 1),
+                "avg_sentence_duration":round(audio_data.get("duration", 0) / max(len(_segment_into_sentences(transcription, audio_data.get("words_data", []))), 1), 1),
+                "longest_pause":audio_data.get("longest_pause", 0),
+                "filler_count":filler_count
+            },
             "error_summary":{"mispronunciation":0,"stutters":audio_data.get("stutter_count", 0),"unnatural_pauses":0,"filler_words":filler_count,"mti_substitutions":0}
         },
         "amcat_error_log":[],"amcat_sentences":[],
