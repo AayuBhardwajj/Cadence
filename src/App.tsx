@@ -30,6 +30,7 @@ import { PracticePage } from "./pages/Practice";
 import { ProgressPage } from "./pages/Progress";
 import { ExercisesPage } from "./pages/Exercises";
 import { CommunityPage } from "./pages/Community";
+import { TestReportPage } from "./pages/TestReportPage";
 
 
 
@@ -104,6 +105,7 @@ export default function App() {
                     </Route>
 
                     {/* Add Login/Signup as accessible routes too for testing */}
+                    <Route path="/test-report" element={<TestReportPage />} />
                     <Route path="/login" element={<LoginPage onSwitchToSignup={() => { }} onLoginSuccess={() => { }} />} />
 
                     {/* Default redirect */}

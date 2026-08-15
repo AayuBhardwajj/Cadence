@@ -1,8 +1,42 @@
 import os
 import json
+import logging
 from typing import Dict, Any
 from services.audio_service import detect_stutters
 from utils.llm_client import call_llm
+from utils.transcript_alignment import align_transcript, _normalize_for_alignment
+
+logger = logging.getLogger(__name__)
+
+def _find_timestamp_for_word(target_word: str, hyp_idx: int, words_data: list) -> str:
+    """
+    Maps a word's position index (hyp_idx) or string content back to Whisper's
+    words_data array to extract the start timestamp (formatted as M:SS).
+    If timestamp mapping fails, logs a warning and returns "" (omitted).
+    """
+    if not words_data or not target_word:
+        return ""
+    norm_target = _normalize_for_alignment(target_word).lower()
+
+    # 1. Direct match at hyp_idx if within bounds
+    if 0 <= hyp_idx < len(words_data):
+        w_norm = _normalize_for_alignment(str(words_data[hyp_idx].get("word") or words_data[hyp_idx].get("original") or "")).lower()
+        if w_norm == norm_target:
+            ts_sec = float(words_data[hyp_idx].get("start", 0.0))
+            return f"{int(ts_sec // 60)}:{int(ts_sec % 60):02d}"
+
+    # 2. Search in a small window around hyp_idx
+    start_search = max(0, hyp_idx - 5)
+    end_search = min(len(words_data), hyp_idx + 6)
+    for i in range(start_search, end_search):
+        w_norm = _normalize_for_alignment(str(words_data[i].get("word") or words_data[i].get("original") or "")).lower()
+        if w_norm == norm_target:
+            ts_sec = float(words_data[i].get("start", 0.0))
+            return f"{int(ts_sec // 60)}:{int(ts_sec % 60):02d}"
+
+    logger.warning("Could not map timestamp for word '%s' at hypothesis index %d in words_data", target_word, hyp_idx)
+    return ""
+
 
 def _generate_timing_summary(words_data: list) -> str:
     if not words_data:
@@ -113,6 +147,7 @@ async def deep_analyze_speech(
     metrics: Dict[str, Any],
     topic_id: str = "custom",
     topic_prompt: str = "",
+    reference_passage: str | None = None,
     assessment_id: str | None = None,
     user_id: str | None = None
 ) -> Dict[str, Any]:
@@ -127,17 +162,22 @@ async def deep_analyze_speech(
         stutter_data = detect_stutters(words_data)
 
     if not transcription or transcription == "Could not analyze audio." or metrics.get("overall_score") == 0:
-        print("Skiipping deep analysis — missing/failed transcription.")
-        return _get_fallback_analysis(metrics, audio_data, topic_prompt)
+        logger.info("Skipping deep analysis — missing/failed transcription.")
+        return _get_fallback_analysis(metrics, audio_data, topic_prompt, reference_passage=reference_passage)
 
     if not os.environ.get("GROQ_API_KEY") and not os.environ.get("GEMINI_API_KEY"):
-        print("Skipping deep analysis — no LLM API keys found.")
-        return _get_fallback_analysis(metrics, audio_data, topic_prompt)
+        logger.info("Skipping deep analysis — no LLM API keys found.")
+        return _get_fallback_analysis(metrics, audio_data, topic_prompt, reference_passage=reference_passage)
 
     timing_summary  = _generate_timing_summary(words_data)
     transcript_trunc = transcription[:900]
     sentences_raw   = _segment_into_sentences(transcription, words_data)
     sentences_json  = json.dumps(sentences_raw[:12])
+
+    pronunciation_schema_block = (
+        "" if reference_passage is not None
+        else '  "pronunciation_errors": [{"word": "", "said_as": "", "correct_ipa": "", "error_type": "substitution", "category": "Pronunciation", "severity": "minor", "timestamp": "0:00"}],\n'
+    )
 
     prompt = f"""
 ASSESSMENT INPUT PACKAGE:
@@ -193,8 +233,7 @@ REQUIRED JSON SCHEMA:
   "cefr_level": "B1",
   "mti_detected": null,
   "mti_patterns": [{{"pattern": "", "score": 0, "behaviors": []}}],
-  "pronunciation_errors": [{{"word": "", "said_as": "", "correct_ipa": "", "error_type": "substitution", "category": "Pronunciation", "severity": "minor", "timestamp": "0:00"}}],
-  "grammar_errors": [{{"original": "", "corrected": "", "rule": ""}}],
+{pronunciation_schema_block}  "grammar_errors": [{{"original": "", "corrected": "", "rule": ""}}],
   "sentence_analysis": [{{"text": "", "pronunciation_issues": "None detected", "fluency": "smooth", "mti_detected": "no", "rhythm": "natural", "intonation": "appropriate"}}],
   "strengths": ["", "", ""],
   "weaknesses": ["", "", ""],
@@ -220,14 +259,29 @@ REQUIRED JSON SCHEMA:
             user_id=user_id,
         )
         result  = json.loads(content)
-        return _map_consolidated_to_amcat(result, metrics, audio_data, topic_prompt, stutter_data)
+        return _map_consolidated_to_amcat(
+            result,
+            metrics,
+            audio_data,
+            topic_prompt,
+            stutter_data,
+            reference_passage=reference_passage
+        )
     except Exception as e:
-        print(f"LLM pipeline failed, using heuristic fallback: {e}")
-        return _get_fallback_analysis(metrics, audio_data, topic_prompt)
+        logger.error("LLM pipeline failed, using heuristic fallback: %s", e)
+        return _get_fallback_analysis(metrics, audio_data, topic_prompt, reference_passage=reference_passage)
 
-def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], audio_data: Dict[str, Any], topic_prompt: str = "", stutter_data=None) -> Dict[str, Any]:
+def _map_consolidated_to_amcat(
+    data: Dict[str, Any],
+    metrics: Dict[str, Any],
+    audio_data: Dict[str, Any],
+    topic_prompt: str = "",
+    stutter_data=None,
+    reference_passage: str | None = None
+) -> Dict[str, Any]:
     stutter_data = stutter_data or {}
     transcription = audio_data.get("transcription", "")
+    words_data    = audio_data.get("words_data", [])
     wpm           = audio_data.get("wpm", 0)
     filler_count  = audio_data.get("filler_count", 0)
 
@@ -245,17 +299,58 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
     mti_score = 80 if not data.get("mti_detected") else _clamp(100 - len(mti_patterns_raw) * 10)
 
     error_log = []
-    # 1. LLM-identified pronunciation errors
-    for err in data.get("pronunciation_errors", []):
-        error_log.append({
-            "timestamp":   err.get("timestamp", "0:00"),
-            "word":        err.get("word", ""),
-            "said_as":     err.get("said_as", ""),
-            "correct_ipa": err.get("correct_ipa", ""),
-            "error_type":  err.get("error_type", "substitution"),
-            "severity":    err.get("severity", "minor"),
-            "category":    err.get("category", "Pronunciation")
-        })
+    if reference_passage is not None and reference_passage.strip():
+        # Step 3a: Deterministic jiwer-based alignment path
+        aligned_discrepancies = align_transcript(reference_passage, transcription)
+        for err in aligned_discrepancies:
+            is_high_conf = err.get("high_confidence", False)
+            error_type = err.get("error_type", "substitution")
+            ref_w = err.get("reference_words", "")
+            said_w = err.get("said_words", "")
+            cat = err.get("category", "Vocabulary")
+            sev = err.get("severity", "medium")
+            hyp_idx = err.get("hyp_start_idx", 0)
+
+            if error_type == "substitution":
+                word_display = ref_w
+                said_as_display = said_w
+            elif error_type == "deletion":
+                word_display = ref_w
+                said_as_display = "(omitted)"
+            elif error_type == "insertion":
+                word_display = said_w
+                said_as_display = f"Added '{said_w}'"
+            else:
+                word_display = ref_w or said_w
+                said_as_display = said_w
+
+            target_word_for_ts = said_w.split()[0] if said_w else (ref_w.split()[0] if ref_w else "")
+            ts_str = _find_timestamp_for_word(target_word_for_ts, hyp_idx, words_data)
+
+            error_log.append({
+                "timestamp":             ts_str,
+                "word":                  word_display,
+                "said_as":               said_as_display,
+                "correct_ipa":           "",  # No fabricated IPA for jiwer-sourced errors
+                "error_type":            error_type,
+                "severity":              sev if is_high_conf else "low",
+                "category":              cat,
+                "excluded_from_scoring": not is_high_conf
+            })
+    else:
+        # Step 3b: Fallback to existing LLM-based pronunciation_errors path UNCHANGED
+        logger.info("reference_passage is None — using LLM pronunciation_errors fallback path")
+        for err in data.get("pronunciation_errors", []):
+            error_log.append({
+                "timestamp":             err.get("timestamp", "0:00"),
+                "word":                  err.get("word", ""),
+                "said_as":               err.get("said_as", ""),
+                "correct_ipa":           err.get("correct_ipa", ""),
+                "error_type":            err.get("error_type", "substitution"),
+                "severity":              err.get("severity", "minor"),
+                "category":              err.get("category", "Pronunciation"),
+                "excluded_from_scoring": False
+            })
 
     # 2. Deterministic stutter events merged into error_log
     for st in stutter_data.get("stutter_events", []):
@@ -263,14 +358,26 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
         ts_str = f"{int(ts_sec // 60)}:{int(ts_sec % 60):02d}"
         st_type = str(st.get("type", "repetition")).lower()
         error_log.append({
-            "timestamp":   ts_str,
-            "word":        st.get("word", ""),
-            "said_as":     f"Stutter ({st_type.capitalize()})",
-            "correct_ipa": "",
-            "error_type":  st_type,
-            "severity":    "moderate" if st_type == "repetition" else "minor",
-            "category":    "Fluency"
+            "timestamp":             ts_str,
+            "word":                  st.get("word", ""),
+            "said_as":               f"Stutter ({st_type.capitalize()})",
+            "correct_ipa":           "",
+            "error_type":            st_type,
+            "severity":              "moderate" if st_type == "repetition" else "minor",
+            "category":              "Fluency",
+            "excluded_from_scoring": False
         })
+
+    # Filter scored vs excluded error entries
+    scored_errors = [e for e in error_log if not e.get("excluded_from_scoring", False)]
+    scored_vocab_errors = [e for e in scored_errors if e.get("category") == "Vocabulary" and e.get("error_type") in ("substitution", "deletion")]
+    scored_pronunciation_errors = [e for e in scored_errors if e.get("category") == "Pronunciation"]
+    scored_mti_errors = [e for e in scored_errors if e.get("category") == "MTI"]
+
+    error_words_list = [
+        {"word": e["word"], "said_as": e["said_as"], "error_type": e["error_type"], "category": e["category"]}
+        for e in scored_errors if e.get("error_type") in ("substitution", "deletion", "insertion", "mispronunciation")
+    ]
 
     amcat_sentences = []
     for s in data.get("sentence_analysis", []):
@@ -338,7 +445,7 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
         "amcat_transcript": {
             "reference_text": topic_prompt or "Candidate spoke on a topic of their choice.",
             "user_text":      transcription,
-            "error_words":    data.get("pronunciation_errors", []),
+            "error_words":    error_words_list,
             "stats": {
                 "total_words":          len(transcription.split()),
                 "speech_rate_wpm":      wpm,
@@ -349,11 +456,12 @@ def _map_consolidated_to_amcat(data: Dict[str, Any], metrics: Dict[str, Any], au
                 "filler_count":         filler_count
             },
             "error_summary": {
-                "mispronunciation":  len(error_log),
+                "mispronunciation":  len(scored_pronunciation_errors),
+                "vocabulary_errors": len(scored_vocab_errors),
                 "stutters":          stutter_data.get("stutter_count", 0),
                 "unnatural_pauses":  timing_summary_count(audio_data.get("words_data", [])),
                 "filler_words":      filler_count,
-                "mti_substitutions": len([e for e in error_log if e.get("category") == "MTI"])
+                "mti_substitutions": len(scored_mti_errors)
             }
         },
         "amcat_error_log":  error_log,
@@ -396,8 +504,14 @@ def _build_learning_resources(weaknesses: list) -> list:
         resources.append({"area":"General Practice","items":[{"title":"BBC Learning English","type":"Web"}]})
     return resources
 
-def _get_fallback_analysis(metrics: Dict[str, Any], audio_data: Dict[str, Any], topic_prompt: str = "") -> Dict[str, Any]:
+def _get_fallback_analysis(
+    metrics: Dict[str, Any],
+    audio_data: Dict[str, Any],
+    topic_prompt: str = "",
+    reference_passage: str | None = None
+) -> Dict[str, Any]:
     transcription = audio_data.get("transcription", "")
+    words_data    = audio_data.get("words_data", [])
     wpm           = audio_data.get("wpm", 0)
     filler_count  = audio_data.get("filler_count", 0)
     wpm_score     = _wpm_to_score(wpm)
@@ -405,6 +519,73 @@ def _get_fallback_analysis(metrics: Dict[str, Any], audio_data: Dict[str, Any], 
     pron    = metrics["breakdown"]["pronunciation"]
     fluency = metrics["breakdown"]["fluency"]
     clarity = metrics["breakdown"].get("clarity", fluency - 5)
+
+    error_log = []
+    if reference_passage is not None and reference_passage.strip():
+        aligned_discrepancies = align_transcript(reference_passage, transcription)
+        for err in aligned_discrepancies:
+            is_high_conf = err.get("high_confidence", False)
+            error_type = err.get("error_type", "substitution")
+            ref_w = err.get("reference_words", "")
+            said_w = err.get("said_words", "")
+            cat = err.get("category", "Vocabulary")
+            sev = err.get("severity", "medium")
+            hyp_idx = err.get("hyp_start_idx", 0)
+
+            if error_type == "substitution":
+                word_display = ref_w
+                said_as_display = said_w
+            elif error_type == "deletion":
+                word_display = ref_w
+                said_as_display = "(omitted)"
+            elif error_type == "insertion":
+                word_display = said_w
+                said_as_display = f"Added '{said_w}'"
+            else:
+                word_display = ref_w or said_w
+                said_as_display = said_w
+
+            target_word_for_ts = said_w.split()[0] if said_w else (ref_w.split()[0] if ref_w else "")
+            ts_str = _find_timestamp_for_word(target_word_for_ts, hyp_idx, words_data)
+
+            error_log.append({
+                "timestamp":             ts_str,
+                "word":                  word_display,
+                "said_as":               said_as_display,
+                "correct_ipa":           "",
+                "error_type":            error_type,
+                "severity":              sev if is_high_conf else "low",
+                "category":              cat,
+                "excluded_from_scoring": not is_high_conf
+            })
+
+    # Merge stutters if present
+    stutter_events = audio_data.get("stutter_events", [])
+    for st in stutter_events:
+        ts_sec = float(st.get("timestamp", 0))
+        ts_str = f"{int(ts_sec // 60)}:{int(ts_sec % 60):02d}"
+        st_type = str(st.get("type", "repetition")).lower()
+        error_log.append({
+            "timestamp":             ts_str,
+            "word":                  st.get("word", ""),
+            "said_as":               f"Stutter ({st_type.capitalize()})",
+            "correct_ipa":           "",
+            "error_type":            st_type,
+            "severity":              "moderate" if st_type == "repetition" else "minor",
+            "category":              "Fluency",
+            "excluded_from_scoring": False
+        })
+
+    scored_errors = [e for e in error_log if not e.get("excluded_from_scoring", False)]
+    scored_vocab_errors = [e for e in scored_errors if e.get("category") == "Vocabulary" and e.get("error_type") in ("substitution", "deletion")]
+    scored_pronunciation_errors = [e for e in scored_errors if e.get("category") == "Pronunciation"]
+    scored_mti_errors = [e for e in scored_errors if e.get("category") == "MTI"]
+
+    error_words_list = [
+        {"word": e["word"], "said_as": e["said_as"], "error_type": e["error_type"], "category": e["category"]}
+        for e in scored_errors if e.get("error_type") in ("substitution", "deletion", "insertion", "mispronunciation")
+    ]
+
     return {
         "overall_score": metrics.get("overall_score", 0),
         "cefr_level":    metrics.get("cefr_level", "N/A"),
@@ -429,7 +610,7 @@ def _get_fallback_analysis(metrics: Dict[str, Any], audio_data: Dict[str, Any], 
         "amcat_mti_deep_dive": {"detected_accent": "Heuristic Analysis Only", "patterns": []},
         "amcat_transcript":{
             "reference_text":topic_prompt or "Candidate spoke on a topic of their choice.",
-            "user_text":transcription,"error_words":[],
+            "user_text":transcription,"error_words":error_words_list,
             "stats":{
                 "total_words":len(transcription.split()),
                 "speech_rate_wpm":wpm,
@@ -439,9 +620,9 @@ def _get_fallback_analysis(metrics: Dict[str, Any], audio_data: Dict[str, Any], 
                 "longest_pause":audio_data.get("longest_pause", 0),
                 "filler_count":filler_count
             },
-            "error_summary":{"mispronunciation":0,"stutters":audio_data.get("stutter_count", 0),"unnatural_pauses":0,"filler_words":filler_count,"mti_substitutions":0}
+            "error_summary":{"mispronunciation":len(scored_pronunciation_errors),"vocabulary_errors":len(scored_vocab_errors),"stutters":audio_data.get("stutter_count", 0),"unnatural_pauses":timing_summary_count(audio_data.get("words_data", [])),"filler_words":filler_count,"mti_substitutions":len(scored_mti_errors)}
         },
-        "amcat_error_log":[],"amcat_sentences":[],
+        "amcat_error_log":error_log,"amcat_sentences":[],
         "amcat_summary":{"top_strengths":metrics.get("strengths",[]),"top_improvements":metrics.get("focus_areas",[]),"learning_resources":[{"area":"Pronunciation","items":[{"title":"BBC Learning English","type":"Web"}]},{"area":"Fluency","items":[{"title":"Shadowing Technique","type":"YouTube"}]}]},
         "practice_exercises":[],"improvement_plan":{},"next_topic_suggestion":"Public Speaking Basics",
         "api_error":True

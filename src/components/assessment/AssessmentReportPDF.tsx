@@ -738,6 +738,7 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                             </View>
                             {[
                                 { label: 'Mispronunciation', val: transcript.error_summary?.mispronunciation || 0 },
+                                { label: 'Vocabulary Errors', val: transcript.error_summary?.vocabulary_errors || 0 },
                                 { label: 'Stutters/Repetitions', val: transcript.error_summary?.stutters || 0 },
                                 { label: 'Unnatural Pauses', val: transcript.error_summary?.unnatural_pauses || 0 },
                                 { label: 'Filler Words', val: transcript.error_summary?.filler_words || 0 },
@@ -778,32 +779,51 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
             <Page size="A4" style={s.page}>
                 <SectionHeading>Word-Level Error Log</SectionHeading>
 
-                {error_log.length === 0 ? (
-                    <Text style={{ fontSize: 8, color: '#A0AEC0', fontStyle: 'italic' }}>
-                        No specific word-level errors were heavily detected.
-                    </Text>
-                ) : (
-                    <View style={{ borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 4, overflow: 'hidden' }}>
-                        <View style={s.tableHeaderRow}>
-                            {['Timestamp', 'Word', 'Said As', 'Correct IPA', 'Error Type', 'Severity'].map(h => (
-                                <Text key={h} style={s.tableHeaderCell}>{h}</Text>
-                            ))}
+                {(() => {
+                    const visibleErrors = (error_log || []).filter((err: any) => !err.excluded_from_scoring);
+                    const omissionEntry = (error_log || []).find((err: any) => err.error_type === 'large_omission');
+                    const omittedCount = omissionEntry && omissionEntry.word ? omissionEntry.word.trim().split(/\s+/).length : 0;
+
+                    return (
+                        <View>
+                            {omissionEntry && (
+                                <View style={{ backgroundColor: '#FFFAF0', borderWidth: 1, borderColor: '#FBD38D', borderRadius: 4, padding: 8, marginBottom: 12 }}>
+                                    <Text style={{ fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: '#DD6B20', marginBottom: 2 }}>Passage Completion Notice</Text>
+                                    <Text style={{ fontSize: 7.5, color: '#9C4221' }}>
+                                        Approximately {omittedCount} words of the reference passage were not read in this recording.
+                                    </Text>
+                                </View>
+                            )}
+
+                            {visibleErrors.length === 0 ? (
+                                <Text style={{ fontSize: 8, color: '#A0AEC0', fontStyle: 'italic' }}>
+                                    No specific word-level errors were heavily detected.
+                                </Text>
+                            ) : (
+                                <View style={{ borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 4, overflow: 'hidden' }}>
+                                    <View style={s.tableHeaderRow}>
+                                        {['Timestamp', 'Word', 'Said As', 'Correct IPA', 'Error Type', 'Severity'].map(h => (
+                                            <Text key={h} style={s.tableHeaderCell}>{h}</Text>
+                                        ))}
+                                    </View>
+                                    {visibleErrors.map((err: any, i: number) => (
+                                        <View key={i} style={[s.tableRow, { backgroundColor: i % 2 === 0 ? '#FFFFFF' : '#F7FAFC' }]}>
+                                            <Text style={[s.tableCell, { color: '#A0AEC0' }]}>{err.timestamp}</Text>
+                                            <Text style={[s.tableCell, { fontFamily: 'Helvetica-Bold' }]}>"{err.word}"</Text>
+                                            <Text style={[s.tableCell, { color: '#E53E3E' }]}>"{err.said_as}"</Text>
+                                            <Text style={[s.tableCell, { color: '#38A169' }]}>"{err.correct_ipa}"</Text>
+                                            <Text style={s.tableCell}>{err.error_type} ({err.category})</Text>
+                                            <Text style={[s.tableCell, {
+                                                color: err.severity === 'major' ? '#E53E3E' : err.severity === 'moderate' ? '#D69E2E' : '#718096',
+                                                fontFamily: 'Helvetica-Bold',
+                                            }]}>{err.severity}</Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
                         </View>
-                        {error_log.map((err: any, i: number) => (
-                            <View key={i} style={[s.tableRow, { backgroundColor: i % 2 === 0 ? '#FFFFFF' : '#F7FAFC' }]}>
-                                <Text style={[s.tableCell, { color: '#A0AEC0' }]}>{err.timestamp}</Text>
-                                <Text style={[s.tableCell, { fontFamily: 'Helvetica-Bold' }]}>"{err.word}"</Text>
-                                <Text style={[s.tableCell, { color: '#E53E3E' }]}>"{err.said_as}"</Text>
-                                <Text style={[s.tableCell, { color: '#38A169' }]}>"{err.correct_ipa}"</Text>
-                                <Text style={s.tableCell}>{err.error_type} ({err.category})</Text>
-                                <Text style={[s.tableCell, {
-                                    color: err.severity === 'major' ? '#E53E3E' : err.severity === 'moderate' ? '#D69E2E' : '#718096',
-                                    fontFamily: 'Helvetica-Bold',
-                                }]}>{err.severity}</Text>
-                            </View>
-                        ))}
-                    </View>
-                )}
+                    );
+                })()}
 
                 <PageFooter />
             </Page>

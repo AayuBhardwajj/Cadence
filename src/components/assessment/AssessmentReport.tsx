@@ -322,6 +322,7 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                 <VStack align="stretch" spacing={0}>
                                     {[
                                         { label: "Mispronunciation", val: transcript.error_summary?.mispronunciation || 0 },
+                                        { label: "Vocabulary Errors", val: transcript.error_summary?.vocabulary_errors || 0 },
                                         { label: "Stutters/Repetitions", val: transcript.error_summary?.stutters || 0 },
                                         { label: "Unnatural Pauses", val: transcript.error_summary?.unnatural_pauses || 0 },
                                         { label: "Filler Words", val: transcript.error_summary?.filler_words || 0 },
@@ -361,27 +362,50 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                 {/* ======================= PAGE 6: Error Log ======================= */}
                 <Box className="pdf-page" minH="950px">
                     <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">Word-Level Error Log</Heading>
-                    {error_log.length === 0
-                        ? <Text color="gray.500" fontStyle="italic">No specific word-level errors were heavily detected.</Text>
-                        : (
-                            <Table size="sm" variant="simple" bg="white" border="1px solid" borderColor="gray.200">
-                                <Thead bg="gray.50">
-                                    <Tr><Th>Timestamp</Th><Th>Word</Th><Th>Candidate Said</Th><Th>Correct Form</Th><Th>Error Type</Th><Th>Severity</Th></Tr>
-                                </Thead>
-                                <Tbody>
-                                    {error_log.map((err: any, i: number) => (
-                                        <Tr key={i}>
-                                            <Td fontSize="xs" color="gray.500">{err.timestamp}</Td>
-                                            <Td fontSize="sm" fontWeight="bold">"{err.word}"</Td>
-                                            <Td fontSize="sm" color="red.600">"{err.said_as}"</Td>
-                                            <Td fontSize="sm" color="green.600">"{err.correct_ipa}"</Td>
-                                            <Td fontSize="sm">{err.error_type} ({err.category})</Td>
-                                            <Td><Badge colorScheme={err.severity === 'major' ? 'red' : err.severity === 'moderate' ? 'yellow' : 'gray'}>{err.severity}</Badge></Td>
-                                        </Tr>
-                                    ))}
-                                </Tbody>
-                            </Table>
-                        )}
+                    {(() => {
+                        const visibleErrors = (error_log || []).filter((err: any) => !err.excluded_from_scoring);
+                        const omissionEntry = (error_log || []).find((err: any) => err.error_type === "large_omission");
+                        const omittedCount = omissionEntry && omissionEntry.word ? omissionEntry.word.trim().split(/\s+/).length : 0;
+
+                        return (
+                            <>
+                                {omissionEntry && (
+                                    <Box bg="orange.50" border="1px solid" borderColor="orange.200" rounded="md" p={4} mb={6}>
+                                        <HStack spacing={3}>
+                                            <AlertTriangle color="#DD6B20" size={20} />
+                                            <Box>
+                                                <Text fontWeight="bold" fontSize="sm" color="orange.900">Passage Completion Notice</Text>
+                                                <Text fontSize="xs" color="orange.800">
+                                                    Approximately {omittedCount} words of the reference passage were not read in this recording.
+                                                </Text>
+                                            </Box>
+                                        </HStack>
+                                    </Box>
+                                )}
+                                {visibleErrors.length === 0 ? (
+                                    <Text color="gray.500" fontStyle="italic">No specific word-level errors were heavily detected.</Text>
+                                ) : (
+                                    <Table size="sm" variant="simple" bg="white" border="1px solid" borderColor="gray.200">
+                                        <Thead bg="gray.50">
+                                            <Tr><Th>Timestamp</Th><Th>Word</Th><Th>Candidate Said</Th><Th>Correct Form</Th><Th>Error Type</Th><Th>Severity</Th></Tr>
+                                        </Thead>
+                                        <Tbody>
+                                            {visibleErrors.map((err: any, i: number) => (
+                                                <Tr key={i}>
+                                                    <Td fontSize="xs" color="gray.500">{err.timestamp}</Td>
+                                                    <Td fontSize="sm" fontWeight="bold">"{err.word}"</Td>
+                                                    <Td fontSize="sm" color="red.600">"{err.said_as}"</Td>
+                                                    <Td fontSize="sm" color="green.600">"{err.correct_ipa}"</Td>
+                                                    <Td fontSize="sm">{err.error_type} ({err.category})</Td>
+                                                    <Td><Badge colorScheme={err.severity === 'major' ? 'red' : err.severity === 'moderate' ? 'yellow' : 'gray'}>{err.severity}</Badge></Td>
+                                                </Tr>
+                                            ))}
+                                        </Tbody>
+                                    </Table>
+                                )}
+                            </>
+                        );
+                    })()}
                 </Box>
 
                 <PageBreak />

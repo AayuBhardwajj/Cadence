@@ -334,6 +334,7 @@ async def upload_assessment(
             score_data,
             topic_id=topicId,
             topic_prompt=chosen_topic_prompt,
+            reference_passage=real_passage_text,
             assessment_id=sessionId,
             user_id=user_id,
         )

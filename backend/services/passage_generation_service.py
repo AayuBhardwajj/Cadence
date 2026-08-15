@@ -23,6 +23,31 @@ TOPIC_TO_WORD_BANK_MAP = {
     "job_interview": "business"
 }
 
+# Maps all frontend/alias difficulty labels to the canonical DB values used in
+# DIFFICULTIES, passage_pool, and word_bank difficulty columns.
+_DIFFICULTY_ALIAS: dict[str, str] = {
+    "easy": "easy",
+    "easy-tier": "easy",
+    "beginner": "easy",
+    "medium": "medium",
+    "medium-tier": "medium",
+    "intermediate": "medium",
+    "hard": "hard",
+    "hard-tier": "hard",
+    "advanced": "hard",
+}
+
+
+def normalize_difficulty(difficulty: str | None) -> str | None:
+    """
+    Normalises a raw difficulty label (from the frontend or any caller) to one of
+    the canonical DB values: 'easy', 'medium', or 'hard'.
+    Returns None if the input is None or unrecognised.
+    """
+    if not difficulty:
+        return None
+    return _DIFFICULTY_ALIAS.get(difficulty.lower())
+
 def find_word_positions(passage_text: str, target_words: list[dict]) -> tuple[list[dict], list[dict]]:
     """
     Finds the exact character start/end position of each target word in the final passage text.
@@ -71,17 +96,7 @@ async def generate_passage(
         word_count = max(1, min(15, word_count))
 
     # 2. Map difficulty parameters to check database constraints ('easy', 'medium', 'hard')
-    difficulty_clean = None
-    if difficulty:
-        diff_lower = difficulty.lower()
-        if diff_lower in ("easy", "medium", "hard"):
-            difficulty_clean = diff_lower
-        elif diff_lower in ("beginner", "easy-tier"):
-            difficulty_clean = "easy"
-        elif diff_lower in ("intermediate", "medium-tier"):
-            difficulty_clean = "medium"
-        elif diff_lower in ("advanced", "hard-tier"):
-            difficulty_clean = "hard"
+    difficulty_clean = normalize_difficulty(difficulty)
 
     db_diff = difficulty_clean if difficulty_clean else None
     db_issue_type = issue_type if issue_type else None
@@ -325,15 +340,26 @@ async def get_or_generate_passage(
     otherwise fall back to live generation.
 
     Returns dict containing passage fields plus metadata tag `source` ('pool' or 'fallback').
+
+    NOTE: difficulty is normalised to the canonical DB value ('easy'/'medium'/'hard')
+    at the very top of this function, before the pool-gate check, so frontend labels
+    such as 'beginner'/'intermediate'/'advanced' all route through the pool correctly.
     """
+    # ── Normalise BEFORE any pool gate check ─────────────────────────────────
+    # The frontend sends 'beginner'/'intermediate'/'advanced'; the pool and
+    # DIFFICULTIES list use 'easy'/'medium'/'hard'.  Without this, the gate
+    # condition below is always False for frontend traffic and every request
+    # falls straight into live generation regardless of pool stock.
+    diff_normalized = normalize_difficulty(difficulty) or difficulty
     resolved_topic = TOPIC_ALIAS_MAP.get(topic, topic)
+
     # Only pool-route fixed combos; everything else goes straight to generate_passage
-    if resolved_topic in FIXED_TOPICS and difficulty in DIFFICULTIES:
+    if resolved_topic in FIXED_TOPICS and diff_normalized in DIFFICULTIES:
         try:
             # Single atomic UPDATE...WHERE status='available' RETURNING * via RPC
             claim_res = supabase.rpc("claim_pooled_passage", {
                 "p_topic": resolved_topic,
-                "p_difficulty": difficulty
+                "p_difficulty": diff_normalized
             }).execute()
 
             if claim_res.data:
@@ -349,7 +375,8 @@ async def get_or_generate_passage(
                     gp_row = gp_res.data[0]
                     logger.info(
                         f"Pool HIT: served passage {passage_id} "
-                        f"for topic={topic}, difficulty={difficulty}"
+                        f"for topic={topic} (resolved={resolved_topic}), "
+                        f"difficulty={difficulty} (normalized={diff_normalized})"
                     )
                     return {
                         "passage_id": gp_row["id"],
@@ -371,24 +398,27 @@ async def get_or_generate_passage(
 
     # ── Fallback: live generation (same path as before this layer existed) ────
     logger.info(
-        f"Pool MISS/fallback: live generation for topic={topic}, difficulty={difficulty}"
+        f"Pool MISS/fallback: live generation for topic={topic} (resolved={resolved_topic}), "
+        f"difficulty={difficulty} (normalized={diff_normalized})"
     )
     res = await generate_passage(
-        difficulty=difficulty,
-        topic=topic,
+        difficulty=diff_normalized,   # pass the canonical value so generate_passage
+        topic=resolved_topic,         # doesn't have to re-normalise
         issue_type=issue_type,
         word_count=word_count
     )
 
-    # Self-seed: even without the refill worker having run, real traffic populates the pool
-    if topic in FIXED_TOPICS and difficulty in DIFFICULTIES:
+    # Self-seed: even without the refill worker having run, real traffic populates the pool.
+    # Use resolved_topic + diff_normalized so the pool row is consistent with what the
+    # refill worker writes — raw labels like 'advanced' must never reach the DB column.
+    if resolved_topic in FIXED_TOPICS and diff_normalized in DIFFICULTIES:
         try:
             passage_id = res["passage_id"]
             # Insert as available then immediately mark served (it's going out right now)
             supabase.table("passage_pool").insert({
                 "passage_id": passage_id,
-                "topic": topic,
-                "difficulty": difficulty,
+                "topic": resolved_topic,
+                "difficulty": diff_normalized,
                 "status": "available"
             }).execute()
             supabase.table("passage_pool").update({
@@ -397,7 +427,7 @@ async def get_or_generate_passage(
             }).eq("passage_id", passage_id).execute()
             logger.info(
                 f"Self-seeded+served passage {passage_id} "
-                f"for topic={topic}, difficulty={difficulty}"
+                f"for topic={resolved_topic}, difficulty={diff_normalized}"
             )
         except Exception as seed_err:
             logger.error(
