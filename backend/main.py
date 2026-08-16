@@ -62,16 +62,15 @@ async def refill_worker_loop():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Start the background worker task
-    refill_task = asyncio.create_task(refill_worker_loop())
+    # CUTOVER (DECISIONS.md D1 content-service migration): The passage pool refill worker
+    # loop has been ported to Spring Boot content-service (@Scheduled RefillWorker on port 8084).
+    # Disabling Python background loop to avoid double-firing refills or lock contention.
+    # refill_task = asyncio.create_task(refill_worker_loop())
+    logger.info("Python refill_worker_loop disabled in lifespan — active in content-service (Port 8084).")
     yield
-    # Shutdown: Cancel the background task
-    logger.info("Cancelling refill worker loop...")
-    refill_task.cancel()
-    try:
-        await refill_task
-    except asyncio.CancelledError:
-        logger.info("Refill worker background task successfully cancelled.")
+    # Shutdown logic
+    # logger.info("Cancelling refill worker loop...")
+    # refill_task.cancel()
 
 app = FastAPI(title="Cadence AI Backend", lifespan=lifespan)
 
