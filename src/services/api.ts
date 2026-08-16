@@ -1,5 +1,6 @@
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const CONTENT_SERVICE_URL = import.meta.env.VITE_CONTENT_SERVICE_URL || "http://localhost:8084";
 
 export interface AnalysisResult {
     overall_score: number;
@@ -212,7 +213,7 @@ export const completeExercise = async (
 
 export const apiClient = {
   async post<T>(path: string, body: any): Promise<T> {
-    const response = await fetch(`${API_URL}${path}`, {
+    const response = await fetch(`${CONTENT_SERVICE_URL}${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -29,6 +29,8 @@ management:
         include: health
 
 cadence:
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174}
   llm:
     groq-api-key: ${GROQ_API_KEY:}
     gemini-api-key: ${GEMINI_API_KEY:}

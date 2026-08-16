@@ -10,7 +10,7 @@ import { EnhancedCard } from "./EnhancedCard";
 import { useTier } from "../../lib/TierContext";
 import { supabase } from "../../lib/supabase";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+const CONTENT_SERVICE_BASE = import.meta.env.VITE_CONTENT_SERVICE_URL ?? "http://localhost:8084";
 
 interface TipData {
     tip: string;
@@ -34,7 +34,7 @@ export function TipOfTheDay() {
             if (!user?.id) throw new Error("Not authenticated");
 
             const res = await fetch(
-                `${API_BASE}/api/tip-of-the-day?user_id=${user.id}`
+                `${CONTENT_SERVICE_BASE}/api/tip-of-the-day?user_id=${user.id}`
             );
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data: TipData = await res.json();

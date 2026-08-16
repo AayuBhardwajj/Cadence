@@ -399,9 +399,20 @@ public class PassageService {
         res.put("passage_text", gp.getPassageText());
         res.put("difficulty", gp.getDifficulty());
         res.put("topic", topic);
-        res.put("target_words", gp.getTargetWords());
+
+        Object targetWordsObj = Collections.emptyList();
+        if (gp.getTargetWords() != null && !gp.getTargetWords().isBlank()) {
+            try {
+                targetWordsObj = objectMapper.readTree(gp.getTargetWords());
+            } catch (Exception e) {
+                log.warn("Failed to parse target_words JSON string for passage {}: {}", gp.getId(), e.getMessage());
+            }
+        }
+        res.put("target_words", targetWordsObj);
+
         res.put("generated_at", gp.getGeneratedAt() != null ? gp.getGeneratedAt().toString() : null);
         res.put("source", source);
+        res.put("topic_prompt", getTopicPrompt(topic));
         return res;
     }
 }
