@@ -27,10 +27,14 @@ public class SessionService {
     private final AssessmentSessionRepository assessmentSessionRepository;
 
     /**
-     * Intentionally NOT @Transactional: each save() must commit independently so the
-     * assessments hard-fail and assessment_sessions soft-fail are isolated transactions,
-     * not one atomic unit. If @Transactional were added here, a failure during the second
-     * save() would mark the transaction rollback-only and undo the legacy assessments insert,
+     * Intentionally NOT @Transactional: each save() must commit independently so
+     * the
+     * assessments hard-fail and assessment_sessions soft-fail are isolated
+     * transactions,
+     * not one atomic unit. If @Transactional were added here, a failure during the
+     * second
+     * save() would mark the transaction rollback-only and undo the legacy
+     * assessments insert,
      * destroying the intended D6 dual-write contract. See DECISIONS.md D6 addendum.
      */
     public StartSessionResponse createSession(UUID userId) {
@@ -61,7 +65,7 @@ public class SessionService {
                     .userId(userId)
                     .status("pending")
                     .createdAt(OffsetDateTime.now())
-                    .startedAt(OffsetDateTime.now())
+                    // .startedAt(OffsetDateTime.now())
                     .build();
             assessmentSessionRepository.save(assessmentSession);
         } catch (Exception err) {
