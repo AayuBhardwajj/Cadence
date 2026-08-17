@@ -18,7 +18,7 @@ public class EligibilityController {
 
     private final EligibilityService eligibilityService;
 
-    @GetMapping("/eligibility")
+    @GetMapping({"/eligibility", "/api/assessment/eligibility"})
     public ResponseEntity<?> getEligibility(@RequestParam(value = "user_id", required = false) String userIdStr) {
         if (userIdStr == null || userIdStr.trim().length() < 10) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
