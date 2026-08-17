@@ -42,6 +42,9 @@ public class AssessmentSession {
     @Column(name = "failure_reason")
     private String failureReason;
 
+    @Column(name = "passage_id")
+    private UUID passageId;
+
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
