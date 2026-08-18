@@ -6,13 +6,27 @@ import uuid
 import json
 import urllib.request
 import urllib.error
+import urllib.parse
 from typing import List
 from dotenv import load_dotenv
 load_dotenv()
 
 REPORT_SERVICE_URL = os.environ.get("REPORT_SERVICE_URL", "http://localhost:8083")
 
-from services.audio_service import analyze_audio
+# ml-audio service — Phase 1 ML split (DECISIONS.md D11).
+# Gateway routes audio analysis to ml-audio instead of calling analyze_audio() directly.
+ML_AUDIO_SERVICE_URL = os.environ.get("ML_AUDIO_SERVICE_URL", "http://localhost:9001")
+# Whisper transcription of a 5-minute recording on CPU takes 60-100+ seconds in real use.
+# 240s default is intentionally generous. Override via ML_AUDIO_TIMEOUT_SECONDS env var.
+_raw_ml_audio_timeout = os.environ.get("ML_AUDIO_TIMEOUT_SECONDS", "240")
+try:
+    ML_AUDIO_TIMEOUT_SECONDS = max(30, int(_raw_ml_audio_timeout))
+except ValueError:
+    ML_AUDIO_TIMEOUT_SECONDS = 240
+
+# CUTOVER (DECISIONS.md D11 / Phase 1 ML split): audio analysis delegated to ml-audio service (:9001).
+# Direct import preserved for reference and potential rollback; not invoked by upload_assessment().
+# from services.audio_service import analyze_audio
 
 from utils.scoring import calculate_score
 from utils.supabase_client import supabase
@@ -295,7 +309,54 @@ async def upload_assessment(
 
         logger.info(f"File saved for user {user_id[:8]}...")
 
-        audio_data = analyze_audio(temp_file_path)
+        # CUTOVER (DECISIONS.md D11 / Phase 1 ML split): replaced direct analyze_audio() call
+        # with HTTP POST to ml-audio service (:9001).
+        # Old direct call (preserved for reference — do not restore without updating D11):
+        # audio_data = analyze_audio(temp_file_path)
+        #
+        # HARD FAILURE: if ml-audio is unreachable or returns non-2xx, this raises
+        # immediately and the pipeline is aborted. scoring.py and LLM analysis depend
+        # entirely on real audio_data — continuing with fabricated data would silently
+        # produce a completely wrong report. This matches the pre-cutover behavior where
+        # any exception from analyze_audio() propagated to the outer except and returned 500.
+        try:
+            with open(temp_file_path, "rb") as audio_file:
+                file_bytes = audio_file.read()
+            boundary = uuid.uuid4().hex
+            content_type_header = f"multipart/form-data; boundary={boundary}"
+            filename = os.path.basename(temp_file_path)
+            body_parts = [
+                f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{filename}\"\r\n"
+                f"Content-Type: application/octet-stream\r\n\r\n"
+            ]
+            body_prefix = "".join(body_parts).encode("utf-8")
+            body_suffix = f"\r\n--{boundary}--\r\n".encode("utf-8")
+            request_body = body_prefix + file_bytes + body_suffix
+
+            ml_audio_req = urllib.request.Request(
+                f"{ML_AUDIO_SERVICE_URL}/analyze/audio",
+                data=request_body,
+                headers={"Content-Type": content_type_header},
+                method="POST",
+            )
+            with urllib.request.urlopen(ml_audio_req, timeout=ML_AUDIO_TIMEOUT_SECONDS) as ml_resp:
+                if ml_resp.status not in (200, 201):
+                    raise RuntimeError(f"ml-audio returned HTTP {ml_resp.status}")
+                audio_data = json.loads(ml_resp.read().decode("utf-8"))
+        except urllib.error.URLError as conn_err:
+            logger.error("ml-audio service is unreachable at %s: %s", ML_AUDIO_SERVICE_URL, conn_err)
+            raise HTTPException(
+                status_code=502,
+                detail=f"Audio analysis service (ml-audio) is unavailable: {conn_err.reason if hasattr(conn_err, 'reason') else conn_err}",
+            )
+        except HTTPException:
+            raise
+        except Exception as ml_err:
+            logger.error("ml-audio call failed: %s", ml_err, exc_info=True)
+            raise HTTPException(
+                status_code=502,
+                detail=f"Audio analysis service (ml-audio) failed: {ml_err}",
+            )
 
         # Log Whisper transcription cost
         log_whisper_usage(

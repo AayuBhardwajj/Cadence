@@ -6,7 +6,8 @@
     "dev": "vite",
     "dev:session-service": "bash -c 'set -a && source services/.env.local && set +a && cd services/session-service && mvn spring-boot:run'",
     "dev:report-service": "bash -c 'set -a && source services/.env.local && set +a && cd services/report-service && mvn spring-boot:run'",
-    "dev:all": "npx concurrently \"npm run dev\" \"cd backend && venv/bin/python main.py\" \"npm run dev:session-service\" \"npm run dev:report-service\"",
+    "dev:ml-audio": "cd services/ml-audio && ../../backend/venv/bin/uvicorn main:app --port 9001 --reload",
+    "dev:all": "npx concurrently \"npm run dev\" \"cd backend && venv/bin/python main.py\" \"npm run dev:session-service\" \"npm run dev:report-service\" \"npm run dev:ml-audio\"",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
