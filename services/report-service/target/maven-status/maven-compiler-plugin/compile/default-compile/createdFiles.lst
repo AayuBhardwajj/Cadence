@@ -1,10 +1,12 @@
+com/cadence/report/dto/CreateAssessmentReportRequest$CreateAssessmentReportRequestBuilder.class
 com/cadence/report/entity/AssessmentReport.class
 com/cadence/report/controller/ReportController.class
+com/cadence/report/ReportApplication.class
+com/cadence/report/entity/AssessmentReport$AssessmentReportBuilder.class
+com/cadence/report/dto/CreateAssessmentReportRequest.class
 com/cadence/report/repository/AssessmentReportRepository.class
 com/cadence/report/service/ReportService.class
-com/cadence/report/ReportApplication.class
 com/cadence/report/dto/AssessmentReportResponse.class
-com/cadence/report/entity/AssessmentReport$AssessmentReportBuilder.class
 com/cadence/report/config/SecurityConfig.class
 com/cadence/report/controller/HealthController.class
 com/cadence/report/filter/PassthroughAuthFilter.class

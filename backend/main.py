@@ -3,11 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
 import uuid
+import json
+import urllib.request
+import urllib.error
 from typing import List
 from dotenv import load_dotenv
 load_dotenv()
 
+REPORT_SERVICE_URL = os.environ.get("REPORT_SERVICE_URL", "http://localhost:8083")
+
 from services.audio_service import analyze_audio
+
 from utils.scoring import calculate_score
 from utils.supabase_client import supabase
 from services.recommendation_service import RecommendationService
@@ -377,32 +383,71 @@ async def upload_assessment(
                 f"Failed to persist to assessments: {type(err).__name__}"
             )
 
-        # DUAL-WRITE (expand-contract D6): persist flat score breakdown into
-        # assessment_reports. weak_areas is intentionally omitted — see
-        # BUGS_AND_ISSUES.md for the open issue on that column.
+        # CUTOVER (DECISIONS.md D6 / D10): assessment_reports write locus moved from Python-direct to report-service.
+        # Direct Supabase insert commented out per DECISIONS.md D10 convention.
+        # try:
+        #     _breakdown = score_data.get("breakdown", {})
+        #     supabase.table("assessment_reports").insert({
+        #         "assessment_session_id": sessionId,
+        #         "transcription": audio_data.get("transcription", ""),
+        #         "overall_score": score_data.get("overall_score"),
+        #         "pronunciation_score": _breakdown.get("pronunciation"),
+        #         "fluency_score": _breakdown.get("fluency"),
+        #         "clarity_score": _breakdown.get("clarity"),
+        #         "grammar_score": _breakdown.get("grammar"),
+        #         "vocabulary_score": _breakdown.get("vocabulary"),
+        #         "confidence_score": _breakdown.get("confidence"),
+        #         "cefr_level": score_data.get("cefr_level"),
+        #         "wpm": _breakdown.get("wpm"),
+        #         "filler_word_count": _breakdown.get("fillers"),
+        #         "eye_contact_score": _breakdown.get("eye_contact"),
+        #         "strengths": score_data.get("strengths"),
+        #         "focus_areas": score_data.get("focus_areas"),
+        #         "feedback": score_data.get("feedback"),
+        #     }).execute()
+        # except Exception as err:
+        #     logger.exception(
+        #         "dual-write: assessment_reports insert failed for session %s — continuing",
+        #         sessionId,
+        #     )
+        #     persistence_warnings.append(
+        #         f"Failed to persist to assessment_reports: {type(err).__name__}"
+        #     )
+
+        # Persistence to assessment_reports via report-service write endpoint
         try:
             _breakdown = score_data.get("breakdown", {})
-            supabase.table("assessment_reports").insert({
-                "assessment_session_id": sessionId,
+            report_payload = {
+                "assessmentSessionId": sessionId,
                 "transcription": audio_data.get("transcription", ""),
-                "overall_score": score_data.get("overall_score"),
-                "pronunciation_score": _breakdown.get("pronunciation"),
-                "fluency_score": _breakdown.get("fluency"),
-                "clarity_score": _breakdown.get("clarity"),
-                "grammar_score": _breakdown.get("grammar"),
-                "vocabulary_score": _breakdown.get("vocabulary"),
-                "confidence_score": _breakdown.get("confidence"),
-                "cefr_level": score_data.get("cefr_level"),
+                "overallScore": score_data.get("overall_score"),
+                "pronunciationScore": _breakdown.get("pronunciation"),
+                "fluencyScore": _breakdown.get("fluency"),
+                "clarityScore": _breakdown.get("clarity"),
+                "grammarScore": _breakdown.get("grammar"),
+                "vocabularyScore": _breakdown.get("vocabulary"),
+                "confidenceScore": _breakdown.get("confidence"),
+                "cefrLevel": score_data.get("cefr_level"),
                 "wpm": _breakdown.get("wpm"),
-                "filler_word_count": _breakdown.get("fillers"),
-                "eye_contact_score": _breakdown.get("eye_contact"),
+                "fillerWordCount": _breakdown.get("fillers"),
+                "eyeContactScore": _breakdown.get("eye_contact"),
                 "strengths": score_data.get("strengths"),
-                "focus_areas": score_data.get("focus_areas"),
+                "focusAreas": score_data.get("focus_areas"),
                 "feedback": score_data.get("feedback"),
-            }).execute()
+            }
+            req_data = json.dumps(report_payload).encode("utf-8")
+            req = urllib.request.Request(
+                f"{REPORT_SERVICE_URL}/api/assessment/reports",
+                data=req_data,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                if resp.status not in (200, 201):
+                    raise RuntimeError(f"HTTP_{resp.status}")
         except Exception as err:
             logger.exception(
-                "dual-write: assessment_reports insert failed for session %s — continuing",
+                "report-service: assessment_reports insert failed for session %s — continuing",
                 sessionId,
             )
             persistence_warnings.append(

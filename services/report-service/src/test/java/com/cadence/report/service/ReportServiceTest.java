@@ -1,11 +1,13 @@
 package com.cadence.report.service;
 
 import com.cadence.report.dto.AssessmentReportResponse;
+import com.cadence.report.dto.CreateAssessmentReportRequest;
 import com.cadence.report.entity.AssessmentReport;
 import com.cadence.report.repository.AssessmentReportRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -16,6 +18,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -86,4 +90,44 @@ class ReportServiceTest {
 
         assertThat(result).isEmpty();
     }
+
+    @Test
+    void whenCreateReport_savesReportWithExplicitCreatedAt() {
+        CreateAssessmentReportRequest request = CreateAssessmentReportRequest.builder()
+                .assessmentSessionId(sessionId)
+                .transcription("Hello world this is a test assessment.")
+                .overallScore(85)
+                .pronunciationScore(80)
+                .fluencyScore(88)
+                .clarityScore(82)
+                .grammarScore(90)
+                .vocabularyScore(85)
+                .confidenceScore(87)
+                .cefrLevel("B2")
+                .wpm(135)
+                .fillerWordCount(2)
+                .eyeContactScore(0)
+                .strengths(List.of("Good pacing"))
+                .focusAreas(List.of("Reduce filler words"))
+                .feedback("Overall strong performance.")
+                .build();
+
+        when(reportRepository.save(any(AssessmentReport.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AssessmentReportResponse response = reportService.createReport(request);
+
+        ArgumentCaptor<AssessmentReport> captor = ArgumentCaptor.forClass(AssessmentReport.class);
+        verify(reportRepository).save(captor.capture());
+
+        AssessmentReport savedReport = captor.getValue();
+        assertThat(savedReport.getId()).isNotNull();
+        assertThat(savedReport.getAssessmentSessionId()).isEqualTo(sessionId);
+        assertThat(savedReport.getCreatedAt()).isNotNull();
+        assertThat(savedReport.getOverallScore()).isEqualTo(85);
+
+        assertThat(response).isNotNull();
+        assertThat(response.assessmentSessionId()).isEqualTo(sessionId);
+        assertThat(response.createdAt()).isNotNull();
+    }
 }
+

@@ -10,15 +10,18 @@ logger = logging.getLogger(__name__)
 #
 # diagnostic_tier — reserved for analysis_service.deep_analyze_speech() only.
 #   High-quality, large-context model first; Gemini 3.6 Flash as last resort.
-#   Uses llama-3.3-70b-versatile (its own Groq rate-limit pool) so volume calls
-#   never starve the core diagnostic pipeline.
+#   Uses openai/gpt-oss-120b (its own Groq rate-limit pool, separate from
+#   volume_tier's gpt-oss-20b pool) so volume calls never starve the core
+#   diagnostic pipeline. llama-3.3-70b-versatile was deprecated by Groq on
+#   2026-06-17; openai/gpt-oss-120b is Groq's own recommended replacement.
+#   See .ai/Decisions.md D9 addendum (2026-08-18).
 #
 # volume_tier — all high-frequency, low-stakes generation tasks:
 #   tips, passages, content packages, content quality checks, recommendations.
 #   Uses openai/gpt-oss-20b (a separate Groq model pool) with gemini-3.1-flash-lite
 #   as its last resort, keeping costs lower for bulk work.
 TASK_CHAINS: dict[str, list[str]] = {
-    "diagnostic_tier": ["llama-3.3-70b-versatile", "gemini-3.6-flash"],
+    "diagnostic_tier": ["openai/gpt-oss-120b", "gemini-3.6-flash"],
     "volume_tier": ["openai/gpt-oss-20b", "gemini-3.1-flash-lite"],
 }
 
@@ -52,8 +55,8 @@ async def call_llm(
 
     Args:
         chain: Which tier to use. Must be one of:
-            - "diagnostic_tier": Groq llama-3.3-70b-versatile → Gemini gemini-3.6-flash
-            - "volume_tier":     Groq openai/gpt-oss-20b      → Gemini gemini-3.1-flash-lite
+            - "diagnostic_tier": Groq openai/gpt-oss-120b → Gemini gemini-3.6-flash
+            - "volume_tier":     Groq openai/gpt-oss-20b  → Gemini gemini-3.1-flash-lite
         prompt: The user/task prompt to send.
         system_message: Overrides the default system instruction.
         assessment_id: Passed through to ai_usage_logs for cost attribution.
@@ -85,10 +88,23 @@ async def call_llm(
                 errors.append(f"gemini/{model_id}: client not initialized (missing GEMINI_API_KEY)")
                 continue
             try:
-                resp = gemini_client.models.generate_content(
-                    model=model_id,
-                    contents=prompt,
-                )
+                try:
+                    resp = gemini_client.models.generate_content(
+                        model=model_id,
+                        contents=prompt,
+                    )
+                except Exception as gemini_err:
+                    if "UNAVAILABLE" in str(gemini_err):
+                        logger.warning(
+                            "Gemini model '%s' returned 503 UNAVAILABLE (high demand). Retrying once...", model_id
+                        )
+                        resp = gemini_client.models.generate_content(
+                            model=model_id,
+                            contents=prompt,
+                        )
+                    else:
+                        raise gemini_err
+
                 content = resp.text.strip()
                 if content.startswith("```json"):
                     content = content[7:-3].strip()
