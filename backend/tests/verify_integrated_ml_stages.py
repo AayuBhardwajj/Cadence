@@ -87,6 +87,10 @@ def test_1_successful_pipeline():
     rep_res = supabase.table("assessment_reports").select("*").eq("assessment_session_id", session_id).execute()
     logger.info("assessment_reports rows found: %d", len(rep_res.data))
     assert len(rep_res.data) > 0, "No assessment_reports row found for successful session!"
+    report_data = rep_res.data[0]
+    feedback_str = str(report_data.get("feedback", ""))
+    assert "Heuristic analysis:" not in feedback_str, f"Found heuristic fallback in report feedback: {feedback_str}"
+    logger.info("Confirmed: Report feedback is genuine LLM-backed output (no 'Heuristic analysis:' marker).")
 
     # analysis_results
     ana_res = supabase.table("analysis_results").select("*").eq("assessment_id", session_id).execute()
@@ -96,9 +100,16 @@ def test_1_successful_pipeline():
     # ai_usage_logs
     log_res = supabase.table("ai_usage_logs").select("*").eq("assessment_id", session_id).execute()
     logger.info("ai_usage_logs rows found: %d", len(log_res.data))
+    diagnostic_logs = []
     for log_row in log_res.data:
         logger.info("  -> Usage log: provider=%s, model=%s, purpose=%s, cost=$%s",
                     log_row.get("provider"), log_row.get("model"), log_row.get("purpose"), log_row.get("estimated_cost_usd"))
+        if log_row.get("purpose") == "diagnostic_tier":
+            diagnostic_logs.append(log_row)
+    
+    assert len(diagnostic_logs) > 0, "No diagnostic_tier entry found in ai_usage_logs!"
+    logger.info("Confirmed: diagnostic_tier LLM call logged in ai_usage_logs (%s / %s).",
+                diagnostic_logs[0].get("provider"), diagnostic_logs[0].get("model"))
 
     logger.info("✅ STEP 1 PASSED CLEANLY!\n")
     return session_id
