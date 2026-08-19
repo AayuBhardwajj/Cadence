@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: ml-shared
+Version: 0.1.0
+Summary: Shared ML utilities (LLM client, Supabase client, AI usage logger) for Cadence ML services
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: groq>=0.4.0
+Requires-Dist: google-genai>=0.1.0
+Requires-Dist: supabase>=2.0.0
+Requires-Dist: python-dotenv>=1.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+
+# ml-shared
+
+Shared Python package containing core LLM routing client (`llm_client.py`), AI usage cost tracking (`ai_usage_logger.py`), and Supabase client (`supabase_client.py`) for Cadence ML microservices (`ml-analysis`, `ml-audio`, `recommendation-service`).

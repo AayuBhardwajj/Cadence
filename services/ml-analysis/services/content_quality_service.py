@@ -1,6 +1,6 @@
 import json
-from utils.supabase_client import supabase
-from utils.llm_client import call_llm
+from ml_shared.supabase_client import supabase
+from ml_shared.llm_client import call_llm
 
 
 def get_content_quality_fallback() -> dict:
@@ -82,7 +82,7 @@ JSON Schema:
         result = json.loads(content)
 
         # Persist content quality scores if assessment_id is provided
-        if assessment_id:
+        if assessment_id and supabase:
             try:
                 quality_data = {
                     "assessment_id": assessment_id,

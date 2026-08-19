@@ -13,6 +13,14 @@ load_dotenv()
 
 REPORT_SERVICE_URL = os.environ.get("REPORT_SERVICE_URL", "http://localhost:8083")
 
+# ml-analysis service — Phase 1 ML split (DECISIONS.md D11).
+ML_ANALYSIS_SERVICE_URL = os.environ.get("ML_ANALYSIS_SERVICE_URL", "http://localhost:9002")
+_raw_ml_analysis_timeout = os.environ.get("ML_ANALYSIS_TIMEOUT_SECONDS", "180")
+try:
+    ML_ANALYSIS_TIMEOUT_SECONDS = max(30, int(_raw_ml_analysis_timeout))
+except ValueError:
+    ML_ANALYSIS_TIMEOUT_SECONDS = 180
+
 # ml-audio service — Phase 1 ML split (DECISIONS.md D11).
 # Gateway routes audio analysis to ml-audio instead of calling analyze_audio() directly.
 ML_AUDIO_SERVICE_URL = os.environ.get("ML_AUDIO_SERVICE_URL", "http://localhost:9001")
@@ -28,11 +36,9 @@ except ValueError:
 # Direct import preserved for reference and potential rollback; not invoked by upload_assessment().
 # from services.audio_service import analyze_audio
 
-from utils.scoring import calculate_score
 from utils.supabase_client import supabase
 from services.recommendation_service import RecommendationService
-from services.analysis_service import deep_analyze_speech
-from services.content_quality_service import evaluate_content_quality
+from services.content_quality_service import get_content_quality_fallback
 from contextlib import asynccontextmanager
 import asyncio
 from utils.ai_usage_logger import log_whisper_usage
@@ -369,7 +375,6 @@ async def upload_assessment(
         # TODO: Wire to video_service.py MediaPipe analyzer once video processing is enabled.
         # Using 0 as a neutral placeholder to avoid artificially inflating confidence scores.
         video_data = {"eye_contact_percent": 0}
-        score_data = calculate_score(audio_data, video_data)
 
         TOPIC_PROMPTS = {
             'workplace': 'An ideal workplace reflects values like collaboration, respect, and innovation.',
@@ -395,19 +400,54 @@ async def upload_assessment(
 
         chosen_topic_prompt = real_passage_text or TOPIC_PROMPTS.get(topicId, TOPIC_PROMPTS['custom'])
 
+        # CUTOVER (DECISIONS.md D11 / Phase 1 ML split): deterministic scoring and
+        # qualitative analysis execute in ml-analysis, not in this gateway process.
+        # The old in-process calls are deliberately removed from the gateway; the
+        # service preserves their combined response contract.
         logger.info(f"Starting deep analysis for user {user_id[:8]}...")
-        deep_analysis = await deep_analyze_speech(
-            audio_data,
-            score_data,
-            topic_id=topicId,
-            topic_prompt=chosen_topic_prompt,
-            reference_passage=real_passage_text,
-            assessment_id=sessionId,
-            user_id=user_id,
-        )
+        try:
+            analysis_payload = json.dumps({
+                "audio_data": audio_data,
+                "video_data": video_data,
+                "topic_id": topicId,
+                "topic_prompt": chosen_topic_prompt,
+                "reference_passage": real_passage_text,
+                "assessment_id": sessionId,
+                "user_id": user_id,
+            }).encode("utf-8")
+            analysis_request = urllib.request.Request(
+                f"{ML_ANALYSIS_SERVICE_URL}/analyze/deep",
+                data=analysis_payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(
+                analysis_request, timeout=ML_ANALYSIS_TIMEOUT_SECONDS
+            ) as analysis_response:
+                if analysis_response.status not in (200, 201):
+                    raise RuntimeError(
+                        f"ml-analysis returned HTTP {analysis_response.status}"
+                    )
+                score_data = json.loads(analysis_response.read().decode("utf-8"))
+        except urllib.error.URLError as analysis_error:
+            logger.error(
+                "ml-analysis service is unreachable at %s: %s",
+                ML_ANALYSIS_SERVICE_URL,
+                analysis_error,
+            )
+            raise HTTPException(
+                status_code=502,
+                detail="Speech analysis service (ml-analysis) is unavailable.",
+            )
+        except Exception as analysis_error:
+            logger.error("ml-analysis call failed: %s", analysis_error, exc_info=True)
+            raise HTTPException(
+                status_code=502,
+                detail="Speech analysis service (ml-analysis) failed.",
+            )
 
-        if isinstance(deep_analysis, dict):
-            score_data.update(deep_analysis)
+        # The analysis result already combines deterministic and qualitative data.
+        deep_analysis = score_data
 
         try:
             supabase.table('profiles').update({
@@ -562,17 +602,34 @@ async def upload_assessment(
         try:
             transcript = audio_data.get("transcription", "")
             if transcript and len(transcript.strip()) > 20:
-                content_quality = await evaluate_content_quality(
-                    transcript=transcript,
-                    original_prompt=TOPIC_PROMPTS.get(topicId, TOPIC_PROMPTS['custom']),
-                    topic=topicId,
-                    assessment_id=sessionId
+                quality_payload = json.dumps({
+                    "transcript": transcript,
+                    "original_prompt": TOPIC_PROMPTS.get(topicId, TOPIC_PROMPTS['custom']),
+                    "topic": topicId,
+                    "assessment_id": sessionId,
+                }).encode("utf-8")
+                quality_request = urllib.request.Request(
+                    f"{ML_ANALYSIS_SERVICE_URL}/quality",
+                    data=quality_payload,
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
                 )
+                with urllib.request.urlopen(
+                    quality_request, timeout=ML_ANALYSIS_TIMEOUT_SECONDS
+                ) as quality_response:
+                    if quality_response.status not in (200, 201):
+                        raise RuntimeError(
+                            f"ml-analysis quality endpoint returned HTTP {quality_response.status}"
+                        )
+                    content_quality = json.loads(quality_response.read().decode("utf-8"))
                 # Attach to response for immediate display
                 score_data["content_quality"] = content_quality
         except Exception as cq_err:
             logger.warning(f"Content quality scoring failed (non-blocking): {cq_err}")
-            score_data["content_quality"] = None
+            # Before the service split, evaluate_content_quality() always
+            # returned this contract on LLM failure. Preserve it for an
+            # unreachable ml-analysis quality endpoint as well.
+            score_data["content_quality"] = get_content_quality_fallback()
 
         return {
             "sessionId": sessionId or str(uuid.uuid4()),
