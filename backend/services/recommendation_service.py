@@ -1,3 +1,9 @@
+"""
+SUPERSEDED (DECISIONS.md D14 / Phase 1 ML split Stage 3):
+This monolithic service has been extracted to `services/ml-recommendation/` running on port 9003.
+Preserved for historical reference per D10.
+"""
+
 import os
 import logging
 from utils.llm_client import call_llm
@@ -8,19 +14,46 @@ import json
 
 logger = logging.getLogger(__name__)
 
+SCORE_DIMENSIONS = (
+    "fluency",
+    "confidence",
+    "grammar",
+    "pronunciation",
+    "vocabulary",
+    "clarity",
+)
+
+
+def _extract_score(scores: Dict[str, Any], dimension: str) -> float:
+    if not isinstance(scores, dict):
+        return 100.0
+    for key in (dimension, f"{dimension}_score"):
+        val = scores.get(key)
+        if isinstance(val, (int, float)) and not isinstance(val, bool):
+            return float(val)
+    breakdown = scores.get("breakdown")
+    if isinstance(breakdown, dict):
+        for key in (dimension, f"{dimension}_score"):
+            val = breakdown.get(key)
+            if isinstance(val, (int, float)) and not isinstance(val, bool):
+                return float(val)
+    return 100.0
+
+
+def rank_weakness_priorities(scores: Dict[str, Any]) -> List[str]:
+    rankable_metrics = {dim: _extract_score(scores, dim) for dim in SCORE_DIMENSIONS}
+    sorted_weaknesses = sorted(
+        rankable_metrics.items(),
+        key=lambda item: item[1],
+    )
+    return [item[0] for item in sorted_weaknesses]
+
+
 class RecommendationService:
 
     @staticmethod
     async def generate_speech_profile(user_id: str, assessment_id: str, scores: Dict[str, int], metrics: Dict[str, Any]):
-        rankable_metrics = {
-            'pronunciation': scores.get('pronunciation', scores.get('pronunciation_score', 100)),
-            'fluency':       scores.get('fluency',       scores.get('fluency_score', 100)),
-            'grammar':       scores.get('grammar',       scores.get('grammar_score', 100)),
-            'vocabulary':    scores.get('vocabulary',    scores.get('vocabulary_score', 100)),
-            'clarity':       scores.get('clarity',       scores.get('clarity_score', 100)),
-            'confidence':    scores.get('confidence',    scores.get('confidence_score', 100))
-        }
-        sorted_weaknesses = sorted(rankable_metrics.items(), key=lambda item: item[1])
+        weaknesses = rank_weakness_priorities(scores)
         identified_issues = {
             'pronunciation': metrics.get('phoneme_errors', []),
             'fluency':       [f"{metrics.get('filler_word_count',0)} fillers"] if metrics.get('filler_word_count',0) > 10 else [],
@@ -32,9 +65,9 @@ class RecommendationService:
         profile_data  = {
             "user_id": user_id,
             "created_from_assessment_id": assessment_id,
-            "weakness_priority_1": sorted_weaknesses[0][0],
-            "weakness_priority_2": sorted_weaknesses[1][0],
-            "weakness_priority_3": sorted_weaknesses[2][0],
+            "weakness_priority_1": weaknesses[0],
+            "weakness_priority_2": weaknesses[1],
+            "weakness_priority_3": weaknesses[2],
             "current_scores":      scores,
             "identified_issues":   identified_issues,
             "learning_pace":       learning_pace,
@@ -55,18 +88,18 @@ class RecommendationService:
         profile          = profile_res.data[0]
         current_scores   = profile.get('current_scores', {})
         identified_issues = profile.get('identified_issues', {})
-        old_score        = current_scores.get(category, 50)
-        new_score        = max(0, min(100, old_score + score_delta))
+        old_score        = _extract_score(current_scores, category) if category in SCORE_DIMENSIONS else current_scores.get(category, 50)
+        new_score        = max(0, min(100, round(old_score + score_delta)))
         current_scores[category] = new_score
         if category in identified_issues:
             identified_issues[category] = [i for i in identified_issues[category] if i not in issues_resolved]
-        sorted_weaknesses = sorted(current_scores.items(), key=lambda item: item[1] if isinstance(item[1], (int,float)) else 100)
+        weaknesses = rank_weakness_priorities(current_scores)
         update_data = {
             "current_scores":    current_scores,
             "identified_issues": identified_issues,
-            "weakness_priority_1": sorted_weaknesses[0][0] if len(sorted_weaknesses) > 0 else profile['weakness_priority_1'],
-            "weakness_priority_2": sorted_weaknesses[1][0] if len(sorted_weaknesses) > 1 else profile['weakness_priority_2'],
-            "weakness_priority_3": sorted_weaknesses[2][0] if len(sorted_weaknesses) > 2 else profile['weakness_priority_3'],
+            "weakness_priority_1": weaknesses[0] if len(weaknesses) > 0 else profile['weakness_priority_1'],
+            "weakness_priority_2": weaknesses[1] if len(weaknesses) > 1 else profile['weakness_priority_2'],
+            "weakness_priority_3": weaknesses[2] if len(weaknesses) > 2 else profile['weakness_priority_3'],
             "last_updated_at": datetime.now().isoformat()
         }
         res = supabase.table('speech_profiles').update(update_data).eq('user_id', user_id).execute()

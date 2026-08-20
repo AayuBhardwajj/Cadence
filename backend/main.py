@@ -32,12 +32,22 @@ try:
 except ValueError:
     ML_AUDIO_TIMEOUT_SECONDS = 240
 
+# ml-recommendation service — Phase 1 ML split Stage 3 (DECISIONS.md D14).
+ML_RECOMMENDATION_SERVICE_URL = os.environ.get("ML_RECOMMENDATION_SERVICE_URL", "http://localhost:9003")
+_raw_ml_rec_timeout = os.environ.get("ML_RECOMMENDATION_TIMEOUT_SECONDS", "60")
+try:
+    ML_RECOMMENDATION_TIMEOUT_SECONDS = max(10, int(_raw_ml_rec_timeout))
+except ValueError:
+    ML_RECOMMENDATION_TIMEOUT_SECONDS = 60
+
 # CUTOVER (DECISIONS.md D11 / Phase 1 ML split): audio analysis delegated to ml-audio service (:9001).
 # Direct import preserved for reference and potential rollback; not invoked by upload_assessment().
 # from services.audio_service import analyze_audio
 
+# CUTOVER (DECISIONS.md D14 / Phase 1 ML split Stage 3): recommendation service delegated to ml-recommendation (:9003).
+# from services.recommendation_service import RecommendationService
+
 from utils.supabase_client import supabase
-from services.recommendation_service import RecommendationService
 from services.content_quality_service import get_content_quality_fallback
 from contextlib import asynccontextmanager
 import asyncio
@@ -456,10 +466,40 @@ async def upload_assessment(
         except Exception as e:
             logger.warning(f"Profile timestamp update failed: {e}")
 
+        # CUTOVER (DECISIONS.md D14 / Phase 1 ML split Stage 3):
+        # generate_speech_profile and generate_recommendations delegated to ml-recommendation service (:9003).
+        # Soft-fail behavior preserved: failures are logged as warnings and do NOT abort the upload pipeline.
         try:
-            await RecommendationService.generate_speech_profile(user_id, sessionId, score_data, audio_data)
+            profile_payload = json.dumps({
+                "user_id": user_id,
+                "assessment_id": sessionId,
+                "scores": score_data,
+                "metrics": audio_data,
+            }).encode("utf-8")
+            profile_req = urllib.request.Request(
+                f"{ML_RECOMMENDATION_SERVICE_URL}/profile/generate",
+                data=profile_payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(profile_req, timeout=ML_RECOMMENDATION_TIMEOUT_SECONDS) as profile_resp:
+                if profile_resp.status not in (200, 201):
+                    logger.warning("ml-recommendation /profile/generate returned HTTP %s", profile_resp.status)
+
             practice_exercises = score_data.get("practice_exercises", [])
-            await RecommendationService.generate_recommendations(user_id, pre_generated_exercises=practice_exercises)
+            rec_payload = json.dumps({
+                "user_id": user_id,
+                "pre_generated_exercises": practice_exercises,
+            }).encode("utf-8")
+            rec_req = urllib.request.Request(
+                f"{ML_RECOMMENDATION_SERVICE_URL}/recommendations/generate",
+                data=rec_payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(rec_req, timeout=ML_RECOMMENDATION_TIMEOUT_SECONDS) as rec_resp:
+                if rec_resp.status not in (200, 201):
+                    logger.warning("ml-recommendation /recommendations/generate returned HTTP %s", rec_resp.status)
         except Exception as e:
             logger.warning(f"Adaptive learning update failed: {e}")
 
@@ -667,16 +707,47 @@ async def complete_exercise(
         if not 0 <= score <= 100:
             raise HTTPException(status_code=400, detail="Score must be between 0 and 100.")
 
-        score_delta = 5 if score > 80 else 2 if score > 60 else -1
-        await RecommendationService.update_profile_from_exercise(user_id, category, score_delta, issues_resolved)
-
-        supabase.table('user_exercise_history').insert({
+        # CUTOVER (DECISIONS.md D14 / Phase 1 ML split Stage 3):
+        # Delegated to ml-recommendation service (:9003) which handles score_delta calculation,
+        # speech_profiles update, AND user_exercise_history insert internally.
+        # Hard-fail: 502 Bad Gateway if ml-recommendation is unreachable or errors.
+        req_payload = json.dumps({
             "user_id": user_id,
-            "recommendation_id": exercise_id,
-            "score": score
-        }).execute()
+            "exercise_id": exercise_id,
+            "category": category,
+            "score": score,
+            "issues_resolved": issues_resolved,
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            f"{ML_RECOMMENDATION_SERVICE_URL}/profile/exercise-complete",
+            data=req_payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=ML_RECOMMENDATION_TIMEOUT_SECONDS) as resp:
+                if resp.status not in (200, 201):
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"Recommendation service (ml-recommendation) returned HTTP {resp.status}",
+                    )
+                resp_data = json.loads(resp.read().decode("utf-8"))
+                return resp_data
+        except urllib.error.HTTPError as http_err:
+            if http_err.code == 400:
+                raise HTTPException(status_code=400, detail="Score must be between 0 and 100.")
+            logger.error("ml-recommendation exercise complete returned HTTP %s: %s", http_err.code, http_err.reason)
+            raise HTTPException(
+                status_code=502,
+                detail=f"Recommendation service (ml-recommendation) returned HTTP {http_err.code}",
+            )
+        except urllib.error.URLError as url_err:
+            logger.error("ml-recommendation service is unreachable at %s: %s", ML_RECOMMENDATION_SERVICE_URL, url_err)
+            raise HTTPException(
+                status_code=502,
+                detail=f"Recommendation service (ml-recommendation) is unavailable: {url_err.reason}",
+            )
 
-        return {"status": "success", "message": "Profile updated based on performance"}
     except HTTPException:
         raise
     except Exception as e:
@@ -687,7 +758,40 @@ async def complete_exercise(
 async def get_recommendations(user_id: str):
     try:
         verify_user_id(user_id)
-        return await RecommendationService.generate_recommendations(user_id)
+
+        # CUTOVER (DECISIONS.md D14 / Phase 1 ML split Stage 3):
+        # Delegated to ml-recommendation service (:9003).
+        # Hard-fail: 502 Bad Gateway if ml-recommendation is unreachable or errors.
+        req_payload = json.dumps({
+            "user_id": user_id,
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            f"{ML_RECOMMENDATION_SERVICE_URL}/recommendations/generate",
+            data=req_payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=ML_RECOMMENDATION_TIMEOUT_SECONDS) as resp:
+                if resp.status not in (200, 201):
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"Recommendation service (ml-recommendation) returned HTTP {resp.status}",
+                    )
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as http_err:
+            logger.error("ml-recommendation get_recommendations returned HTTP %s: %s", http_err.code, http_err.reason)
+            raise HTTPException(
+                status_code=502,
+                detail=f"Recommendation service (ml-recommendation) returned HTTP {http_err.code}",
+            )
+        except urllib.error.URLError as url_err:
+            logger.error("ml-recommendation service is unreachable at %s: %s", ML_RECOMMENDATION_SERVICE_URL, url_err)
+            raise HTTPException(
+                status_code=502,
+                detail=f"Recommendation service (ml-recommendation) is unavailable: {url_err.reason}",
+            )
+
     except HTTPException:
         raise
     except Exception as e:
