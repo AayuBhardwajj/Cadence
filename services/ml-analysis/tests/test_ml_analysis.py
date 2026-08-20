@@ -39,7 +39,11 @@ def test_service_loads_the_backend_env_file_explicitly():
 def test_deep_analysis_combines_deterministic_and_qualitative_results():
     audio_data = {"transcription": "A short spoken sample.", "wpm": 145, "filler_count": 0}
     deterministic_result = {"overall_score": 71, "breakdown": {"fluency": 88}}
-    qualitative_result = {"feedback": "Clear delivery.", "amcat_metrics": {"fluency": {"score": 88}}}
+    qualitative_result = {
+        "feedback": "Clear delivery.",
+        "amcat_metrics": {"fluency": {"score": 88}},
+        "grammar_errors": [{"original": "He go", "corrected": "He goes", "rule": "Subject-verb agreement"}],
+    }
 
     with (
         patch.object(ml_analysis_main, "calculate_score", return_value=deterministic_result),
@@ -59,6 +63,7 @@ def test_deep_analysis_combines_deterministic_and_qualitative_results():
 
     assert response.status_code == 200
     assert response.json() == {**deterministic_result, **qualitative_result}
+    assert response.json()["grammar_errors"] == qualitative_result["grammar_errors"]
     analyze.assert_awaited_once()
 
 
@@ -77,3 +82,28 @@ def test_quality_contract_is_proxied():
 
     assert response.status_code == 200
     assert response.json() == expected
+
+
+def test_map_consolidated_to_amcat_preserves_grammar_errors():
+    from services.analysis_service import _map_consolidated_to_amcat, _get_fallback_analysis
+
+    llm_data = {
+        "grammar_errors": [{"original": "He go", "corrected": "He goes", "rule": "Subject-verb agreement"}],
+        "strengths": ["Good clarity"],
+        "weaknesses": ["Minor tense issues"],
+    }
+    metrics = {
+        "overall_score": 75,
+        "breakdown": {"pronunciation": 75, "fluency": 75, "grammar": 70, "vocabulary": 80, "confidence": 75, "clarity": 70},
+    }
+    audio_data = {"transcription": "He go to the store.", "words_data": [], "wpm": 140, "filler_count": 0}
+
+    result = _map_consolidated_to_amcat(llm_data, metrics, audio_data)
+    assert "grammar_errors" in result
+    assert len(result["grammar_errors"]) == 1
+    assert result["grammar_errors"][0]["original"] == "He go"
+
+    fallback = _get_fallback_analysis(metrics, audio_data)
+    assert "grammar_errors" in fallback
+    assert fallback["grammar_errors"] == []
+

@@ -436,6 +436,7 @@ def _map_consolidated_to_amcat(
         "practice_exercises":    data.get("practice_exercises", []),
         "improvement_plan":      data.get("improvement_plan", {}),
         "next_topic_suggestion": data.get("next_topic_suggestion", ""),
+        "grammar_errors":        data.get("grammar_errors", []),
         "api_error": False
     }
 
@@ -586,5 +587,6 @@ def _get_fallback_analysis(
         "amcat_error_log":error_log,"amcat_sentences":[],
         "amcat_summary":{"top_strengths":metrics.get("strengths",[]),"top_improvements":metrics.get("focus_areas",[]),"learning_resources":[{"area":"Pronunciation","items":[{"title":"BBC Learning English","type":"Web"}]},{"area":"Fluency","items":[{"title":"Shadowing Technique","type":"YouTube"}]}]},
         "practice_exercises":[],"improvement_plan":{},"next_topic_suggestion":"Public Speaking Basics",
+        "grammar_errors":[],
         "api_error":True
     }
