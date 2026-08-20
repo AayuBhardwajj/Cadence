@@ -470,11 +470,28 @@ async def upload_assessment(
         # generate_speech_profile and generate_recommendations delegated to ml-recommendation service (:9003).
         # Soft-fail behavior preserved: failures are logged as warnings and do NOT abort the upload pipeline.
         try:
+            # Construct diagnostic_issues following D15 schema
+            amcat_error_log = score_data.get("amcat_error_log", [])
+            pronunciation_errors = [
+                err for err in amcat_error_log
+                if isinstance(err, dict) and err.get("category") == "Pronunciation"
+            ]
+            grammar_errors = score_data.get("grammar_errors", [])
+            # lexical_gaps explicitly deferred per DECISIONS.md D15 Q1
+            lexical_gaps: list[dict[str, Any]] = []
+
+            diagnostic_issues = {
+                "pronunciation_errors": pronunciation_errors,
+                "grammar_errors": grammar_errors,
+                "lexical_gaps": lexical_gaps,
+            }
+
             profile_payload = json.dumps({
                 "user_id": user_id,
                 "assessment_id": sessionId,
                 "scores": score_data,
                 "metrics": audio_data,
+                "diagnostic_issues": diagnostic_issues,
             }).encode("utf-8")
             profile_req = urllib.request.Request(
                 f"{ML_RECOMMENDATION_SERVICE_URL}/profile/generate",

@@ -71,19 +71,50 @@ class RecommendationService:
         assessment_id: str,
         scores: Dict[str, Any],
         metrics: Dict[str, Any],
+        diagnostic_issues: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Calculates weakness priorities from score breakdown and updates or creates
         the user's speech_profiles row.
         """
         weaknesses = rank_weakness_priorities(scores)
+        diagnostic = diagnostic_issues or {}
 
+        # 1. Pronunciation issues: from diagnostic_issues.pronunciation_errors (or fallback metrics)
+        raw_pron = diagnostic.get('pronunciation_errors') or metrics.get('phoneme_errors') or metrics.get('pronunciation_errors') or []
+        pron_issues = [
+            e.get("word") if isinstance(e, dict) and e.get("word") else str(e)
+            for e in raw_pron
+            if (isinstance(e, dict) and e.get("word")) or (isinstance(e, str) and e)
+        ]
+
+        # 2. Fluency issues: from metrics acoustic data
         filler_count = metrics.get('filler_word_count', metrics.get('filler_count', 0))
+        stutter_count = metrics.get('stutter_count', 0)
+        fluency_issues = []
+        if filler_count > 5:
+            fluency_issues.append(f"{filler_count} filler words")
+        if stutter_count > 0:
+            fluency_issues.append(f"{stutter_count} stutter events")
+        if not fluency_issues and filler_count > 0:
+            fluency_issues.append(f"{filler_count} fillers")
+
+        # 3. Grammar issues: from diagnostic_issues.grammar_errors (or fallback metrics)
+        raw_grammar = diagnostic.get('grammar_errors') or metrics.get('grammar_errors') or []
+        grammar_issues = [
+            f"{g.get('original')} -> {g.get('corrected')}" if isinstance(g, dict) and g.get("original") and g.get("corrected") else (g.get("original") or g.get("rule") or str(g))
+            for g in raw_grammar
+            if isinstance(g, dict) or isinstance(g, str)
+        ]
+
+        # 4. Vocabulary issues: lexical_gaps is deliberately deferred per DECISIONS.md D15 Q1
+        vocab_issues = diagnostic.get('lexical_gaps') or metrics.get('lexical_gaps') or []
+
         identified_issues = {
-            'pronunciation': metrics.get('phoneme_errors', metrics.get('pronunciation_errors', [])),
-            'fluency':       [f"{filler_count} fillers"] if filler_count > 10 else [],
-            'grammar':       metrics.get('grammar_errors', []),
-            'vocabulary':    metrics.get('lexical_gaps', []),
+            'pronunciation': pron_issues,
+            'fluency':       fluency_issues,
+            'grammar':       grammar_issues,
+            'vocabulary':    vocab_issues,
         }
 
         overall = scores.get('overall_score', 50)
@@ -195,16 +226,19 @@ class RecommendationService:
         recommendations = []
         pre_gen_idx = 0
 
-        for i, category in enumerate(weaknesses):
-            limit = 2 if i == 0 else 1
+        for category in weaknesses:
             templates_res = (
                 supabase.table('exercise_templates')
                 .select('*')
                 .eq('skill_category', category)
                 .eq('is_active', True)
-                .limit(limit)
+                .limit(1)
                 .execute()
             )
+
+            if not templates_res.data:
+                logger.warning(f"No exercise_templates found for category={category}, skipping recommendation slot")
+                continue
 
             for template in templates_res.data:
                 issues = (profile.get('identified_issues') or {}).get(category, [])
@@ -215,7 +249,7 @@ class RecommendationService:
                     pre_gen_idx += 1
                 else:
                     dynamic_content = f"Practice your {category} skills."
-                    if issues and not pre_generated_exercises:
+                    if issues:
                         try:
                             prompt = (
                                 f"Generate a short, engaging 3-sentence speaking exercise for a user "
@@ -236,7 +270,7 @@ class RecommendationService:
                 recommendations.append({
                     "user_id": user_id,
                     "template_id": template['id'],
-                    "priority_rank": i + 1,
+                    "priority_rank": len(recommendations) + 1,
                     "personalization_context": {
                         "why": f"Based on your {category} progress.",
                         "focus_items": issues[:3] if isinstance(issues, list) else [],

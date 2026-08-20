@@ -47,7 +47,8 @@ class GenerateProfileRequest(BaseModel):
     user_id: str
     assessment_id: str
     scores: Dict[str, Any] = Field(..., description="Calculated scores e.g. overall_score, fluency, pronunciation, grammar, vocabulary")
-    metrics: Dict[str, Any] = Field(default_factory=dict, description="Acoustic/text metrics e.g. filler_word_count, phoneme_errors, grammar_errors")
+    metrics: Dict[str, Any] = Field(default_factory=dict, description="Acoustic/text metrics e.g. filler_word_count, stutter_count")
+    diagnostic_issues: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Qualitative diagnostic errors from ml-analysis following D15 schema")
 
 
 class GenerateRecommendationsRequest(BaseModel):
@@ -86,6 +87,7 @@ async def generate_profile(req: GenerateProfileRequest):
             assessment_id=req.assessment_id,
             scores=req.scores,
             metrics=req.metrics,
+            diagnostic_issues=req.diagnostic_issues,
         )
         return {
             "status": "success",
