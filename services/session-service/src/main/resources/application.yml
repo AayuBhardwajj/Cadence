@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: session-service
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:cadence}?currentSchema=public
     username: ${DB_USER:cadence}
@@ -21,6 +26,13 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+supabase:
+  url: ${SUPABASE_URL:https://kvubxhrfipcvlephrxam.supabase.co}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+  storage:
+    bucket-name: ${STORAGE_BUCKET_NAME:assessment-recordings}
+    signed-url-expiry-seconds: ${SIGNED_URL_EXPIRY_SECONDS:3600}
 
 management:
   endpoints:

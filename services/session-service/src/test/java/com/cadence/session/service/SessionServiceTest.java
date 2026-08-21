@@ -33,6 +33,9 @@ class SessionServiceTest {
     @Mock
     private AssessmentSessionRepository assessmentSessionRepository;
 
+    @Mock
+    private SupabaseStorageService supabaseStorageService;
+
     @InjectMocks
     private SessionService sessionService;
 
@@ -111,5 +114,52 @@ class SessionServiceTest {
 
         verify(legacyAssessmentRepository, never()).save(any(LegacyAssessment.class));
         verify(assessmentSessionRepository, never()).save(any(AssessmentSession.class));
+    }
+
+    @Test
+    void uploadAssessment_successfulUploadAndPersistence() {
+        UUID sessionId = UUID.randomUUID();
+        org.springframework.mock.web.MockMultipartFile mockFile = new org.springframework.mock.web.MockMultipartFile(
+                "file", "speech.webm", "audio/webm", "test audio content".getBytes()
+        );
+
+        when(supabaseStorageService.uploadFile(anyString(), any(byte[].class), anyString()))
+                .thenReturn(userId + "/" + sessionId + ".webm");
+        when(supabaseStorageService.createSignedUrl(anyString(), eq(3600)))
+                .thenReturn("https://supabase.co/storage/v1/object/sign/assessment-recordings/" + userId + "/" + sessionId + ".webm?token=123");
+
+        AssessmentSession existingSession = AssessmentSession.builder()
+                .id(sessionId)
+                .userId(userId)
+                .status("pending")
+                .build();
+        when(assessmentSessionRepository.findById(sessionId)).thenReturn(java.util.Optional.of(existingSession));
+        when(assessmentSessionRepository.save(any(AssessmentSession.class))).thenAnswer(i -> i.getArgument(0));
+
+        var response = sessionService.uploadAssessment(userId, sessionId, "custom", 60, mockFile);
+
+        assertNotNull(response);
+        assertEquals("success", response.getStatus());
+        assertEquals(sessionId, response.getSessionId());
+        assertEquals(userId + "/" + sessionId + ".webm", response.getStoragePath());
+        assertTrue(response.getSignedUrl().contains("token=123"));
+        assertEquals("assessment-recordings", response.getBucket());
+
+        verify(assessmentSessionRepository, times(1)).save(argThat(s ->
+                "uploading".equals(s.getStatus()) && (userId + "/" + sessionId + ".webm").equals(s.getAudioStoragePath())
+        ));
+    }
+
+    @Test
+    void uploadAssessment_emptyFile_throwsBadRequest() {
+        UUID sessionId = UUID.randomUUID();
+        org.springframework.mock.web.MockMultipartFile emptyFile = new org.springframework.mock.web.MockMultipartFile(
+                "file", "empty.webm", "audio/webm", new byte[0]
+        );
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                sessionService.uploadAssessment(userId, sessionId, "custom", 60, emptyFile)
+        );
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
 }

@@ -111,4 +111,36 @@ class SessionControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.detail").value("Assessment not available yet."));
     }
+
+    @Test
+    void whenUploadAssessmentSuccess_returns200() throws Exception {
+        UUID validUserId = UUID.randomUUID();
+        UUID validSessionId = UUID.randomUUID();
+        com.cadence.session.dto.UploadAssessmentResponse mockResponse = com.cadence.session.dto.UploadAssessmentResponse.builder()
+                .status("success")
+                .sessionId(validSessionId)
+                .storagePath(validUserId + "/" + validSessionId + ".webm")
+                .signedUrl("https://supabase.co/storage/v1/object/sign/assessment-recordings/test.webm?token=123")
+                .bucket("assessment-recordings")
+                .persistenceWarnings(Collections.emptyList())
+                .build();
+
+        when(sessionService.uploadAssessment(any(), any(), any(), any(), any())).thenReturn(mockResponse);
+
+        org.springframework.mock.web.MockMultipartFile mockFile = new org.springframework.mock.web.MockMultipartFile(
+                "file", "recording.webm", "audio/webm", "test audio".getBytes()
+        );
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/assessment/upload")
+                        .file(mockFile)
+                        .param("userId", validUserId.toString())
+                        .param("sessionId", validSessionId.toString())
+                        .param("topicId", "workplace")
+                        .param("duration", "45"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.sessionId").value(validSessionId.toString()))
+                .andExpect(jsonPath("$.storagePath").value(validUserId + "/" + validSessionId + ".webm"))
+                .andExpect(jsonPath("$.bucket").value("assessment-recordings"));
+    }
 }

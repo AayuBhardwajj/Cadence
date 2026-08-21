@@ -2,6 +2,7 @@ package com.cadence.session.service;
 
 import com.cadence.session.dto.EligibilityResponse;
 import com.cadence.session.dto.StartSessionResponse;
+import com.cadence.session.dto.UploadAssessmentResponse;
 import com.cadence.session.entity.AssessmentSession;
 import com.cadence.session.entity.LegacyAssessment;
 import com.cadence.session.repository.AssessmentSessionRepository;
@@ -25,6 +26,7 @@ public class SessionService {
     private final EligibilityService eligibilityService;
     private final LegacyAssessmentRepository legacyAssessmentRepository;
     private final AssessmentSessionRepository assessmentSessionRepository;
+    private final SupabaseStorageService supabaseStorageService;
 
     /**
      * Intentionally NOT @Transactional: each save() must commit independently so
@@ -76,6 +78,91 @@ public class SessionService {
         return StartSessionResponse.builder()
                 .status("success")
                 .sessionId(newSessionId)
+                .persistenceWarnings(persistenceWarnings)
+                .build();
+    }
+
+    /**
+     * Ingests candidate speech recording, persists to Supabase Storage bucket 'assessment-recordings',
+     * updates assessment_sessions (status='uploading', audio_storage_path), and returns signed URL reference.
+     */
+    public UploadAssessmentResponse uploadAssessment(
+            UUID userId,
+            UUID sessionId,
+            String topicId,
+            Integer duration,
+            org.springframework.web.multipart.MultipartFile file
+    ) {
+        if (file == null || file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File is missing or empty.");
+        }
+
+        String contentType = file.getContentType();
+        List<String> allowedTypes = List.of(
+                "audio/webm", "video/webm", "audio/wav", "audio/mp4", "video/mp4", "audio/mpeg", "application/octet-stream"
+        );
+        if (contentType != null && !allowedTypes.contains(contentType)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported file type: " + contentType);
+        }
+
+        String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "recording.webm";
+        String fileExt = originalFilename.contains(".") ? originalFilename.substring(originalFilename.lastIndexOf(".") + 1) : "webm";
+        String storagePath = String.format("%s/%s.%s", userId, sessionId, fileExt);
+
+        byte[] bytes;
+        try {
+            bytes = file.getBytes();
+        } catch (Exception e) {
+            log.error("Failed to read upload file bytes for session {}", sessionId, e);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to read upload file: " + e.getMessage());
+        }
+
+        // 1. Upload file bytes to Supabase Storage
+        String uploadedPath = supabaseStorageService.uploadFile(storagePath, bytes, contentType);
+
+        // 2. Generate 1-hour signed URL
+        String signedUrl = supabaseStorageService.createSignedUrl(uploadedPath, 3600);
+
+        // 3. Update assessment_sessions (status='uploading' per live constraint, audio_storage_path)
+        List<String> persistenceWarnings = new ArrayList<>();
+        try {
+            var existingSessionOpt = assessmentSessionRepository.findById(sessionId);
+            if (existingSessionOpt.isPresent()) {
+                AssessmentSession session = existingSessionOpt.get();
+                session.setStatus("uploading");
+                session.setAudioStoragePath(uploadedPath);
+                if (topicId != null && !topicId.trim().isEmpty()) {
+                    session.setTopicId(topicId);
+                }
+                if (duration != null && duration > 0) {
+                    session.setDurationSeconds(duration);
+                }
+                assessmentSessionRepository.save(session);
+                log.info("Updated assessment_sessions {} status=uploading audio_storage_path={}", sessionId, uploadedPath);
+            } else {
+                AssessmentSession newSession = AssessmentSession.builder()
+                        .id(sessionId)
+                        .userId(userId)
+                        .topicId(topicId)
+                        .status("uploading")
+                        .durationSeconds(duration)
+                        .audioStoragePath(uploadedPath)
+                        .createdAt(OffsetDateTime.now())
+                        .build();
+                assessmentSessionRepository.save(newSession);
+                log.info("Created new assessment_sessions {} status=uploading audio_storage_path={}", sessionId, uploadedPath);
+            }
+        } catch (Exception err) {
+            log.error("Failed to update assessment_sessions with storage path for session {}: {}", sessionId, err.getMessage(), err);
+            persistenceWarnings.add("Failed to update assessment_sessions: " + err.getClass().getSimpleName());
+        }
+
+        return UploadAssessmentResponse.builder()
+                .status("success")
+                .sessionId(sessionId)
+                .storagePath(uploadedPath)
+                .signedUrl(signedUrl)
+                .bucket("assessment-recordings")
                 .persistenceWarnings(persistenceWarnings)
                 .build();
     }

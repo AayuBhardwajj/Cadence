@@ -45,6 +45,9 @@ public class AssessmentSession {
     @Column(name = "passage_id")
     private UUID passageId;
 
+    @Column(name = "audio_storage_path")
+    private String audioStoragePath;
+
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
