@@ -26,6 +26,13 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  # RabbitMQ connection — consumed by Spring Boot AMQP autoconfigure (RabbitProperties).
+  # Phase 3 Stage 1 (D-impl-1, 2026-08-21). Credentials default to infrastructure/docker-compose.yml values.
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:cadence}
+    password: ${RABBITMQ_PASSWORD:cadence_dev_pw}
 
 supabase:
   url: ${SUPABASE_URL:https://kvubxhrfipcvlephrxam.supabase.co}
@@ -39,3 +46,11 @@ management:
     web:
       exposure:
         include: health
+
+# Application-specific queue name constants (NOT the spring.rabbitmq.* autoconfigure namespace).
+# Values MUST match ml-audio/amqp_consumer.py QUEUE_* constants exactly — see D-impl-1 sign-off.
+# Both services declare queues idempotently: durable=true, auto_delete=false, exclusive=false.
+rabbitmq:
+  queues:
+    analysis-requested: analysis.requested
+    analysis-audio-completed: analysis.audio.completed

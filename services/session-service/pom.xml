@@ -94,6 +94,17 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- RabbitMQ / AMQP (Phase 3 Stage 1 — D-impl-1, investigation 2026-08-21)
+             Resolved by Spring Boot 3.3.1 BOM: spring-rabbit:3.1.6, amqp-client:5.21.0.
+             Live dependency:tree confirmed zero conflicts with spring-security, jjwt, postgresql, lombok.
+             ml-audio consumer counterpart: services/ml-audio/requirements.txt (aio-pika==10.0.1).
+             Queue declarations: RabbitMQConfig.java — any change to queue params MUST be mirrored
+             in ml-audio's consumer declaration (services/ml-audio/main.py AmqpConsumer). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

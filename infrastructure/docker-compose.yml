@@ -13,7 +13,9 @@ volumes:
 
 services:
   rabbitmq:
-    image: rabbitmq:3-management
+    # Pinned to 3.13.7-management per D-impl-4 (2026-08-21) — do NOT change to the floating
+    # '3-management' tag; next docker pull could resolve a different version mid-development.
+    image: rabbitmq:3.13.7-management
     container_name: cadence-rabbitmq
     networks: [cadence-net]
     ports:

@@ -4,3 +4,6 @@ python-multipart==0.0.22
 openai-whisper==20250625
 torch==2.11.0
 python-dotenv==1.2.2
+# RabbitMQ async consumer (Phase 3 Stage 1 — D-impl-1, investigation 2026-08-21)
+# Pinned to 10.0.1 — live-verified compatible with fastapi 0.135.2, torch 2.11.0, whisper.
+aio-pika==10.0.1

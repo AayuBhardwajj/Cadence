@@ -18,7 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,6 +35,9 @@ class SessionServiceTest {
 
     @Mock
     private SupabaseStorageService supabaseStorageService;
+
+    @Mock
+    private AmqpPublisherService amqpPublisherService;
 
     @InjectMocks
     private SessionService sessionService;
@@ -161,5 +164,34 @@ class SessionServiceTest {
                 sessionService.uploadAssessment(userId, sessionId, "custom", 60, emptyFile)
         );
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void uploadAssessment_amqpPublishFails_returnSuccessWithWarning() {
+        // D-impl-2: AMQP publish failure is soft-fail — response is still success with persistence_warnings
+        UUID sessionId = UUID.randomUUID();
+        org.springframework.mock.web.MockMultipartFile mockFile = new org.springframework.mock.web.MockMultipartFile(
+                "file", "speech.webm", "audio/webm", "test audio content".getBytes()
+        );
+
+        when(supabaseStorageService.uploadFile(anyString(), any(byte[].class), anyString()))
+                .thenReturn(userId + "/" + sessionId + ".webm");
+        when(supabaseStorageService.createSignedUrl(anyString(), eq(3600)))
+                .thenReturn("https://supabase.co/signed-url");
+        when(assessmentSessionRepository.findById(sessionId)).thenReturn(java.util.Optional.empty());
+        when(assessmentSessionRepository.save(any(AssessmentSession.class))).thenAnswer(i -> i.getArgument(0));
+
+        doThrow(new RuntimeException("RabbitMQ connection refused"))
+                .when(amqpPublisherService).publishAnalysisRequested(any(UUID.class), any(UUID.class), anyString());
+
+        var response = sessionService.uploadAssessment(userId, sessionId, "custom", 60, mockFile);
+
+        assertEquals("success", response.getStatus());
+        assertEquals(1, response.getPersistenceWarnings().size());
+        assertTrue(response.getPersistenceWarnings().get(0).contains("Failed to publish analysis.requested"),
+                "Expected AMQP failure in persistence_warnings");
+
+        // Storage write must have still happened despite AMQP failure
+        verify(supabaseStorageService, times(1)).uploadFile(anyString(), any(byte[].class), anyString());
     }
 }

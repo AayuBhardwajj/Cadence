@@ -27,6 +27,7 @@ public class SessionService {
     private final LegacyAssessmentRepository legacyAssessmentRepository;
     private final AssessmentSessionRepository assessmentSessionRepository;
     private final SupabaseStorageService supabaseStorageService;
+    private final AmqpPublisherService amqpPublisherService;
 
     /**
      * Intentionally NOT @Transactional: each save() must commit independently so
@@ -155,6 +156,24 @@ public class SessionService {
         } catch (Exception err) {
             log.error("Failed to update assessment_sessions with storage path for session {}: {}", sessionId, err.getMessage(), err);
             persistenceWarnings.add("Failed to update assessment_sessions: " + err.getClass().getSimpleName());
+        }
+
+        // 4. Publish analysis.requested to RabbitMQ (Phase 3 Stage 1 — D-impl-2, 2026-08-21)
+        // SOFT-FAIL: consistent with D6 dual-write pattern. Failure adds persistence_warning but
+        // does not block the HTTP response — the audio file is already safely stored.
+        //
+        // IMPORTANT — stuck-session gap (D-impl-2 explicit statement):
+        // A failed publish leaves assessment_sessions.status = 'uploading' with no analysis.requested
+        // ever published. This session is stuck. Detection today is manual only:
+        //   SELECT id, status, created_at FROM assessment_sessions
+        //   WHERE status = 'uploading' AND created_at < NOW() - INTERVAL '10 minutes';
+        // No automated watchdog exists. See AmqpPublisherService.java and BUGS_AND_ISSUES.md.
+        try {
+            amqpPublisherService.publishAnalysisRequested(sessionId, userId, uploadedPath);
+        } catch (Exception amqpErr) {
+            log.error("AMQP publish failed for analysis.requested session={}: {} — session stuck in status='uploading'",
+                    sessionId, amqpErr.getMessage(), amqpErr);
+            persistenceWarnings.add("Failed to publish analysis.requested: " + amqpErr.getClass().getSimpleName());
         }
 
         return UploadAssessmentResponse.builder()
