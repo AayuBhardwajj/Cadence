@@ -107,3 +107,17 @@ def test_map_consolidated_to_amcat_preserves_grammar_errors():
     assert "grammar_errors" in fallback
     assert fallback["grammar_errors"] == []
 
+
+def test_amqp_consumer_topology_constants():
+    from amqp_consumer import (
+        QUEUE_ANALYSIS_AUDIO_COMPLETED,
+        EXCHANGE_ANALYSIS_COMPLETED,
+        QUEUE_REPORT_SERVICE_COMPLETED,
+        QUEUE_ML_RECOMMENDATION_COMPLETED,
+    )
+
+    assert QUEUE_ANALYSIS_AUDIO_COMPLETED == "analysis.audio.completed"
+    assert EXCHANGE_ANALYSIS_COMPLETED == "analysis.completed"
+    assert QUEUE_REPORT_SERVICE_COMPLETED == "report-service.analysis.completed"
+    assert QUEUE_ML_RECOMMENDATION_COMPLETED == "ml-recommendation.analysis.completed"
+

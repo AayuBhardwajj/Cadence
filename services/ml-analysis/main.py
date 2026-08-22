@@ -4,6 +4,8 @@ This service runs independently, utilizing the ml-shared package for LLM
 routing, cost logging, and Supabase client access.
 """
 
+from contextlib import asynccontextmanager
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -15,9 +17,35 @@ BACKEND_DIR = Path(__file__).resolve().parents[2] / "backend"
 BACKEND_ENV = BACKEND_DIR / ".env"
 load_dotenv(BACKEND_ENV, override=True)
 
+# Also load service-local .env if present
+LOCAL_ENV = Path(__file__).resolve().parent / ".env"
+if LOCAL_ENV.exists():
+    load_dotenv(LOCAL_ENV, override=True)
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+logger = logging.getLogger("ml-analysis")
+
 from services.analysis_service import deep_analyze_speech  # noqa: E402
 from services.content_quality_service import evaluate_content_quality  # noqa: E402
 from utils.scoring import calculate_score  # noqa: E402
+from amqp_consumer import AmqpConsumer  # noqa: E402
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage startup and shutdown lifecycle for ml-analysis, including AMQP consumer."""
+    consumer = AmqpConsumer()
+    try:
+        await consumer.start()
+        app.state.amqp_consumer = consumer
+    except Exception as err:
+        logger.error("Failed to start AMQP consumer (service will continue in HTTP-only mode): %s", err)
+        app.state.amqp_consumer = None
+
+    yield
+
+    if app.state.amqp_consumer:
+        await app.state.amqp_consumer.stop()
 
 
 class DeepAnalysisRequest(BaseModel):
@@ -37,7 +65,7 @@ class QualityRequest(BaseModel):
     assessment_id: str | None = None
 
 
-app = FastAPI(title="Cadence ML Analysis Service")
+app = FastAPI(title="Cadence ML Analysis Service", lifespan=lifespan)
 
 
 @app.get("/health")
@@ -78,3 +106,8 @@ async def analyze_quality(request: QualityRequest) -> dict[str, Any]:
         )
     except Exception as error:
         raise HTTPException(status_code=500, detail=f"Content quality analysis failed: {error}") from error
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=9002)

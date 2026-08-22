@@ -6,3 +6,4 @@ groq==1.1.2
 google-genai==1.64.0
 supabase==2.15.3
 jiwer>=3.0.4
+aio-pika==10.0.1
