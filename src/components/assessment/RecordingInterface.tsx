@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, Text, VStack, HStack, Button, Flex, Progress, IconButton, Tabs, TabList, TabPanels, Tab, TabPanel, Spinner, Stack } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
-import { StopCircle, RefreshCw, UploadCloud } from 'lucide-react';
+import { StopCircle, RefreshCw, UploadCloud, Download } from 'lucide-react';
 import { useAssessmentContent } from '../../hooks/useAssessmentContent';
 
 interface RecordingInterfaceProps {
@@ -125,6 +125,23 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
         if (recordedBlob) onRecordingComplete(recordedBlob);
     };
 
+    // ── DEV-ONLY: temporary local download for test recordings ──────────────
+    // Saves the raw .webm blob to disk before upload so it survives regardless
+    // of backend cleanup. Remove this function and the button below before shipping.
+    const handleDevDownload = () => {
+        if (!recordedBlob) return;
+        const url = URL.createObjectURL(recordedBlob);
+        const a = document.createElement('a');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        a.href = url;
+        a.download = `cadence-recording-${sessionId ?? 'nosession'}-${timestamp}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+    // ── END DEV-ONLY ─────────────────────────────────────────────────────────
+
     if (contentLoading) {
       return (
         <Flex justify="center" align="center" minH="200px" direction="column" gap={3} w="full" h="100vh" bg="#050a1f" color="white">
@@ -227,6 +244,20 @@ export const RecordingInterface: React.FC<RecordingInterfaceProps> = ({
                         {recordingState === 'completed' && (
                             <Stack direction={{ base: "column", sm: "row" }} spacing={{ base: 3, sm: 4 }} align="center" justify="center">
                                 <Button variant="outline" leftIcon={<RefreshCw />} onClick={() => setRecordingState('idle')}>Retry</Button>
+                                {/* DEV-ONLY: remove before shipping */}
+                                <Button
+                                    variant="outline"
+                                    colorScheme="orange"
+                                    leftIcon={<Download size={16} />}
+                                    onClick={handleDevDownload}
+                                    title="[DEV] Download raw .webm before upload"
+                                    size="sm"
+                                    opacity={0.7}
+                                    _hover={{ opacity: 1 }}
+                                >
+                                    [DEV] Save Recording
+                                </Button>
+                                {/* END DEV-ONLY */}
                                 <Button colorScheme="blue" size="lg" leftIcon={<UploadCloud />} onClick={handleSubmit}>
                                     Analyze My Speech
                                 </Button>

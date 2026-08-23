@@ -12,6 +12,7 @@ Exposes endpoints:
 import os
 import sys
 import logging
+from contextlib import asynccontextmanager
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 from dotenv import load_dotenv
@@ -28,11 +29,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from services.recommendation_service import RecommendationService
+from amqp_consumer import start_amqp_consumer, stop_amqp_consumer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("ml-recommendation")
 
-app = FastAPI(title="Cadence ML Recommendation Service", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app):
+    # Phase 3 Stage 3: start AMQP consumer (analysis.completed → recommendations.updated).
+    # If RabbitMQ is unavailable, consumer skips gracefully; HTTP endpoints stay operational.
+    await start_amqp_consumer(app)
+    yield
+    await stop_amqp_consumer(app)
+
+
+app = FastAPI(title="Cadence ML Recommendation Service", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

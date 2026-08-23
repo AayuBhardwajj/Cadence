@@ -245,4 +245,36 @@ async def test_generate_speech_profile_populates_diagnostic_issues(monkeypatch):
     assert issues["vocabulary"] == []
 
 
+def test_amqp_consumer_topology():
+    from amqp_consumer import INBOUND_QUEUE, OUTBOUND_QUEUE, PREFETCH_COUNT
+    assert INBOUND_QUEUE == "ml-recommendation.analysis.completed"
+    assert OUTBOUND_QUEUE == "recommendations.updated"
+    assert PREFETCH_COUNT == 1
+
+
+def test_extract_diagnostic_issues():
+    from amqp_consumer import _extract_diagnostic_issues
+
+    score_data = {
+        "amcat_error_log": [
+            {"word": "and", "category": "Fluency", "error_type": "prolongation"},
+            {"word": "photographer", "category": "Pronunciation", "error_type": "mispronunciation"},
+            {"word": "essential", "category": "Pronunciation", "error_type": "vowel_shift"},
+            {"word": "milestones", "category": "Fluency", "error_type": "block"},
+            {"word": "corrupt_entry"},
+            "non_dict_entry",
+        ],
+        "grammar_errors": [
+            {"original": "he go", "corrected": "he goes", "rule": "agreement"}
+        ],
+    }
+
+    diag = _extract_diagnostic_issues(score_data)
+    assert len(diag["pronunciation_errors"]) == 2
+    assert diag["pronunciation_errors"][0]["word"] == "photographer"
+    assert diag["pronunciation_errors"][1]["word"] == "essential"
+    assert diag["grammar_errors"] == [{"original": "he go", "corrected": "he goes", "rule": "agreement"}]
+    assert diag["lexical_gaps"] == []
+
+
 

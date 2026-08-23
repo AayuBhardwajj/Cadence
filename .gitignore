@@ -25,3 +25,4 @@ database/database.md
 ai/
 agents/
 .env.local
+backend/test_recordings/
