@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Text, VStack, HStack, Flex } from '@chakra-ui/react';
+import { Box, Text, VStack, Flex, Button } from '@chakra-ui/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { subscribeToAssessment, AssessmentNotification } from '../../services/websocket';
+import { fetchAssessmentReport, AnalysisResult } from '../../services/api';
 
 interface ProcessingScreenProps {
-    onComplete: () => void;
+    sessionId: string;
+    onReportReady: (result: AnalysisResult) => void;
+    onRecommendationsReady?: () => void;
+    onError?: (error: string) => void;
+    onRetry?: () => void;
 }
 
 const steps = [
@@ -16,23 +22,90 @@ const steps = [
     "Finalizing your report..."
 ];
 
-export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({ onComplete }) => {
+export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({
+    sessionId,
+    onReportReady,
+    onRecommendationsReady,
+    onError,
+    onRetry,
+}) => {
     const [currentStep, setCurrentStep] = useState(0);
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+    // Step animation loop while waiting for async events
     useEffect(() => {
+        if (errorMessage) return;
         const interval = setInterval(() => {
-            setCurrentStep(prev => {
-                if (prev >= steps.length - 1) {
-                    clearInterval(interval);
-                    setTimeout(onComplete, 1000); // Finish after last step
-                    return prev;
-                }
-                return prev + 1;
-            });
-        }, 2000); // 2 seconds per step
-
+            setCurrentStep(prev => (prev < steps.length - 1 ? prev + 1 : prev));
+        }, 3000);
         return () => clearInterval(interval);
-    }, [onComplete]);
+    }, [errorMessage]);
+
+    // WebSocket STOMP subscription to /topic/assessment/{sessionId}
+    useEffect(() => {
+        if (!sessionId) return;
+
+        const unsubscribe = subscribeToAssessment(
+            sessionId,
+            async (notification: AssessmentNotification) => {
+                if (notification.event === 'REPORT_READY') {
+                    setStatusMessage("Report ready! Loading your assessment results...");
+                    try {
+                        const result = await fetchAssessmentReport(sessionId);
+                        onReportReady(result);
+                    } catch (err: any) {
+                        console.error('Failed to fetch assessment report after REPORT_READY:', err);
+                        setErrorMessage("Failed to load report results. Please try again.");
+                        if (onError) onError(err?.message || "Failed to load report");
+                    }
+                } else if (notification.event === 'RECOMMENDATIONS_READY') {
+                    if (onRecommendationsReady) {
+                        onRecommendationsReady();
+                    }
+                } else if (notification.event === 'ASSESSMENT_FAILED') {
+                    const err = notification.error || "Analysis could not be completed";
+                    setErrorMessage(err);
+                    if (onError) onError(err);
+                }
+            },
+            (error) => {
+                console.warn('[STOMP] WebSocket transport error (will auto-reconnect):', error);
+            }
+        );
+
+        return () => {
+            unsubscribe();
+        };
+    }, [sessionId, onReportReady, onRecommendationsReady, onError]);
+
+    if (errorMessage) {
+        return (
+            <Flex
+                position="fixed" top={0} left={0} w="full" h="100vh"
+                bgGradient="radial(circle at center, #1a202c 0%, #000000 100%)"
+                align="center" justify="center" zIndex={20}
+                direction="column" px={6}
+            >
+                <VStack spacing={6} maxW="500px" textAlign="center">
+                    <Box w="60px" h="60px" rounded="full" bg="red.500" display="flex" alignItems="center" justifyContent="center" color="white" fontSize="2xl">
+                        ✕
+                    </Box>
+                    <Text fontSize="2xl" fontWeight="bold" color="white">
+                        Analysis Failed
+                    </Text>
+                    <Text color="red.200" fontSize="md">
+                        {errorMessage}
+                    </Text>
+                    {onRetry && (
+                        <Button colorScheme="blue" size="lg" onClick={onRetry} rounded="full" px={8}>
+                            Retry Assessment
+                        </Button>
+                    )}
+                </VStack>
+            </Flex>
+        );
+    }
 
     return (
         <Flex
@@ -81,13 +154,13 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({ onComplete }
                 <Box h="30px" overflow="hidden" position="relative">
                     <AnimatePresence mode='wait'>
                         <motion.div
-                            key={currentStep}
+                            key={statusMessage || currentStep}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
                         >
                             <Text color="blue.200" fontSize="lg">
-                                {steps[currentStep]}
+                                {statusMessage || steps[currentStep]}
                             </Text>
                         </motion.div>
                     </AnimatePresence>
@@ -99,7 +172,7 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({ onComplete }
                 <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: "100%" }}
-                    transition={{ duration: steps.length * 2, ease: "linear" }}
+                    transition={{ duration: 25, ease: "linear" }}
                     style={{ height: "100%", background: "linear-gradient(90deg, #00d4aa, #3b82f6)" }}
                 />
             </Box>

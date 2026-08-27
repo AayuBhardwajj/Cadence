@@ -30,17 +30,17 @@ public class ReportService {
                 .id(UUID.randomUUID())
                 .assessmentSessionId(request.getAssessmentSessionId())
                 .transcription(request.getTranscription())
-                .overallScore(request.getOverallScore())
-                .pronunciationScore(request.getPronunciationScore())
-                .fluencyScore(request.getFluencyScore())
-                .clarityScore(request.getClarityScore())
-                .grammarScore(request.getGrammarScore())
-                .vocabularyScore(request.getVocabularyScore())
-                .confidenceScore(request.getConfidenceScore())
+                .overallScore(roundScore(request.getOverallScore()))
+                .pronunciationScore(roundScore(request.getPronunciationScore()))
+                .fluencyScore(roundScore(request.getFluencyScore()))
+                .clarityScore(roundScore(request.getClarityScore()))
+                .grammarScore(roundScore(request.getGrammarScore()))
+                .vocabularyScore(roundScore(request.getVocabularyScore()))
+                .confidenceScore(roundScore(request.getConfidenceScore()))
                 .cefrLevel(request.getCefrLevel())
-                .wpm(request.getWpm())
-                .fillerWordCount(request.getFillerWordCount())
-                .eyeContactScore(request.getEyeContactScore())
+                .wpm(roundScore(request.getWpm()))
+                .fillerWordCount(roundScore(request.getFillerWordCount()))
+                .eyeContactScore(roundScore(request.getEyeContactScore()))
                 .strengths(request.getStrengths())
                 .focusAreas(request.getFocusAreas())
                 .feedback(request.getFeedback())
@@ -49,6 +49,10 @@ public class ReportService {
 
         AssessmentReport saved = reportRepository.save(report);
         return AssessmentReportResponse.fromEntity(saved);
+    }
+
+    private Integer roundScore(Double score) {
+        return score != null ? (int) Math.round(score) : null;
     }
 }
 

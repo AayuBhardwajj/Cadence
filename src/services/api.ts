@@ -1,6 +1,8 @@
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const CONTENT_SERVICE_URL = import.meta.env.VITE_CONTENT_SERVICE_URL || "http://localhost:8084";
+const SESSION_SERVICE_URL = import.meta.env.VITE_SESSION_SERVICE_URL || "http://localhost:8082";
+const REPORT_SERVICE_URL = import.meta.env.VITE_REPORT_SERVICE_URL || "http://localhost:8083";
 
 export interface AnalysisResult {
     overall_score: number;
@@ -167,12 +169,12 @@ export const uploadFullAssessment = async (
     sessionId: string,
     topicId: string,
     duration: number
-): Promise<{ sessionId: string; results: AnalysisResult; status: string }> => {
+): Promise<{ sessionId: string; status: string; storagePath?: string }> => {
     const formData = new FormData();
     formData.append("file", videoBlob, "recording.webm");
 
     const response = await fetch(
-        `${API_URL}/api/assessment/upload?userId=${userId}&sessionId=${sessionId}&topicId=${topicId}&duration=${duration}`,
+        `${SESSION_SERVICE_URL}/api/assessment/upload?userId=${userId}&sessionId=${sessionId}&topicId=${topicId}&duration=${duration}`,
         {
             method: "POST",
             body: formData,
@@ -186,6 +188,34 @@ export const uploadFullAssessment = async (
 
     return await response.json();
 };
+
+export const fetchAssessmentReport = async (sessionId: string): Promise<AnalysisResult> => {
+    const response = await fetch(`${REPORT_SERVICE_URL}/api/assessment/results/${sessionId}`);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch report: ${response.status}`);
+    }
+    const data = await response.json();
+    return {
+        overall_score: data.overall_score ?? 0,
+        cefr_level: data.cefr_level ?? 'B1',
+        breakdown: {
+            fluency: data.fluency_score ?? 0,
+            pronunciation: data.pronunciation_score ?? 0,
+            clarity: data.clarity_score ?? 0,
+            grammar: data.grammar_score ?? 0,
+            vocabulary: data.vocabulary_score ?? 0,
+            confidence: data.confidence_score ?? 0,
+            wpm: data.wpm ?? 0,
+            fillers: data.filler_word_count ?? 0,
+            eye_contact: data.eye_contact_score ?? 0,
+        },
+        strengths: data.strengths || [],
+        focus_areas: data.focus_areas || [],
+        feedback: data.feedback || '',
+        transcription: data.transcription || '',
+    };
+};
+
 
 export const uploadVideoForAnalysis = async (videoBlob: Blob): Promise<AnalysisResult> => {
     // Keep old version for quick practice if needed, but update signature

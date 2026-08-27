@@ -19,17 +19,17 @@ public class CreateAssessmentReportRequest {
     private UUID assessmentSessionId;
 
     private String transcription;
-    private Integer overallScore;
-    private Integer pronunciationScore;
-    private Integer fluencyScore;
-    private Integer clarityScore;
-    private Integer grammarScore;
-    private Integer vocabularyScore;
-    private Integer confidenceScore;
+    private Double overallScore;
+    private Double pronunciationScore;
+    private Double fluencyScore;
+    private Double clarityScore;
+    private Double grammarScore;
+    private Double vocabularyScore;
+    private Double confidenceScore;
     private String cefrLevel;
-    private Integer wpm;
-    private Integer fillerWordCount;
-    private Integer eyeContactScore;
+    private Double wpm;
+    private Double fillerWordCount;
+    private Double eyeContactScore;
     private List<String> strengths;
     private List<String> focusAreas;
     private String feedback;

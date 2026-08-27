@@ -96,17 +96,17 @@ class ReportServiceTest {
         CreateAssessmentReportRequest request = CreateAssessmentReportRequest.builder()
                 .assessmentSessionId(sessionId)
                 .transcription("Hello world this is a test assessment.")
-                .overallScore(85)
-                .pronunciationScore(80)
-                .fluencyScore(88)
-                .clarityScore(82)
-                .grammarScore(90)
-                .vocabularyScore(85)
-                .confidenceScore(87)
+                .overallScore(85.0)
+                .pronunciationScore(80.0)
+                .fluencyScore(88.0)
+                .clarityScore(82.0)
+                .grammarScore(90.0)
+                .vocabularyScore(85.0)
+                .confidenceScore(87.0)
                 .cefrLevel("B2")
-                .wpm(135)
-                .fillerWordCount(2)
-                .eyeContactScore(0)
+                .wpm(135.0)
+                .fillerWordCount(2.0)
+                .eyeContactScore(0.0)
                 .strengths(List.of("Good pacing"))
                 .focusAreas(List.of("Reduce filler words"))
                 .feedback("Overall strong performance.")
@@ -129,5 +129,63 @@ class ReportServiceTest {
         assertThat(response.assessmentSessionId()).isEqualTo(sessionId);
         assertThat(response.createdAt()).isNotNull();
     }
+
+    @Test
+    void whenCreateReport_roundsFloatingPointScoresCorrectly() {
+        CreateAssessmentReportRequest request = CreateAssessmentReportRequest.builder()
+                .assessmentSessionId(sessionId)
+                .transcription("Precision test sample.")
+                .overallScore(85.66)
+                .pronunciationScore(75.4)
+                .fluencyScore(92.8)
+                .clarityScore(99.6)
+                .grammarScore(70.2)
+                .vocabularyScore(91.5)
+                .confidenceScore(77.1)
+                .cefrLevel("B1")
+                .wpm(141.4)
+                .fillerWordCount(1.6)
+                .eyeContactScore(84.7)
+                .strengths(List.of("Good vocabulary"))
+                .focusAreas(List.of("Grammar"))
+                .feedback("Solid speech.")
+                .build();
+
+        when(reportRepository.save(any(AssessmentReport.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AssessmentReportResponse response = reportService.createReport(request);
+
+        ArgumentCaptor<AssessmentReport> captor = ArgumentCaptor.forClass(AssessmentReport.class);
+        verify(reportRepository).save(captor.capture());
+
+        AssessmentReport savedReport = captor.getValue();
+        // 85.66 must round to 86 (not truncate to 85)
+        assertThat(savedReport.getOverallScore()).isEqualTo(86);
+        // 75.4 must round to 75
+        assertThat(savedReport.getPronunciationScore()).isEqualTo(75);
+        // 92.8 must round to 93
+        assertThat(savedReport.getFluencyScore()).isEqualTo(93);
+        // 99.6 must round to 100
+        assertThat(savedReport.getClarityScore()).isEqualTo(100);
+        // 70.2 must round to 70
+        assertThat(savedReport.getGrammarScore()).isEqualTo(70);
+        // 91.5 must round to 92
+        assertThat(savedReport.getVocabularyScore()).isEqualTo(92);
+        // 77.1 must round to 77
+        assertThat(savedReport.getConfidenceScore()).isEqualTo(77);
+        // 141.4 must round to 141
+        assertThat(savedReport.getWpm()).isEqualTo(141);
+        // 1.6 must round to 2
+        assertThat(savedReport.getFillerWordCount()).isEqualTo(2);
+        // 84.7 must round to 85
+        assertThat(savedReport.getEyeContactScore()).isEqualTo(85);
+
+        assertThat(response.overallScore()).isEqualTo(86);
+        assertThat(response.wpm()).isEqualTo(141);
+        assertThat(response.fillerWordCount()).isEqualTo(2);
+        assertThat(response.eyeContactScore()).isEqualTo(85);
+    }
 }
+
+
 

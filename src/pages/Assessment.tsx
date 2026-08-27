@@ -132,15 +132,15 @@ export function Assessment() {
     const handleUpload = async (file: Blob) => {
         if (!userId || !sessionId) return;
         try {
-            const res = await uploadFullAssessment(file, userId, sessionId, topicId, 300); // 300s target
-            setResult(res.results);
-            // Result is now handled via ProcessingScreen timer
-        } catch (err) {
+            await uploadFullAssessment(file, userId, sessionId, topicId, 300); // 300s target
+            // Session-service accepted upload; RabbitMQ async pipeline & WebSocket STOMP handle results
+        } catch (err: any) {
             console.error(err);
-            toast({ title: "Analysis Failed", status: "error" });
+            toast({ title: "Upload Failed", description: err?.message || "Failed to upload recording", status: "error" });
             setStep('topic-selection');
         }
     };
+
 
     return (
         <Box
@@ -231,7 +231,15 @@ export function Assessment() {
                 )}
 
                 {step === 'processing' && (
-                    <ProcessingScreen key="processing" onComplete={() => result && setStep('results')} />
+                    <ProcessingScreen
+                        key="processing"
+                        sessionId={sessionId || ''}
+                        onReportReady={(analysisResult) => {
+                            setResult(analysisResult);
+                            setStep('results');
+                        }}
+                        onRetry={() => setStep('topic-selection')}
+                    />
                 )}
 
                 {step === 'results' && result && (
