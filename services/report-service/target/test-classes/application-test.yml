@@ -11,3 +11,7 @@ spring:
     hibernate:
       ddl-auto: none
     show-sql: false
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false

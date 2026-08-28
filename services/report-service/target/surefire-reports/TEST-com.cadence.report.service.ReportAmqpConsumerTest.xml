@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.cadence.report.controller.ReportControllerTest" time="0.742" tests="4" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.cadence.report.service.ReportAmqpConsumerTest" time="0.376" tests="3" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="22"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -64,38 +64,98 @@
     <property name="java.class.version" value="66.0"/>
     <property name="LOGGED_APPLICATION_NAME" value="[report-service-test] "/>
   </properties>
-  <testcase name="whenCreateReportValid_returns201CreatedAndReportJson" classname="com.cadence.report.controller.ReportControllerTest" time="0.191">
-    <system-out><![CDATA[2026-08-27T17:59:09.703+05:30  INFO 79175 --- [report-service-test] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.cadence.report.controller.ReportControllerTest]: ReportControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-08-27T17:59:09.719+05:30  INFO 79175 --- [report-service-test] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.cadence.report.ReportApplication for test class com.cadence.report.controller.ReportControllerTest
+  <testcase name="whenAnalysisCompleted_fails_updatesSessionFailed_broadcastsFailed_andThrowsReject" classname="com.cadence.report.service.ReportAmqpConsumerTest" time="0.364">
+    <system-out><![CDATA[2026-08-27T17:59:11.085+05:30  INFO 79175 --- [report-service-test] [           main] c.c.report.service.ReportAmqpConsumer    : report-service.amqp: processing analysis.completed for session=075170ee-4e18-423a-b379-8b515f206c49
+2026-08-27T17:59:11.085+05:30 ERROR 79175 --- [report-service-test] [           main] c.c.report.service.ReportAmqpConsumer    : report-service.amqp: unhandled failure processing analysis.completed for session=075170ee-4e18-423a-b379-8b515f206c49: Database connection timeout
 
-  .   ____          _            __ _ _
- /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
-( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
- \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
-  '  |____| .__|_| |_|_| |_\__, | / / / /
- =========|_|==============|___/=/_/_/_/
+java.lang.RuntimeException: Database connection timeout
+	at com.cadence.report.service.ReportService.createReport(ReportService.java:29) ~[classes/:na]
+	at com.cadence.report.service.ReportAmqpConsumer.handleAnalysisCompleted(ReportAmqpConsumer.java:85) ~[classes/:na]
+	at com.cadence.report.service.ReportAmqpConsumerTest.lambda$0(ReportAmqpConsumerTest.java:138) ~[test-classes/:na]
+	at org.assertj.core.api.ThrowableAssert.catchThrowable(ThrowableAssert.java:63) ~[assertj-core-3.25.3.jar:na]
+	at org.assertj.core.api.AssertionsForClassTypes.catchThrowable(AssertionsForClassTypes.java:892) ~[assertj-core-3.25.3.jar:na]
+	at org.assertj.core.api.Assertions.catchThrowable(Assertions.java:1365) ~[assertj-core-3.25.3.jar:na]
+	at org.assertj.core.api.Assertions.assertThatThrownBy(Assertions.java:1209) ~[assertj-core-3.25.3.jar:na]
+	at com.cadence.report.service.ReportAmqpConsumerTest.whenAnalysisCompleted_fails_updatesSessionFailed_broadcastsFailed_andThrowsReject(ReportAmqpConsumerTest.java:138) ~[test-classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:728) ~[junit-platform-commons-1.10.2.jar:1.10.2]
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:156) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:147) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:86) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:103) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:93) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:92) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:86) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:218) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:214) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:139) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:69) ~[junit-jupiter-engine-5.10.2.jar:5.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:151) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1597) ~[na:na]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1597) ~[na:na]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54) ~[junit-platform-engine-1.10.2.jar:1.10.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:198) ~[junit-platform-launcher-1.10.2.jar:1.10.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:169) ~[junit-platform-launcher-1.10.2.jar:1.10.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:93) ~[junit-platform-launcher-1.10.2.jar:1.10.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:58) ~[junit-platform-launcher-1.10.2.jar:1.10.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:141) ~[junit-platform-launcher-1.10.2.jar:1.10.2]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:57) ~[junit-platform-launcher-1.10.2.jar:1.10.2]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:103) ~[junit-platform-launcher-1.10.2.jar:1.10.2]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:85) ~[junit-platform-launcher-1.10.2.jar:1.10.2]
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47) ~[junit-platform-launcher-1.10.2.jar:1.10.2]
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56) ~[surefire-junit-platform-3.2.5.jar:3.2.5]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:184) ~[surefire-junit-platform-3.2.5.jar:3.2.5]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:148) ~[surefire-junit-platform-3.2.5.jar:3.2.5]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:122) ~[surefire-junit-platform-3.2.5.jar:3.2.5]
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385) ~[surefire-booter-3.2.5.jar:3.2.5]
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162) ~[surefire-booter-3.2.5.jar:3.2.5]
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507) ~[surefire-booter-3.2.5.jar:3.2.5]
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495) ~[surefire-booter-3.2.5.jar:3.2.5]
 
- :: Spring Boot ::                (v3.3.1)
-
-2026-08-27T17:59:09.738+05:30  INFO 79175 --- [report-service-test] [           main] c.c.r.controller.ReportControllerTest    : Starting ReportControllerTest using Java 22.0.2 with PID 79175 (started by aayushbhardwaj in /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/report-service)
-2026-08-27T17:59:09.739+05:30  INFO 79175 --- [report-service-test] [           main] c.c.r.controller.ReportControllerTest    : No active profile set, falling back to 1 default profile: "default"
-2026-08-27T17:59:10.046+05:30  WARN 79175 --- [report-service-test] [           main] .s.s.UserDetailsServiceAutoConfiguration : 
-
-Using generated security password: 2231f2ec-304a-452d-a64c-a4943dd9422c
-
-This generated password is for development use only. Your security configuration must be updated before running your application in production.
-
-2026-08-27T17:59:10.048+05:30  INFO 79175 --- [report-service-test] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
-2026-08-27T17:59:10.195+05:30  INFO 79175 --- [report-service-test] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
-2026-08-27T17:59:10.195+05:30  INFO 79175 --- [report-service-test] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
-2026-08-27T17:59:10.196+05:30  INFO 79175 --- [report-service-test] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
-2026-08-27T17:59:10.207+05:30  INFO 79175 --- [report-service-test] [           main] c.c.r.controller.ReportControllerTest    : Started ReportControllerTest in 0.485 seconds (process running for 5.493)
 ]]></system-out>
   </testcase>
-  <testcase name="whenCreateReportMissingAssessmentSessionId_returns400" classname="com.cadence.report.controller.ReportControllerTest" time="0.015">
-    <system-out><![CDATA[2026-08-27T17:59:10.417+05:30  WARN 79175 --- [report-service-test] [           main] .w.s.m.s.DefaultHandlerExceptionResolver : Resolved [org.springframework.web.bind.MethodArgumentNotValidException: Validation failed for argument [0] in public org.springframework.http.ResponseEntity<com.cadence.report.dto.AssessmentReportResponse> com.cadence.report.controller.ReportController.createReport(com.cadence.report.dto.CreateAssessmentReportRequest): [Field error in object 'createAssessmentReportRequest' on field 'assessmentSessionId': rejected value [null]; codes [NotNull.createAssessmentReportRequest.assessmentSessionId,NotNull.assessmentSessionId,NotNull.java.util.UUID,NotNull]; arguments [org.springframework.context.support.DefaultMessageSourceResolvable: codes [createAssessmentReportRequest.assessmentSessionId,assessmentSessionId]; arguments []; default message [assessmentSessionId]]; default message [assessmentSessionId is required]] ]
+  <testcase name="whenAnalysisCompleted_success_persistsReport_updatesSession_andBroadcastsReportReady" classname="com.cadence.report.service.ReportAmqpConsumerTest" time="0.006">
+    <system-out><![CDATA[2026-08-27T17:59:11.096+05:30  INFO 79175 --- [report-service-test] [           main] c.c.report.service.ReportAmqpConsumer    : report-service.amqp: processing analysis.completed for session=7e131ed1-b5db-46fb-99b1-206a598b26b3
+2026-08-27T17:59:11.097+05:30  INFO 79175 --- [report-service-test] [           main] c.c.report.service.ReportAmqpConsumer    : report-service.amqp: session 7e131ed1-b5db-46fb-99b1-206a598b26b3 updated status=completed completed_at=2026-08-27T17:59:11.097036+05:30
 ]]></system-out>
   </testcase>
-  <testcase name="whenReportMissing_returns404" classname="com.cadence.report.controller.ReportControllerTest" time="0.009"/>
-  <testcase name="whenReportExists_returns200AndReportJson" classname="com.cadence.report.controller.ReportControllerTest" time="0.006"/>
+  <testcase name="whenRecommendationsUpdated_broadcastsRecommendationsReady" classname="com.cadence.report.service.ReportAmqpConsumerTest" time="0.003">
+    <system-out><![CDATA[2026-08-27T17:59:11.102+05:30  INFO 79175 --- [report-service-test] [           main] c.c.report.service.ReportAmqpConsumer    : report-service.amqp: recommendations.updated received for session=4170ef7b-bf63-4e7d-b636-ed0eaa93cb66
+]]></system-out>
+  </testcase>
 </testsuite>
