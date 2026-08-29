@@ -256,3 +256,74 @@ export const apiClient = {
     return await response.json() as T;
   }
 };
+
+export interface PracticeSessionResponse {
+    sessionId: string;
+    userId: string;
+    bucket: string;
+    status: string;
+    createdAt: string;
+}
+
+export interface DrillAttemptApiResponse {
+    id: string;
+    practiceSessionId: string;
+    targetText: string;
+    transcribedText: string;
+    isMatch: boolean;
+    wer: number;
+    attemptNumber: number;
+    createdAt: string;
+}
+
+export interface CompletePracticeSessionApiResponse {
+    sessionId: string;
+    status: string;
+    completedAt: string;
+}
+
+export const startPracticeSession = async (userId: string, bucket: string): Promise<PracticeSessionResponse> => {
+    const response = await fetch(`${SESSION_SERVICE_URL}/api/practice/session?user_id=${encodeURIComponent(userId)}&bucket=${encodeURIComponent(bucket)}`, {
+        method: "POST"
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({ detail: "Failed to start practice session" }));
+        throw new Error(err.detail || "Failed to start practice session");
+    }
+    return await response.json();
+};
+
+export const submitDrillAttempt = async (
+    practiceSessionId: string,
+    targetText: string,
+    attemptNumber: number,
+    audioBlob: Blob
+): Promise<DrillAttemptApiResponse> => {
+    const formData = new FormData();
+    formData.append("practiceSessionId", practiceSessionId);
+    formData.append("targetText", targetText);
+    formData.append("attemptNumber", attemptNumber.toString());
+    formData.append("file", audioBlob, "drill.webm");
+
+    const response = await fetch(`${SESSION_SERVICE_URL}/api/practice/attempt`, {
+        method: "POST",
+        body: formData
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({ detail: "Failed to submit drill attempt" }));
+        throw new Error(err.detail || "Failed to submit drill attempt");
+    }
+    return await response.json();
+};
+
+export const completePracticeSession = async (practiceSessionId: string): Promise<CompletePracticeSessionApiResponse> => {
+    const response = await fetch(`${SESSION_SERVICE_URL}/api/practice/session/${practiceSessionId}/complete`, {
+        method: "POST"
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({ detail: "Failed to complete practice session" }));
+        throw new Error(err.detail || "Failed to complete practice session");
+    }
+    return await response.json();
+};
+

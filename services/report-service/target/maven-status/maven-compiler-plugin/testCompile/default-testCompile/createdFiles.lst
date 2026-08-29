@@ -1,3 +1,5 @@
 com/cadence/report/service/ReportServiceTest.class
 com/cadence/report/controller/ReportControllerTest.class
+com/cadence/report/service/AssessmentNotificationServiceTest.class
+com/cadence/report/service/ReportAmqpConsumerTest.class
 com/cadence/report/ReportApplicationTests.class

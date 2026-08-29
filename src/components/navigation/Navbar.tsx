@@ -20,18 +20,23 @@ export function Navbar({ username: initialUsername }: NavbarProps) {
     const [profile, setProfile] = React.useState<any>(null);
 
     React.useEffect(() => {
+        let subscription: any = null;
+        let isMounted = true;
+
         const fetchProfile = async () => {
             const { data: { user } } = await supabase.auth.getUser();
+            if (!isMounted) return;
             if (user) {
                 const { data } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', user.id)
                     .single();
+                if (!isMounted) return;
                 if (data) setProfile(data);
 
                 // Real-time synchronization
-                const subscription = supabase
+                subscription = supabase
                     .channel('navbar_profile_sync')
                     .on('postgres_changes', {
                         event: 'UPDATE',
@@ -39,16 +44,20 @@ export function Navbar({ username: initialUsername }: NavbarProps) {
                         table: 'profiles',
                         filter: `id=eq.${user.id}`
                     }, (payload) => {
-                        setProfile(payload.new);
+                        if (isMounted) setProfile(payload.new);
                     })
                     .subscribe();
-
-                return () => {
-                    subscription.unsubscribe();
-                };
             }
         };
+
         fetchProfile();
+
+        return () => {
+            isMounted = false;
+            if (subscription) {
+                supabase.removeChannel(subscription);
+            }
+        };
     }, []);
 
     const userEmail = profile?.email || `${(profile?.username || initialUsername).toLowerCase()}@example.com`;

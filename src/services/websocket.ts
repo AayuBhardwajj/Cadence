@@ -1,7 +1,17 @@
 import { Client, IMessage } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 
 const REPORT_SERVICE_URL = import.meta.env.VITE_REPORT_SERVICE_URL || 'http://localhost:8083';
+
+/**
+ * Derive a ws:// or wss:// URL from the HTTP base URL.
+ * Required because @stomp/stompjs's brokerURL expects a WebSocket URL,
+ * not an HTTP URL. e.g. http://localhost:8083 → ws://localhost:8083
+ */
+function toBrokerUrl(httpBase: string): string {
+    return httpBase.replace(/^http(s?):\/\//, (_, s) => `ws${s}://`) + '/ws';
+}
+
+const BROKER_URL = toBrokerUrl(REPORT_SERVICE_URL);
 
 export interface AssessmentNotification {
     event: 'REPORT_READY' | 'RECOMMENDATIONS_READY' | 'ASSESSMENT_FAILED';
@@ -16,7 +26,7 @@ export const subscribeToAssessment = (
     onError?: (error: any) => void
 ): (() => void) => {
     const client = new Client({
-        webSocketFactory: () => new SockJS(`${REPORT_SERVICE_URL}/ws`),
+        brokerURL: BROKER_URL,
         reconnectDelay: 2000,
         debug: (str) => {
             if (import.meta.env.DEV) {

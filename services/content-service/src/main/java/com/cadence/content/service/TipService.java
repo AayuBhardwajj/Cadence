@@ -10,7 +10,6 @@ import com.cadence.content.repository.DailyTipRepository;
 import com.cadence.content.repository.ProfileRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
@@ -156,26 +155,22 @@ public class TipService {
             tipText = "Today's focus: " + topic + ". Record yourself speaking for 60 seconds and listen back — you'll catch patterns you can't hear in the moment.";
         }
 
-        // 5. Cache result
+        // 5. Cache result — idempotent insert (ON CONFLICT DO NOTHING).
+        // Concurrent callers (React StrictMode double-invoke, two open tabs) may both reach
+        // this point before either has committed. The winner's row is the authoritative one;
+        // the loser's insert is silently discarded by the DB. We always re-fetch so both
+        // callers return the same persisted tip text, not potentially different generated text.
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-        DailyTip dailyTip = DailyTip.builder()
-                .userId(userId)
-                .tipDate(today)
-                .tipText(tipText)
-                .isPersonalized(isPersonalized)
-                .generatedAt(now)
-                .build();
+        dailyTipRepository.insertIgnoreConflict(userId, today, tipText, isPersonalized, now);
 
-        try {
-            dailyTipRepository.save(dailyTip);
-        } catch (Exception e) {
-            log.warn("Failed to cache tip for user {}: {}", userId, e.getMessage());
-        }
+        DailyTip persisted = dailyTipRepository.findByUserIdAndTipDate(userId, today)
+                .orElseThrow(() -> new IllegalStateException(
+                        "daily_tips row missing immediately after insert for user " + userId));
 
         return TipResponse.builder()
-                .tip(tipText)
-                .isPersonalized(isPersonalized)
-                .generatedAt(now.toString())
+                .tip(persisted.getTipText())
+                .isPersonalized(persisted.getIsPersonalized())
+                .generatedAt(persisted.getGeneratedAt().toString())
                 .cached(false)
                 .build();
     }

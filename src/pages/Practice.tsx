@@ -17,6 +17,7 @@ import { useTier } from "../lib/TierContext";
 import { DashboardBackground } from "../components/dashboard/DashboardBackground";
 import { EnhancedCard } from "../components/dashboard/EnhancedCard";
 import { FullAssessmentCard } from "../components/assessment/FullAssessmentCard";
+import { DrillRecorder } from "../components/practice/DrillRecorder";
 import { useNavigate } from "react-router-dom";
 
 import { Navbar } from "../components/navigation/Navbar";
@@ -45,7 +46,7 @@ export function PracticePage({ username = "Alex" }: { username?: string }) {
             description: 'Focus on specific sounds or words with shorter sessions.',
             icon: Timer,
             duration: '2-3 min',
-            locked: tier === 'FREE',
+            locked: false,
             color: 'emerald'
         },
         {
@@ -155,6 +156,18 @@ export function PracticePage({ username = "Alex" }: { username?: string }) {
                         ))}
                     </div>
 
+                    {/* Quick Practice Drill Section */}
+                    {selectedMode === 'quick' && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4 }}
+                            className="pt-6"
+                        >
+                            <DrillRecorder onClose={() => setSelectedMode(null)} />
+                        </motion.div>
+                    )}
+
                     {/* Upgrade Modal Overlay */}
                     <AnimatePresence>
                         {showUpgradeModal && (
@@ -229,3 +242,4 @@ export function PracticePage({ username = "Alex" }: { username?: string }) {
         </DashboardBackground>
     );
 }
+
