@@ -3,6 +3,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const CONTENT_SERVICE_URL = import.meta.env.VITE_CONTENT_SERVICE_URL || "http://localhost:8084";
 const SESSION_SERVICE_URL = import.meta.env.VITE_SESSION_SERVICE_URL || "http://localhost:8082";
 const REPORT_SERVICE_URL = import.meta.env.VITE_REPORT_SERVICE_URL || "http://localhost:8083";
+const PRACTICE_GAME_SERVICE_URL = import.meta.env.VITE_PRACTICE_GAME_SERVICE_URL || "http://localhost:8085";
 
 export interface AnalysisResult {
     overall_score: number;
@@ -283,7 +284,7 @@ export interface CompletePracticeSessionApiResponse {
 }
 
 export const startPracticeSession = async (userId: string, bucket: string): Promise<PracticeSessionResponse> => {
-    const response = await fetch(`${SESSION_SERVICE_URL}/api/practice/session?user_id=${encodeURIComponent(userId)}&bucket=${encodeURIComponent(bucket)}`, {
+    const response = await fetch(`${PRACTICE_GAME_SERVICE_URL}/api/practice/session?user_id=${encodeURIComponent(userId)}&bucket=${encodeURIComponent(bucket)}`, {
         method: "POST"
     });
     if (!response.ok) {
@@ -305,7 +306,7 @@ export const submitDrillAttempt = async (
     formData.append("attemptNumber", attemptNumber.toString());
     formData.append("file", audioBlob, "drill.webm");
 
-    const response = await fetch(`${SESSION_SERVICE_URL}/api/practice/attempt`, {
+    const response = await fetch(`${PRACTICE_GAME_SERVICE_URL}/api/practice/attempt`, {
         method: "POST",
         body: formData
     });
@@ -317,7 +318,7 @@ export const submitDrillAttempt = async (
 };
 
 export const completePracticeSession = async (practiceSessionId: string): Promise<CompletePracticeSessionApiResponse> => {
-    const response = await fetch(`${SESSION_SERVICE_URL}/api/practice/session/${practiceSessionId}/complete`, {
+    const response = await fetch(`${PRACTICE_GAME_SERVICE_URL}/api/practice/session/${practiceSessionId}/complete`, {
         method: "POST"
     });
     if (!response.ok) {
