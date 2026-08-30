@@ -1,9 +1,12 @@
-package com.cadence.session.controller;
+package com.cadence.practice.controller;
 
-import com.cadence.session.dto.CompletePracticeSessionResponse;
-import com.cadence.session.dto.DrillAttemptResponse;
-import com.cadence.session.dto.StartPracticeSessionResponse;
-import com.cadence.session.service.PracticeService;
+import com.cadence.practice.dto.CompletePracticeSessionResponse;
+import com.cadence.practice.dto.DrillAttemptResponse;
+import com.cadence.practice.dto.StartPracticeSessionResponse;
+import com.cadence.practice.model.LevelPhrase;
+import com.cadence.practice.model.PracticeSessionState;
+import com.cadence.practice.service.LevelContentCacheService;
+import com.cadence.practice.service.PracticeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -13,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -23,6 +27,42 @@ import java.util.UUID;
 public class PracticeController {
 
     private final PracticeService practiceService;
+    private final LevelContentCacheService levelContentCacheService;
+
+    @GetMapping("/level/{levelId}/phrases")
+    public ResponseEntity<?> getLevelPhrases(@PathVariable("levelId") String levelId) {
+        try {
+            List<LevelPhrase> phrases = levelContentCacheService.getLevelPhrases(levelId);
+            return ResponseEntity.ok(phrases);
+        } catch (Exception e) {
+            log.error("Failed to fetch level phrases for {}: {}", levelId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("detail", "Failed to fetch level phrases"));
+        }
+    }
+
+    @GetMapping("/session/{sessionId}/state")
+    public ResponseEntity<?> getSessionState(@PathVariable("sessionId") String sessionIdStr) {
+        UUID sessionId;
+        try {
+            sessionId = UUID.fromString(sessionIdStr.trim());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("detail", "Invalid UUID format for sessionId."));
+        }
+
+        try {
+            PracticeSessionState state = practiceService.getSessionState(sessionId);
+            return ResponseEntity.ok(state);
+        } catch (ResponseStatusException rse) {
+            return ResponseEntity.status(rse.getStatusCode())
+                    .body(Map.of("detail", rse.getReason() != null ? rse.getReason() : "Failed to fetch session state"));
+        } catch (Exception e) {
+            log.error("Failed to fetch state for session {}: {}", sessionId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("detail", "Internal error fetching session state."));
+        }
+    }
 
     @PostMapping("/session")
     public ResponseEntity<?> startSession(

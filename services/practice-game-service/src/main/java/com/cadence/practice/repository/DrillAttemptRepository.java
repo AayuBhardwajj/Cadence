@@ -1,6 +1,6 @@
-package com.cadence.session.repository;
+package com.cadence.practice.repository;
 
-import com.cadence.session.entity.DrillAttempt;
+import com.cadence.practice.entity.DrillAttempt;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

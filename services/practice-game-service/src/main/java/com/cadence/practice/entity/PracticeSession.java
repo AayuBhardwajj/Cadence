@@ -1,4 +1,4 @@
-package com.cadence.session.entity;
+package com.cadence.practice.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

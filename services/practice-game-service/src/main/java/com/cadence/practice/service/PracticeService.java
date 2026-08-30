@@ -1,19 +1,23 @@
-package com.cadence.session.service;
+package com.cadence.practice.service;
 
-import com.cadence.session.dto.CompletePracticeSessionResponse;
-import com.cadence.session.dto.DrillAttemptResponse;
-import com.cadence.session.dto.StartPracticeSessionResponse;
-import com.cadence.session.entity.DrillAttempt;
-import com.cadence.session.entity.PracticeSession;
-import com.cadence.session.repository.DrillAttemptRepository;
-import com.cadence.session.repository.PracticeSessionRepository;
+import com.cadence.practice.dto.CompletePracticeSessionResponse;
+import com.cadence.practice.dto.DrillAttemptResponse;
+import com.cadence.practice.dto.StartPracticeSessionResponse;
+import com.cadence.practice.entity.DrillAttempt;
+import com.cadence.practice.entity.PracticeSession;
+import com.cadence.practice.model.PracticeSessionState;
+import com.cadence.practice.repository.DrillAttemptRepository;
+import com.cadence.practice.repository.PracticeSessionRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -26,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -37,9 +42,13 @@ public class PracticeService {
      * Values <= 0.15 are considered successful phonetic matches.
      */
     public static final double WER_THRESHOLD = 0.15;
+    public static final Duration SESSION_STATE_TTL = Duration.ofMinutes(30);
+    private static final String SESSION_KEY_PREFIX = "session:";
+    private static final String SESSION_KEY_SUFFIX = ":state";
 
     private final PracticeSessionRepository practiceSessionRepository;
     private final DrillAttemptRepository drillAttemptRepository;
+    private final StringRedisTemplate redisTemplate;
     private final String mlAudioUrl;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -47,11 +56,13 @@ public class PracticeService {
     public PracticeService(
             PracticeSessionRepository practiceSessionRepository,
             DrillAttemptRepository drillAttemptRepository,
+            StringRedisTemplate redisTemplate,
             @Value("${cadence.ml-audio.url:http://localhost:9001}") String mlAudioUrl,
             ObjectMapper objectMapper
     ) {
         this.practiceSessionRepository = practiceSessionRepository;
         this.drillAttemptRepository = drillAttemptRepository;
+        this.redisTemplate = redisTemplate;
         this.mlAudioUrl = mlAudioUrl.replaceAll("/+$", "");
         this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
         this.httpClient = HttpClient.newBuilder()
@@ -59,12 +70,19 @@ public class PracticeService {
                 .build();
     }
 
+    /**
+     * Start a new practice session:
+     * 1. Writes to Postgres inside @Transactional (durable source of truth).
+     * 2. Registers Redis write via afterCommit() — fires ONLY after Postgres transaction
+     *    has durably committed. A rollback prevents Redis from ever being written.
+     */
     @Transactional
     public StartPracticeSessionResponse startPracticeSession(UUID userId, String bucket) {
         if (bucket == null || bucket.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bucket is required");
         }
 
+        // 1. Write to Postgres inside transaction
         PracticeSession session = PracticeSession.builder()
                 .userId(userId)
                 .bucket(bucket.trim())
@@ -73,7 +91,24 @@ public class PracticeService {
                 .build();
 
         PracticeSession saved = practiceSessionRepository.save(session);
-        log.info("Started practice session {} for user {} on bucket {}", saved.getId(), userId, bucket);
+        log.info("Started practice session {} for user {} on bucket {} (Postgres write enqueued)",
+                saved.getId(), userId, bucket);
+
+        // 2. Build state snapshot now (while entity is in scope), but register Redis write
+        //    to fire only after the transaction commits. If rollback occurs, afterCommit
+        //    is never called and Redis is never touched.
+        PracticeSessionState state = PracticeSessionState.builder()
+                .sessionId(saved.getId())
+                .userId(saved.getUserId())
+                .bucket(saved.getBucket())
+                .status(saved.getStatus())
+                .totalAttempts(0)
+                .successfulAttempts(0)
+                .createdAt(saved.getCreatedAt())
+                .updatedAt(saved.getCreatedAt())
+                .build();
+
+        scheduleRedisUpdateAfterCommit(state);
 
         return new StartPracticeSessionResponse(
                 saved.getId(),
@@ -84,6 +119,12 @@ public class PracticeService {
         );
     }
 
+    /**
+     * Submit a drill attempt:
+     * 1. Performs Whisper STT and WER computation.
+     * 2. Writes Attempt record to Postgres FIRST (durable source of truth).
+     * 3. Synchronously updates write-through session state in Redis.
+     */
     @Transactional
     public DrillAttemptResponse submitDrillAttempt(
             UUID practiceSessionId,
@@ -122,7 +163,7 @@ public class PracticeService {
         log.info("Drill attempt for session {}: target='{}', transcribed='{}', wer={}, isMatch={}",
                 practiceSessionId, targetText, transcribedText, String.format("%.4f", wer), isMatch);
 
-        // 3. Persist attempt record
+        // 3. Write to Postgres FIRST
         DrillAttempt attempt = DrillAttempt.builder()
                 .practiceSessionId(session.getId())
                 .targetText(targetText.trim())
@@ -133,6 +174,31 @@ public class PracticeService {
                 .build();
 
         DrillAttempt saved = drillAttemptRepository.save(attempt);
+
+        // 4. Build state snapshot and schedule Redis update for afterCommit.
+        //    The attempt is already saved to Postgres above; count it directly rather
+        //    than re-querying (avoids an extra SELECT and is accurate within this tx).
+        List<DrillAttempt> allAttempts = drillAttemptRepository.findByPracticeSessionIdOrderByCreatedAtAsc(session.getId());
+        int totalAttempts = allAttempts.size();
+        int successfulAttempts = (int) allAttempts.stream().filter(a -> Boolean.TRUE.equals(a.getIsMatch())).count();
+
+        PracticeSessionState state = PracticeSessionState.builder()
+                .sessionId(session.getId())
+                .userId(session.getUserId())
+                .bucket(session.getBucket())
+                .status(session.getStatus())
+                .totalAttempts(totalAttempts)
+                .successfulAttempts(successfulAttempts)
+                .lastTargetText(saved.getTargetText())
+                .lastTranscribedText(saved.getTranscribedText())
+                .lastIsMatch(saved.getIsMatch())
+                .lastWer(wer)
+                .createdAt(session.getCreatedAt())
+                .updatedAt(saved.getCreatedAt())
+                .completedAt(session.getCompletedAt())
+                .build();
+
+        scheduleRedisUpdateAfterCommit(state);
 
         return new DrillAttemptResponse(
                 saved.getId(),
@@ -146,21 +212,132 @@ public class PracticeService {
         );
     }
 
+    /**
+     * Complete a practice session:
+     * 1. Writes completed status to Postgres inside @Transactional.
+     * 2. Registers Redis update via afterCommit() — fires only after Postgres commits.
+     */
     @Transactional
     public CompletePracticeSessionResponse completePracticeSession(UUID practiceSessionId) {
         PracticeSession session = practiceSessionRepository.findById(practiceSessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Practice session not found"));
 
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         session.setStatus("completed");
-        session.setCompletedAt(OffsetDateTime.now(ZoneOffset.UTC));
+        session.setCompletedAt(now);
         PracticeSession saved = practiceSessionRepository.save(session);
-        log.info("Completed practice session {}", saved.getId());
+        log.info("Completed practice session {} in Postgres (tx pending commit)", saved.getId());
+
+        List<DrillAttempt> allAttempts = drillAttemptRepository.findByPracticeSessionIdOrderByCreatedAtAsc(session.getId());
+        int totalAttempts = allAttempts.size();
+        int successfulAttempts = (int) allAttempts.stream().filter(a -> Boolean.TRUE.equals(a.getIsMatch())).count();
+        DrillAttempt lastAttempt = allAttempts.isEmpty() ? null : allAttempts.get(allAttempts.size() - 1);
+
+        PracticeSessionState state = PracticeSessionState.builder()
+                .sessionId(saved.getId())
+                .userId(saved.getUserId())
+                .bucket(saved.getBucket())
+                .status(saved.getStatus())
+                .totalAttempts(totalAttempts)
+                .successfulAttempts(successfulAttempts)
+                .lastTargetText(lastAttempt != null ? lastAttempt.getTargetText() : null)
+                .lastTranscribedText(lastAttempt != null ? lastAttempt.getTranscribedText() : null)
+                .lastIsMatch(lastAttempt != null ? lastAttempt.getIsMatch() : null)
+                .createdAt(saved.getCreatedAt())
+                .updatedAt(now)
+                .completedAt(saved.getCompletedAt())
+                .build();
+
+        scheduleRedisUpdateAfterCommit(state);
 
         return new CompletePracticeSessionResponse(
                 saved.getId(),
                 saved.getStatus(),
                 saved.getCompletedAt()
         );
+    }
+
+    /**
+     * Retrieve active session state:
+     * Reads from Redis first (sub-millisecond hot loop).
+     * Reconstructs from Postgres on cache miss/expiration.
+     */
+    public PracticeSessionState getSessionState(UUID sessionId) {
+        String redisKey = SESSION_KEY_PREFIX + sessionId + SESSION_KEY_SUFFIX;
+        try {
+            String cachedJson = redisTemplate.opsForValue().get(redisKey);
+            if (cachedJson != null && !cachedJson.isBlank()) {
+                log.info("Redis CACHE HIT for session state key: {}", redisKey);
+                return objectMapper.readValue(cachedJson, PracticeSessionState.class);
+            }
+        } catch (Exception e) {
+            log.warn("Redis read failed for session {}: {}", sessionId, e.getMessage());
+        }
+
+        // Cache miss: reconstruct from Postgres and populate Redis
+        log.info("Redis CACHE MISS for session state key: {}. Reconstructing from Postgres...", redisKey);
+        PracticeSession session = practiceSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Practice session not found"));
+
+        List<DrillAttempt> attempts = drillAttemptRepository.findByPracticeSessionIdOrderByCreatedAtAsc(sessionId);
+        int totalAttempts = attempts.size();
+        int successfulAttempts = (int) attempts.stream().filter(a -> Boolean.TRUE.equals(a.getIsMatch())).count();
+        DrillAttempt lastAttempt = attempts.isEmpty() ? null : attempts.get(attempts.size() - 1);
+
+        PracticeSessionState state = PracticeSessionState.builder()
+                .sessionId(session.getId())
+                .userId(session.getUserId())
+                .bucket(session.getBucket())
+                .status(session.getStatus())
+                .totalAttempts(totalAttempts)
+                .successfulAttempts(successfulAttempts)
+                .lastTargetText(lastAttempt != null ? lastAttempt.getTargetText() : null)
+                .lastTranscribedText(lastAttempt != null ? lastAttempt.getTranscribedText() : null)
+                .lastIsMatch(lastAttempt != null ? lastAttempt.getIsMatch() : null)
+                .createdAt(session.getCreatedAt())
+                .updatedAt(lastAttempt != null ? lastAttempt.getCreatedAt() : session.getCreatedAt())
+                .completedAt(session.getCompletedAt())
+                .build();
+
+        // Not inside a transaction — write directly (no afterCommit needed here).
+        writeToRedis(state);
+        return state;
+    }
+
+    /**
+     * Registers a Redis write to fire in TransactionSynchronization.afterCommit().
+     * Spring calls afterCommit() only after the Postgres transaction has durably
+     * committed. If the transaction rolls back for any reason, afterCommit is never
+     * invoked and Redis is never written — satisfying D19's Postgres-first ordering
+     * requirement without relying on log timestamp order as a proxy for commit order.
+     */
+    private void scheduleRedisUpdateAfterCommit(PracticeSessionState state) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            // No active transaction (e.g. called from getSessionState cache-miss path);
+            // write directly.
+            writeToRedis(state);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                log.info("[afterCommit] Postgres tx committed — now writing Redis state for session {} (status: {}, totalAttempts: {})",
+                        state.getSessionId(), state.getStatus(), state.getTotalAttempts());
+                writeToRedis(state);
+            }
+        });
+    }
+
+    private void writeToRedis(PracticeSessionState state) {
+        String redisKey = SESSION_KEY_PREFIX + state.getSessionId() + SESSION_KEY_SUFFIX;
+        try {
+            String json = objectMapper.writeValueAsString(state);
+            redisTemplate.opsForValue().set(redisKey, json, SESSION_STATE_TTL);
+            log.info("Redis write-through updated: {} (status: {}, totalAttempts: {})",
+                    redisKey, state.getStatus(), state.getTotalAttempts());
+        } catch (Exception e) {
+            log.error("Failed to write session state to Redis for key {}: {}", redisKey, e.getMessage(), e);
+        }
     }
 
     private String callMlAudioTranscribe(MultipartFile audioFile) throws Exception {

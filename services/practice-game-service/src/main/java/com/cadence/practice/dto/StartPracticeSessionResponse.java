@@ -1,4 +1,4 @@
-package com.cadence.session.dto;
+package com.cadence.practice.dto;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
