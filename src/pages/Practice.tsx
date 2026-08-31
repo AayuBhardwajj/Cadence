@@ -17,7 +17,7 @@ import { useTier } from "../lib/TierContext";
 import { DashboardBackground } from "../components/dashboard/DashboardBackground";
 import { EnhancedCard } from "../components/dashboard/EnhancedCard";
 import { FullAssessmentCard } from "../components/assessment/FullAssessmentCard";
-import { DrillRecorder } from "../components/practice/DrillRecorder";
+import { SpeechGameShell } from "../components/practice/SpeechGameShell";
 import { useNavigate } from "react-router-dom";
 
 import { Navbar } from "../components/navigation/Navbar";
@@ -156,7 +156,7 @@ export function PracticePage({ username = "Alex" }: { username?: string }) {
                         ))}
                     </div>
 
-                    {/* Quick Practice Drill Section */}
+                    {/* Speech Runner Game — Quick Practice */}
                     {selectedMode === 'quick' && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -164,7 +164,7 @@ export function PracticePage({ username = "Alex" }: { username?: string }) {
                             transition={{ duration: 0.4 }}
                             className="pt-6"
                         >
-                            <DrillRecorder onClose={() => setSelectedMode(null)} />
+                            <SpeechGameShell onClose={() => setSelectedMode(null)} />
                         </motion.div>
                     )}
 

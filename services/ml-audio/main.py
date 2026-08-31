@@ -43,15 +43,24 @@ async def lifespan(app: FastAPI):
     logger.info("Whisper 'base' model successfully loaded into app.state.whisper_model.")
 
     # Start AMQP consumer (Phase 3 Stage 1). Runs concurrently with the HTTP server.
-    # If SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY are not set, consumer skips gracefully
-    # and the HTTP endpoint remains fully operational.
-    await start_amqp_consumer(app)
+    # If RabbitMQ is unreachable at startup, the consumer is skipped gracefully and the
+    # service continues in HTTP-only mode — POST /analyze/audio remains fully operational.
+    # This mirrors ml-analysis's lifespan pattern exactly (see services/ml-analysis/main.py).
+    try:
+        await start_amqp_consumer(app)
+    except Exception as err:
+        logger.warning(
+            "Failed to start AMQP consumer (service will continue in HTTP-only mode): %s", err
+        )
+        app.state.amqp_consumer = None
 
     yield
 
-    await stop_amqp_consumer(app)
+    if getattr(app.state, "amqp_consumer", None):
+        await stop_amqp_consumer(app)
     logger.info("Shutting down ml-audio service...")
     app.state.whisper_model = None
+
 
 
 app = FastAPI(title="Cadence ML Audio Service", lifespan=lifespan)

@@ -11,7 +11,7 @@
     "dev:ml-audio": "cd services/ml-audio && ../../backend/venv/bin/uvicorn main:app --port 9001 --reload",
     "dev:ml-analysis": "bash -c 'set -a && source backend/.env && set +a && cd services/ml-analysis && ../../backend/venv/bin/uvicorn main:app --port 9002 --reload'",
     "dev:ml-recommendation": "bash -c 'set -a && source backend/.env && set +a && cd services/ml-recommendation && ../../backend/venv/bin/uvicorn main:app --port 9003 --reload'",
-    "predev:all": "bash -c 'if ! docker info >/dev/null 2>&1; then printf \"\\n[Cadence] Error: Docker daemon is not running. Please start Docker Desktop and run npm run dev:all again.\\n\\n\" >&2; exit 1; fi && docker compose -f infrastructure/docker-compose.yml up -d redis'",
+    "predev:all": "bash -c 'if ! docker info >/dev/null 2>&1; then printf \"\\n[Cadence] Error: Docker daemon is not running. Please start Docker Desktop and run npm run dev:all again.\\n\\n\" >&2; exit 1; fi && docker compose -f infrastructure/docker-compose.yml up -d'",
     "dev:all": "npx concurrently \"npm run dev\" \"cd backend && venv/bin/python main.py\" \"npm run dev:content-service\" \"npm run dev:session-service\" \"npm run dev:report-service\" \"npm run dev:practice-game-service\" \"npm run dev:ml-audio\" \"npm run dev:ml-analysis\" \"npm run dev:ml-recommendation\"",
     "build": "vite build",
     "preview": "vite preview",

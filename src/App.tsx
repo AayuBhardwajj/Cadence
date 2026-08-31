@@ -31,6 +31,7 @@ import { ProgressPage } from "./pages/Progress";
 import { ExercisesPage } from "./pages/Exercises";
 import { CommunityPage } from "./pages/Community";
 import { TestReportPage } from "./pages/TestReportPage";
+import { SensingTestPage } from "./pages/SensingTestPage";
 
 
 
@@ -106,6 +107,7 @@ export default function App() {
 
                     {/* Add Login/Signup as accessible routes too for testing */}
                     <Route path="/test-report" element={<TestReportPage />} />
+                    <Route path="/sensing-test" element={<SensingTestPage />} />
                     <Route path="/login" element={<LoginPage onSwitchToSignup={() => { }} onLoginSuccess={() => { }} />} />
 
                     {/* Default redirect */}
@@ -114,6 +116,8 @@ export default function App() {
                 ) : (
                   <Box minH="100vh" bg="gray.50">
                     <Routes>
+                      {/* Sensing test route for investigation */}
+                      <Route path="/sensing-test" element={<SensingTestPage />} />
                       {/* Allow direct access to login/signup via URL if needed, or toggle */}
                       <Route path="*" element={
                         isLogin ? (
