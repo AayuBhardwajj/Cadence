@@ -1,5 +1,6 @@
 package com.cadence.report.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,4 +34,15 @@ public class CreateAssessmentReportRequest {
     private List<String> strengths;
     private List<String> focusAreas;
     private String feedback;
+
+    private JsonNode amcatMetrics;
+    private JsonNode amcatInsights;
+    private JsonNode amcatErrorLog;
+    private JsonNode amcatSentences;
+    private JsonNode amcatMtiDeepDive;
+    private JsonNode amcatSummary;
+    private JsonNode improvementPlan;
+    private JsonNode practiceExercises;
+    private JsonNode grammarErrors;
+    private String nextTopicSuggestion;
 }

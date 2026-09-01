@@ -2,6 +2,7 @@ package com.cadence.report.dto;
 
 import com.cadence.report.entity.AssessmentReport;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -26,6 +27,16 @@ public record AssessmentReportResponse(
     @JsonProperty("focus_areas") List<String> focusAreas,
     @JsonProperty("feedback") String feedback,
     @JsonProperty("weak_areas") String weakAreas,
+    @JsonProperty("amcat_metrics") JsonNode amcatMetrics,
+    @JsonProperty("amcat_insights") JsonNode amcatInsights,
+    @JsonProperty("amcat_error_log") JsonNode amcatErrorLog,
+    @JsonProperty("amcat_sentences") JsonNode amcatSentences,
+    @JsonProperty("amcat_mti_deep_dive") JsonNode amcatMtiDeepDive,
+    @JsonProperty("amcat_summary") JsonNode amcatSummary,
+    @JsonProperty("improvement_plan") JsonNode improvementPlan,
+    @JsonProperty("practice_exercises") JsonNode practiceExercises,
+    @JsonProperty("grammar_errors") JsonNode grammarErrors,
+    @JsonProperty("next_topic_suggestion") String nextTopicSuggestion,
     @JsonProperty("created_at") OffsetDateTime createdAt
 ) {
     public static AssessmentReportResponse fromEntity(AssessmentReport entity) {
@@ -51,6 +62,16 @@ public record AssessmentReportResponse(
             entity.getFocusAreas(),
             entity.getFeedback(),
             entity.getWeakAreas(),
+            entity.getAmcatMetrics(),
+            entity.getAmcatInsights(),
+            entity.getAmcatErrorLog(),
+            entity.getAmcatSentences(),
+            entity.getAmcatMtiDeepDive(),
+            entity.getAmcatSummary(),
+            entity.getImprovementPlan(),
+            entity.getPracticeExercises(),
+            entity.getGrammarErrors(),
+            entity.getNextTopicSuggestion(),
             entity.getCreatedAt()
         );
     }

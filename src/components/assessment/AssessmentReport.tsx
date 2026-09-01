@@ -266,7 +266,7 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                 <Divider mb={3} />
                                 <Text fontSize="sm" color="gray.800" lineHeight="tall">{insight.feedback}</Text>
                             </Box>
-                        )) : <Text color="gray.500" fontStyle="italic">Detailed insights are currently being generated or unavailable for this session.</Text>}
+                        )) : <Text color="gray.500" fontStyle="italic">Per-dimension insights are not available in this analysis mode.</Text>}
                     </VStack>
                 </Box>
 
@@ -309,7 +309,7 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                         <GridItem>
                             <Box mb={8}>
                                 <Text fontWeight="bold" color="gray.600" fontSize="xs" textTransform="uppercase" mb={2}>Paragraph Displayed to Candidate:</Text>
-                                <Box bg="gray.50" p={6} border="1px solid" borderColor="gray.200" rounded="md" fontStyle="italic" color="gray.700">"{transcript.reference_text || 'Reference text unavailable.'}"</Box>
+                                <Box bg="gray.50" p={6} border="1px solid" borderColor="gray.200" rounded="md" fontStyle="italic" color="gray.700">"{transcript.reference_text || 'Reference passage text is not available for this session.'}"</Box>
                             </Box>
                             <Box>
                                 <Text fontWeight="bold" color="gray.600" fontSize="xs" textTransform="uppercase" mb={2}>Candidate's Transcription (Auto-generated):</Text>
@@ -504,7 +504,7 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                     <Text color="gray.800">{data.exercise}</Text>
                                 </Box>
                             </Box>
-                        )) : <Text color="gray.500" fontStyle="italic">Personalized plan unavailable. Please wait for the daily quota to reset.</Text>}
+                        )) : <Text color="gray.500" fontStyle="italic">A personalized improvement plan is not available for this session.</Text>}
                     </VStack>
                 </Box>
 

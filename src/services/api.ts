@@ -77,6 +77,7 @@ export interface AnalysisResult {
         };
         error_summary: {
             mispronunciation: number;
+            vocabulary_errors?: number;
             stutters: number;
             unnatural_pauses: number;
             filler_words: number;
@@ -108,6 +109,10 @@ export interface AnalysisResult {
             items: Array<{ title: string; type: "Free" | "Paid" | "YouTube" | "Web"; }>;
         }>;
     };
+    improvement_plan?: Record<string, { focus: string; exercise: string; daily_minutes: number; }>;
+    practice_exercises?: Array<{ title: string; description: string; duration_minutes: number; }>;
+    grammar_errors?: Array<{ original: string; corrected: string; rule: string; }>;
+    next_topic_suggestion?: string;
     api_error?: boolean;
 }
 
@@ -196,6 +201,50 @@ export const fetchAssessmentReport = async (sessionId: string): Promise<Analysis
         throw new Error(`Failed to fetch report: ${response.status}`);
     }
     const data = await response.json();
+    const transcription = data.transcription ?? '';
+    const words = transcription.trim().split(/\s+/).filter(Boolean);
+    const wordCount = words.length;
+
+    const amcatMetrics = data.amcat_metrics || {
+        pronunciation: { score: data.pronunciation_score ?? 0, consonant: 0, vowel: 0, stress: 0 },
+        fluency: { score: data.fluency_score ?? 0, rate: 0, pause: 0, fillers: 0 },
+        clarity: { score: data.clarity_score ?? 0, end_consonants: 0, enunciation: 0, pace: 0 },
+        intonation: { score: 0, sentence: 0, rise_fall: 0, pitch: 0 },
+        mti: { score: 0, l1_interference: 0, retroflex: 0, vowel_shift: 0 },
+        relevancy: { score: 0, feedback: '' },
+    };
+
+    const amcatSummary = data.amcat_summary || {
+        top_strengths: data.strengths ?? [],
+        top_improvements: data.focus_areas ?? [],
+        learning_resources: [],
+    };
+
+    const errorLog = data.amcat_error_log || undefined;
+    const sentences = data.amcat_sentences || undefined;
+
+    const amcatTranscript = {
+        reference_text: '',
+        user_text: transcription,
+        error_words: [],
+        stats: {
+            total_words: wordCount,
+            speech_rate_wpm: data.wpm ?? 0,
+            ideal_wpm_range: '130-150',
+            total_sentences: sentences ? sentences.length : 0,
+            avg_sentence_duration: 0,
+            longest_pause: 0,
+            filler_count: data.filler_word_count ?? 0,
+        },
+        error_summary: {
+            mispronunciation: errorLog ? errorLog.filter((e: any) => e.category === 'Pronunciation').length : 0,
+            stutters: errorLog ? errorLog.filter((e: any) => e.category === 'Fluency' && e.said_as?.includes('Stutter')).length : 0,
+            unnatural_pauses: 0,
+            filler_words: data.filler_word_count ?? 0,
+            mti_substitutions: errorLog ? errorLog.filter((e: any) => e.category === 'MTI').length : 0,
+        },
+    };
+
     return {
         overall_score: data.overall_score ?? 0,
         cefr_level: data.cefr_level ?? 'B1',
@@ -213,7 +262,19 @@ export const fetchAssessmentReport = async (sessionId: string): Promise<Analysis
         strengths: data.strengths || [],
         focus_areas: data.focus_areas || [],
         feedback: data.feedback || '',
-        transcription: data.transcription || '',
+        transcription: transcription,
+
+        amcat_metrics: amcatMetrics,
+        amcat_insights: data.amcat_insights || undefined,
+        amcat_mti_deep_dive: data.amcat_mti_deep_dive || undefined,
+        amcat_transcript: amcatTranscript,
+        amcat_error_log: errorLog,
+        amcat_sentences: sentences,
+        amcat_summary: amcatSummary,
+        improvement_plan: data.improvement_plan || undefined,
+        practice_exercises: data.practice_exercises || undefined,
+        grammar_errors: data.grammar_errors || undefined,
+        next_topic_suggestion: data.next_topic_suggestion || undefined,
     };
 };
 

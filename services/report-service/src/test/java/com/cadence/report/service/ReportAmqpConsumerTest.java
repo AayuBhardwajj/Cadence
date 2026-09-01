@@ -87,7 +87,8 @@ class ReportAmqpConsumerTest {
         AssessmentReportResponse reportResponse = new AssessmentReportResponse(
                 reportId, sessionId, "Test speech transcription.",
                 86, 80, 89, 82, 90, 85, 87, "B2", 136, 2, 75,
-                List.of("Clear tone"), List.of("Pacing"), "Great delivery.", null, OffsetDateTime.now()
+                List.of("Clear tone"), List.of("Pacing"), "Great delivery.", null,
+                null, null, null, null, null, null, null, null, null, null, OffsetDateTime.now()
         );
 
         when(reportService.createReport(any(CreateAssessmentReportRequest.class))).thenReturn(reportResponse);

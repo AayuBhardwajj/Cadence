@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Box, Text, VStack, Flex, Button } from '@chakra-ui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { subscribeToAssessment, AssessmentNotification } from '../../services/websocket';
@@ -33,6 +33,19 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+    const pendingResultRef = useRef<AnalysisResult | null>(null);
+    const recommendationsReadyRef = useRef<boolean>(false);
+    const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const onReportReadyRef = useRef(onReportReady);
+    onReportReadyRef.current = onReportReady;
+
+    const onRecommendationsReadyRef = useRef(onRecommendationsReady);
+    onRecommendationsReadyRef.current = onRecommendationsReady;
+
+    const onErrorRef = useRef(onError);
+    onErrorRef.current = onError;
+
     // Step animation loop while waiting for async events
     useEffect(() => {
         if (errorMessage) return;
@@ -50,23 +63,54 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({
             sessionId,
             async (notification: AssessmentNotification) => {
                 if (notification.event === 'REPORT_READY') {
-                    setStatusMessage("Report ready! Loading your assessment results...");
+                    setStatusMessage("Report ready! Finalizing personalized recommendations...");
                     try {
                         const result = await fetchAssessmentReport(sessionId);
-                        onReportReady(result);
+                        if (recommendationsReadyRef.current) {
+                            // RECOMMENDATIONS_READY already arrived before report fetch completed
+                            if (fallbackTimerRef.current) {
+                                clearTimeout(fallbackTimerRef.current);
+                                fallbackTimerRef.current = null;
+                            }
+                            onReportReadyRef.current(result);
+                        } else {
+                            // Hold result in pending state until RECOMMENDATIONS_READY or 8s fallback timeout
+                            pendingResultRef.current = result;
+                            fallbackTimerRef.current = setTimeout(() => {
+                                if (pendingResultRef.current) {
+                                    const res = pendingResultRef.current;
+                                    pendingResultRef.current = null;
+                                    onReportReadyRef.current(res);
+                                }
+                            }, 8000);
+                        }
                     } catch (err: any) {
                         console.error('Failed to fetch assessment report after REPORT_READY:', err);
                         setErrorMessage("Failed to load report results. Please try again.");
-                        if (onError) onError(err?.message || "Failed to load report");
+                        if (onErrorRef.current) onErrorRef.current(err?.message || "Failed to load report");
                     }
                 } else if (notification.event === 'RECOMMENDATIONS_READY') {
-                    if (onRecommendationsReady) {
-                        onRecommendationsReady();
+                    recommendationsReadyRef.current = true;
+                    if (onRecommendationsReadyRef.current) {
+                        onRecommendationsReadyRef.current();
+                    }
+                    if (pendingResultRef.current) {
+                        if (fallbackTimerRef.current) {
+                            clearTimeout(fallbackTimerRef.current);
+                            fallbackTimerRef.current = null;
+                        }
+                        const res = pendingResultRef.current;
+                        pendingResultRef.current = null;
+                        onReportReadyRef.current(res);
                     }
                 } else if (notification.event === 'ASSESSMENT_FAILED') {
+                    if (fallbackTimerRef.current) {
+                        clearTimeout(fallbackTimerRef.current);
+                        fallbackTimerRef.current = null;
+                    }
                     const err = notification.error || "Analysis could not be completed";
                     setErrorMessage(err);
-                    if (onError) onError(err);
+                    if (onErrorRef.current) onErrorRef.current(err);
                 }
             },
             (error) => {
@@ -75,9 +119,13 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({
         );
 
         return () => {
+            if (fallbackTimerRef.current) {
+                clearTimeout(fallbackTimerRef.current);
+                fallbackTimerRef.current = null;
+            }
             unsubscribe();
         };
-    }, [sessionId, onReportReady, onRecommendationsReady, onError]);
+    }, [sessionId]);
 
     if (errorMessage) {
         return (

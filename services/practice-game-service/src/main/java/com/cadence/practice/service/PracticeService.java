@@ -50,6 +50,7 @@ public class PracticeService {
     private final DrillAttemptRepository drillAttemptRepository;
     private final StringRedisTemplate redisTemplate;
     private final String mlAudioUrl;
+    private final int mlAudioTimeoutSeconds;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
@@ -58,12 +59,14 @@ public class PracticeService {
             DrillAttemptRepository drillAttemptRepository,
             StringRedisTemplate redisTemplate,
             @Value("${cadence.ml-audio.url:http://localhost:9001}") String mlAudioUrl,
+            @Value("${cadence.ml-audio.timeout-seconds:60}") int mlAudioTimeoutSeconds,
             ObjectMapper objectMapper
     ) {
         this.practiceSessionRepository = practiceSessionRepository;
         this.drillAttemptRepository = drillAttemptRepository;
         this.redisTemplate = redisTemplate;
         this.mlAudioUrl = mlAudioUrl.replaceAll("/+$", "");
+        this.mlAudioTimeoutSeconds = mlAudioTimeoutSeconds > 0 ? mlAudioTimeoutSeconds : 60;
         this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
@@ -359,7 +362,7 @@ public class PracticeService {
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(endpoint))
-                .timeout(Duration.ofSeconds(15))
+                .timeout(Duration.ofSeconds(mlAudioTimeoutSeconds))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .POST(HttpRequest.BodyPublishers.ofByteArray(multipartPayload))
                 .build();

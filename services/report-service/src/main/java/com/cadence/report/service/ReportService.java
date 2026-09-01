@@ -44,6 +44,16 @@ public class ReportService {
                 .strengths(request.getStrengths())
                 .focusAreas(request.getFocusAreas())
                 .feedback(request.getFeedback())
+                .amcatMetrics(request.getAmcatMetrics())
+                .amcatInsights(request.getAmcatInsights())
+                .amcatErrorLog(request.getAmcatErrorLog())
+                .amcatSentences(request.getAmcatSentences())
+                .amcatMtiDeepDive(request.getAmcatMtiDeepDive())
+                .amcatSummary(request.getAmcatSummary())
+                .improvementPlan(request.getImprovementPlan())
+                .practiceExercises(request.getPracticeExercises())
+                .grammarErrors(request.getGrammarErrors())
+                .nextTopicSuggestion(request.getNextTopicSuggestion())
                 .createdAt(OffsetDateTime.now())
                 .build();
 

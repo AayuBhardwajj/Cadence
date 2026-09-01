@@ -79,6 +79,16 @@ public class ReportAmqpConsumer {
                     .strengths(getStringList(scoreData, "strengths"))
                     .focusAreas(getStringList(scoreData, "focus_areas"))
                     .feedback(scoreData.path("feedback").asText(null))
+                    .amcatMetrics(getJsonNodeOrNull(scoreData, "amcat_metrics"))
+                    .amcatInsights(getJsonNodeOrNull(scoreData, "amcat_insights"))
+                    .amcatErrorLog(getJsonNodeOrNull(scoreData, "amcat_error_log"))
+                    .amcatSentences(getJsonNodeOrNull(scoreData, "amcat_sentences"))
+                    .amcatMtiDeepDive(getJsonNodeOrNull(scoreData, "amcat_mti_deep_dive"))
+                    .amcatSummary(getJsonNodeOrNull(scoreData, "amcat_summary"))
+                    .improvementPlan(getJsonNodeOrNull(scoreData, "improvement_plan"))
+                    .practiceExercises(getJsonNodeOrNull(scoreData, "practice_exercises"))
+                    .grammarErrors(getJsonNodeOrNull(scoreData, "grammar_errors"))
+                    .nextTopicSuggestion(scoreData.hasNonNull("next_topic_suggestion") ? scoreData.path("next_topic_suggestion").asText(null) : null)
                     .build();
 
             log.info("report-service.amqp: processing analysis.completed for session={}", sessionId);
@@ -159,5 +169,12 @@ public class ReportAmqpConsumer {
             }
         }
         return list;
+    }
+
+    private JsonNode getJsonNodeOrNull(JsonNode node, String fieldName) {
+        if (node != null && node.hasNonNull(fieldName)) {
+            return node.get(fieldName);
+        }
+        return null;
     }
 }

@@ -6,10 +6,12 @@ import { RecordingInterface } from "../components/assessment/RecordingInterface"
 import { ProcessingScreen } from "../components/assessment/ProcessingScreen";
 import { TopicSelection } from "../components/assessment/TopicSelection";
 import { ResultsDashboard } from "../components/assessment/ResultsDashboard";
+import { useQueryClient } from "@tanstack/react-query";
 import {
     checkEligibility,
     startAssessment,
     uploadFullAssessment,
+    getRecommendations,
     AnalysisResult,
     EligibilityResponse
 } from "../services/api";
@@ -83,6 +85,7 @@ export function Assessment() {
     const [userId, setUserId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const toast = useToast();
+    const queryClient = useQueryClient();
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => {
@@ -141,6 +144,16 @@ export function Assessment() {
         }
     };
 
+    const handleRecommendationsReady = async () => {
+        if (userId) {
+            try {
+                await getRecommendations(userId);
+            } catch (err) {
+                console.error("Failed to fetch updated recommendations:", err);
+            }
+        }
+        queryClient.invalidateQueries({ queryKey: ['recommendations'] });
+    };
 
     return (
         <Box
@@ -238,6 +251,7 @@ export function Assessment() {
                             setResult(analysisResult);
                             setStep('results');
                         }}
+                        onRecommendationsReady={handleRecommendationsReady}
                         onRetry={() => setStep('topic-selection')}
                     />
                 )}

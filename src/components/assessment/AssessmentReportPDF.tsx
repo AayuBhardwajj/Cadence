@@ -659,7 +659,7 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                     </View>
                 )) : (
                     <Text style={{ fontSize: 8, color: '#A0AEC0', fontStyle: 'italic' }}>
-                        Detailed insights are currently being generated or unavailable for this session.
+                        Per-dimension insights are not available in this analysis mode.
                     </Text>
                 )}
 
@@ -718,7 +718,7 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                         <Text style={s.transcriptLabel}>Paragraph Displayed to Candidate:</Text>
                         <View style={s.transcriptBox}>
                             <Text style={s.transcriptText}>
-                                "{transcript.reference_text || 'Reference text unavailable.'}"
+                                "{transcript.reference_text || 'Reference passage text is not available for this session.'}"
                             </Text>
                         </View>
 
@@ -946,7 +946,7 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                         </View>
                     ))
                     : <Text style={{ fontSize: 8, color: '#A0AEC0', fontStyle: 'italic' }}>
-                        Personalized plan unavailable. Please wait for the daily quota to reset.
+                        A personalized improvement plan is not available for this session.
                     </Text>
                 }
 

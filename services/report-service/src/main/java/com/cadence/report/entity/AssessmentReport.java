@@ -1,5 +1,6 @@
 package com.cadence.report.entity;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -80,6 +81,45 @@ public class AssessmentReport {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "weak_areas", columnDefinition = "jsonb")
     private String weakAreas;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "amcat_metrics", columnDefinition = "jsonb")
+    private JsonNode amcatMetrics;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "amcat_insights", columnDefinition = "jsonb")
+    private JsonNode amcatInsights;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "amcat_error_log", columnDefinition = "jsonb")
+    private JsonNode amcatErrorLog;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "amcat_sentences", columnDefinition = "jsonb")
+    private JsonNode amcatSentences;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "amcat_mti_deep_dive", columnDefinition = "jsonb")
+    private JsonNode amcatMtiDeepDive;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "amcat_summary", columnDefinition = "jsonb")
+    private JsonNode amcatSummary;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "improvement_plan", columnDefinition = "jsonb")
+    private JsonNode improvementPlan;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "practice_exercises", columnDefinition = "jsonb")
+    private JsonNode practiceExercises;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "grammar_errors", columnDefinition = "jsonb")
+    private JsonNode grammarErrors;
+
+    @Column(name = "next_topic_suggestion")
+    private String nextTopicSuggestion;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;

@@ -58,6 +58,16 @@ class ReportControllerTest {
                 List.of("Pacing stability"),
                 "Great progress overall.",
                 null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
                 OffsetDateTime.now()
         );
 
@@ -98,7 +108,8 @@ class ReportControllerTest {
                 85, 80, 88, 82, 90, 85, 87,
                 "B2", 135, 2, 0,
                 List.of("Good pacing"), List.of("Reduce fillers"),
-                "Great progress", null, now
+                "Great progress", null,
+                null, null, null, null, null, null, null, null, null, null, now
         );
 
         when(reportService.createReport(any())).thenReturn(response);

@@ -185,6 +185,51 @@ class ReportServiceTest {
         assertThat(response.fillerWordCount()).isEqualTo(2);
         assertThat(response.eyeContactScore()).isEqualTo(85);
     }
+
+    @Test
+    void whenCreateReport_diagnosticJsonNodeFieldsRoundTripCorrectly() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        com.fasterxml.jackson.databind.JsonNode metricsNode = mapper.readTree("{\"pronunciation\":{\"score\":80}}");
+        com.fasterxml.jackson.databind.JsonNode insightsNode = mapper.readTree("[{\"dimension\":\"Fluency\",\"score\":75}]");
+        com.fasterxml.jackson.databind.JsonNode errorLogNode = mapper.readTree("[{\"word\":\"test\",\"error_type\":\"substitution\"}]");
+        com.fasterxml.jackson.databind.JsonNode sentencesNode = mapper.readTree("[{\"text\":\"Sentence one.\"}]");
+        com.fasterxml.jackson.databind.JsonNode mtiNode = mapper.readTree("{\"detected_accent\":\"Neutral\"}");
+        com.fasterxml.jackson.databind.JsonNode summaryNode = mapper.readTree("{\"top_strengths\":[\"Pacing\"]}");
+        com.fasterxml.jackson.databind.JsonNode planNode = mapper.readTree("{\"week_1\":{\"focus\":\"Intonation\"}}");
+        com.fasterxml.jackson.databind.JsonNode exercisesNode = mapper.readTree("[{\"title\":\"Shadowing\"}]");
+        com.fasterxml.jackson.databind.JsonNode grammarNode = mapper.readTree("[{\"original\":\"he go\",\"corrected\":\"he goes\"}]");
+
+        CreateAssessmentReportRequest request = CreateAssessmentReportRequest.builder()
+                .assessmentSessionId(sessionId)
+                .transcription("Diagnostic fields test.")
+                .overallScore(80.0)
+                .amcatMetrics(metricsNode)
+                .amcatInsights(insightsNode)
+                .amcatErrorLog(errorLogNode)
+                .amcatSentences(sentencesNode)
+                .amcatMtiDeepDive(mtiNode)
+                .amcatSummary(summaryNode)
+                .improvementPlan(planNode)
+                .practiceExercises(exercisesNode)
+                .grammarErrors(grammarNode)
+                .nextTopicSuggestion("Public Speaking Basics")
+                .build();
+
+        when(reportRepository.save(any(AssessmentReport.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AssessmentReportResponse response = reportService.createReport(request);
+
+        assertThat(response.amcatMetrics()).isEqualTo(metricsNode);
+        assertThat(response.amcatInsights()).isEqualTo(insightsNode);
+        assertThat(response.amcatErrorLog()).isEqualTo(errorLogNode);
+        assertThat(response.amcatSentences()).isEqualTo(sentencesNode);
+        assertThat(response.amcatMtiDeepDive()).isEqualTo(mtiNode);
+        assertThat(response.amcatSummary()).isEqualTo(summaryNode);
+        assertThat(response.improvementPlan()).isEqualTo(planNode);
+        assertThat(response.practiceExercises()).isEqualTo(exercisesNode);
+        assertThat(response.grammarErrors()).isEqualTo(grammarNode);
+        assertThat(response.nextTopicSuggestion()).isEqualTo("Public Speaking Basics");
+    }
 }
 
 
