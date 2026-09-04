@@ -10,8 +10,7 @@ export interface ShadButtonProps extends ButtonProps {
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ShadButtonProps>(
-  ({ children, variant = "default", ...props }, ref) => {
-    const colorScheme = "blue";
+  ({ children, variant = "default", colorScheme = "blue", ...props }, ref) => {
 
     const variantMap: Record<NonNullable<ShadButtonProps["variant"]>, string> =
       {

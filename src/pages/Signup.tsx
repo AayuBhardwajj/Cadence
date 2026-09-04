@@ -675,11 +675,11 @@ export function SignupPage({
                   >
                     <Text fontSize="sm">
                       I agree to the{" "}
-                      <Link color="blue.500" fontWeight="medium">
+                      <Link color="blue.600" fontWeight="medium">
                         Terms of Service
                       </Link>{" "}
                       and{" "}
-                      <Link color="blue.500" fontWeight="medium">
+                      <Link color="blue.600" fontWeight="medium">
                         Privacy Policy
                       </Link>
                     </Text>
@@ -715,7 +715,7 @@ export function SignupPage({
                 <Text fontSize="xs" color="gray.500" textAlign="center">
                   Already have an account?{" "}
                   <Link
-                    color="blue.500"
+                    color="blue.600"
                     fontWeight="medium"
                     onClick={(e) => {
                       e.preventDefault();

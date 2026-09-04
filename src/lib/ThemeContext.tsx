@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useColorMode } from '@chakra-ui/react';
 
 export type AccentColor = 'blue' | 'purple' | 'pink' | 'green' | 'orange';
 export type LayoutMode = 'default' | 'compact' | 'split';
@@ -19,19 +20,83 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+// Storage keys
+const PREFERENCE_KEY = 'cadence-theme-preference'; // Stores user intent: 'light' | 'dark' | 'system'
+const CHAKRA_KEY = 'chakra-ui-color-mode';          // Stores resolved mode: 'light' | 'dark' (for ColorModeScript)
+
+const resolveSystemTheme = (): 'dark' | 'light' => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return 'light';
+};
+
+export const resolveTheme = (pref: ThemeMode): 'dark' | 'light' => {
+    if (pref === 'system') {
+        return resolveSystemTheme();
+    }
+    return pref;
+};
+
+const getInitialPreference = (): ThemeMode => {
+    if (typeof window === 'undefined') return 'light';
+    const savedPref = localStorage.getItem(PREFERENCE_KEY) as ThemeMode;
+    if (savedPref === 'dark' || savedPref === 'light' || savedPref === 'system') {
+        return savedPref;
+    }
+    // Fallback: check legacy chakra key if present
+    const legacy = localStorage.getItem(CHAKRA_KEY);
+    if (legacy === 'dark' || legacy === 'light') {
+        return legacy;
+    }
+    return 'light';
+};
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [theme, setTheme] = useState<ThemeMode>('dark');
+    const { colorMode, setColorMode } = useColorMode();
+    const [theme, setThemeState] = useState<ThemeMode>(getInitialPreference);
     const [accent, setAccent] = useState<AccentColor>('blue');
     const [layout, setLayout] = useState<LayoutMode>('default');
     const [glassmorphism, setGlassmorphism] = useState(true);
     const [microAnimations, setMicroAnimations] = useState(true);
 
-    // Apply Theme and Accent
+    const setTheme = useCallback((newTheme: ThemeMode) => {
+        setThemeState(newTheme);
+        localStorage.setItem(PREFERENCE_KEY, newTheme);
+        const resolved = resolveTheme(newTheme);
+        localStorage.setItem(CHAKRA_KEY, resolved);
+        setColorMode(resolved);
+    }, [setColorMode]);
+
+    // Handle OS preference changes dynamically when theme preference is 'system'
+    useEffect(() => {
+        if (theme !== 'system' || typeof window === 'undefined' || !window.matchMedia) return;
+
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleChange = (e: MediaQueryListEvent) => {
+            const resolved = e.matches ? 'dark' : 'light';
+            localStorage.setItem(CHAKRA_KEY, resolved);
+            setColorMode(resolved);
+            document.documentElement.setAttribute('data-theme', resolved);
+        };
+
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+    }, [theme, setColorMode]);
+
+    // Synchronize Theme, Accent, and Chakra ColorMode
     useEffect(() => {
         const root = document.documentElement;
+        const resolvedMode = resolveTheme(theme);
 
-        // Remove previous accent classes if any (optional if purely CSS variable based)
-        // Reset CSS variables based on accent
+        // Ensure chakra-ui-color-mode key always holds resolved 'dark' | 'light'
+        localStorage.setItem(CHAKRA_KEY, resolvedMode);
+        localStorage.setItem(PREFERENCE_KEY, theme);
+
+        if (colorMode !== resolvedMode) {
+            setColorMode(resolvedMode);
+        }
+
         const colors = {
             blue: '#3b82f6',
             purple: '#8b5cf6',
@@ -41,16 +106,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         };
 
         root.style.setProperty('--primary', colors[accent]);
-        // Also set a lighter version for backgrounds
-        root.style.setProperty('--primary-alpha', colors[accent] + '33'); // ~20% opacity
+        root.style.setProperty('--primary-alpha', colors[accent] + '33');
 
-        // Apply Layout features
         root.setAttribute('data-layout', layout);
         root.setAttribute('data-glass', String(glassmorphism));
         root.setAttribute('data-animations', String(microAnimations));
-        root.setAttribute('data-theme', theme);
+        root.setAttribute('data-theme', resolvedMode);
 
-    }, [theme, accent, layout, glassmorphism, microAnimations]);
+    }, [theme, accent, layout, glassmorphism, microAnimations, colorMode, setColorMode]);
 
     return (
         <ThemeContext.Provider value={{

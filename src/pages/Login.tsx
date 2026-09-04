@@ -195,14 +195,14 @@ export function LoginPage({
 
             <Text fontSize="xs" color="gray.500" textAlign="center">
               Forgot password?{" "}
-              <Link color="blue.500" fontWeight="medium">
+              <Link color="blue.600" fontWeight="medium">
                 Reset it
               </Link>
             </Text>
             <Text fontSize="xs" color="gray.500" textAlign="center">
               New to Fluently?{" "}
               <Link
-                color="blue.500"
+                color="blue.600"
                 fontWeight="medium"
                 onClick={(e) => {
                   e.preventDefault();

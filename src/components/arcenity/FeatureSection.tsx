@@ -1,3 +1,8 @@
+// DEAD CODE (2026-09-04 UI Audit): FeatureSection.tsx is confirmed dead code with 0 imports across the project.
+// Commented out per Cadence dead-code preservation convention rather than deleted.
+// Reference: ai/ARCHITECTURE.md § Component Structure (arcenity directory audit).
+
+/*
 import { Box, Heading, Text, VStack, HStack, SimpleGrid, Icon, useColorModeValue } from "@chakra-ui/react";
 import { GlassmorphicCard } from "./GlassmorphicCard";
 
@@ -71,4 +76,4 @@ export function FeatureSection({
     </Box>
   );
 }
-
+*/

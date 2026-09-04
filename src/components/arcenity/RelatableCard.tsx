@@ -1,3 +1,8 @@
+// DEAD CODE (2026-09-04 UI Audit): RelatableCard.tsx is confirmed dead code with 0 imports across the project.
+// Commented out per Cadence dead-code preservation convention rather than deleted.
+// Reference: ai/ARCHITECTURE.md § Component Structure (arcenity directory audit).
+
+/*
 import { Card, CardBody, Heading, Text, HStack, Avatar } from "@chakra-ui/react";
 
 interface RelatableCardProps {
@@ -6,10 +11,6 @@ interface RelatableCardProps {
   persona: string;
 }
 
-/**
- * Arcenity-style \"relatable\" persona card.
- * Think of it as a narrative slice of a real user with soft, friendly visuals.
- */
 export function RelatableCard({ title, description, persona }: RelatableCardProps) {
   return (
     <Card
@@ -33,5 +34,4 @@ export function RelatableCard({ title, description, persona }: RelatableCardProp
     </Card>
   );
 }
-
-
+*/
