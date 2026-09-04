@@ -78,6 +78,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             localStorage.setItem(CHAKRA_KEY, resolved);
             setColorMode(resolved);
             document.documentElement.setAttribute('data-theme', resolved);
+            document.documentElement.classList.toggle('dark', resolved === 'dark');
         };
 
         mediaQuery.addEventListener('change', handleChange);
@@ -112,6 +113,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         root.setAttribute('data-glass', String(glassmorphism));
         root.setAttribute('data-animations', String(microAnimations));
         root.setAttribute('data-theme', resolvedMode);
+        root.classList.toggle('dark', resolvedMode === 'dark');
 
     }, [theme, accent, layout, glassmorphism, microAnimations, colorMode, setColorMode]);
 
