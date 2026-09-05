@@ -7,6 +7,7 @@ export type ThemeMode = 'dark' | 'light' | 'system';
 
 interface ThemeContextType {
     theme: ThemeMode;
+    resolvedTheme: 'dark' | 'light';
     setTheme: (theme: ThemeMode) => void;
     accent: AccentColor;
     setAccent: (accent: AccentColor) => void;
@@ -55,6 +56,7 @@ const getInitialPreference = (): ThemeMode => {
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { colorMode, setColorMode } = useColorMode();
     const [theme, setThemeState] = useState<ThemeMode>(getInitialPreference);
+    const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>(() => resolveTheme(getInitialPreference()));
     const [accent, setAccent] = useState<AccentColor>('blue');
     const [layout, setLayout] = useState<LayoutMode>('default');
     const [glassmorphism, setGlassmorphism] = useState(true);
@@ -64,6 +66,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setThemeState(newTheme);
         localStorage.setItem(PREFERENCE_KEY, newTheme);
         const resolved = resolveTheme(newTheme);
+        setResolvedTheme(resolved);
         localStorage.setItem(CHAKRA_KEY, resolved);
         setColorMode(resolved);
     }, [setColorMode]);
@@ -75,6 +78,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         const handleChange = (e: MediaQueryListEvent) => {
             const resolved = e.matches ? 'dark' : 'light';
+            setResolvedTheme(resolved);
             localStorage.setItem(CHAKRA_KEY, resolved);
             setColorMode(resolved);
             document.documentElement.setAttribute('data-theme', resolved);
@@ -85,10 +89,33 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return () => mediaQuery.removeEventListener('change', handleChange);
     }, [theme, setColorMode]);
 
+    // Cross-tab theme sync via storage event
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const handleStorage = (e: StorageEvent) => {
+            if (e.key === PREFERENCE_KEY && e.newValue) {
+                const newPref = e.newValue as ThemeMode;
+                if (newPref === 'light' || newPref === 'dark' || newPref === 'system') {
+                    setThemeState(newPref);
+                    const resolved = resolveTheme(newPref);
+                    setResolvedTheme(resolved);
+                    setColorMode(resolved);
+                    document.documentElement.setAttribute('data-theme', resolved);
+                    document.documentElement.classList.toggle('dark', resolved === 'dark');
+                }
+            }
+        };
+
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
+    }, [setColorMode]);
+
     // Synchronize Theme, Accent, and Chakra ColorMode
     useEffect(() => {
         const root = document.documentElement;
         const resolvedMode = resolveTheme(theme);
+        setResolvedTheme(resolvedMode);
 
         // Ensure chakra-ui-color-mode key always holds resolved 'dark' | 'light'
         localStorage.setItem(CHAKRA_KEY, resolvedMode);
@@ -119,7 +146,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     return (
         <ThemeContext.Provider value={{
-            theme, setTheme,
+            theme, resolvedTheme, setTheme,
             accent, setAccent,
             layout, setLayout,
             glassmorphism, setGlassmorphism,

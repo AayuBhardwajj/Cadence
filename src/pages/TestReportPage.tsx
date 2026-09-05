@@ -1,8 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Box, Spinner, Text, Center } from '@chakra-ui/react';
 import { AssessmentReport } from '../components/assessment/AssessmentReport';
 import { supabase } from '../lib/supabase';
+
+const Spinner = () => (
+  <svg
+    className="animate-spin w-8 h-8 text-brand"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+  </svg>
+);
 
 export const TestReportPage: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -27,17 +39,31 @@ export const TestReportPage: React.FC = () => {
         fetchResult();
     }, [sessionId]);
 
-    if (loading) return <Center h="100vh"><Spinner size="xl" /></Center>;
-    if (!result) return <Center h="100vh"><Text>Result not found for {sessionId}</Text></Center>;
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-background text-text-primary">
+                <Spinner />
+            </div>
+        );
+    }
+
+    if (!result) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-background text-text-muted px-4">
+                <p className="text-sm font-medium">Result not found for {sessionId}</p>
+            </div>
+        );
+    }
 
     return (
-        <Box bg="gray.50" minH="100vh" p={4}>
+        <div className="min-h-screen bg-background text-text-primary p-4">
             <AssessmentReport
                 userName="Test Candidate"
                 sessionId={sessionId}
                 result={result}
                 onClose={() => {}}
             />
-        </Box>
+        </div>
     );
 };
+

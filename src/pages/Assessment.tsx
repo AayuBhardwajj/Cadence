@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { Box, Button, useToast, Heading, VStack, Text, SimpleGrid, Badge, HStack, Container } from "@chakra-ui/react";
+import { useToast } from "@chakra-ui/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PreRecordingSetup } from "../components/assessment/PreRecordingSetup";
 import { RecordingInterface } from "../components/assessment/RecordingInterface";
 import { ProcessingScreen } from "../components/assessment/ProcessingScreen";
 import { TopicSelection } from "../components/assessment/TopicSelection";
 import { ResultsDashboard } from "../components/assessment/ResultsDashboard";
+import { CadenceButton } from "../components/ui/CadenceButton";
+import { CadenceCard } from "../components/ui/CadenceCard";
 import { useQueryClient } from "@tanstack/react-query";
 import {
     checkEligibility,
@@ -16,10 +18,7 @@ import {
     EligibilityResponse
 } from "../services/api";
 import { supabase } from "../lib/supabase";
-import { AuroraBackground } from "../components/arcenity/AuroraBackground";
-import { GlassmorphicCard } from "../components/arcenity/GlassmorphicCard";
 import { Clock, AlertTriangle, ArrowRight } from "lucide-react";
-import { Center } from "@chakra-ui/react";
 
 // Eligibility View
 const EligibilityView = ({ eligibility, onBack }: { eligibility: EligibilityResponse, onBack: () => void }) => {
@@ -30,46 +29,44 @@ const EligibilityView = ({ eligibility, onBack }: { eligibility: EligibilityResp
     const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
     return (
-        <Container maxW="2xl" centerContent py={20}>
-            <GlassmorphicCard intensity="strong" p={10}>
-                <VStack spacing={8} textAlign="center">
-                    <Box p={4} bg="orange.400/10" rounded="full">
-                        <Clock size={40} color="#ED8936" />
-                    </Box>
-                    <VStack spacing={2}>
-                        <Heading size="lg">Assessment on Cooldown</Heading>
-                        <Text color="whiteAlpha.600">
+        <div className="max-w-xl mx-auto px-4 py-16 sm:py-24 flex items-center justify-center min-h-screen">
+            <CadenceCard elevation="elevated" className="w-full text-center p-8 sm:p-10">
+                <div className="flex flex-col items-center gap-6">
+                    <div className="p-4 bg-warning/10 text-warning rounded-full">
+                        <Clock className="w-10 h-10" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-text-primary tracking-tight">Assessment on Cooldown</h2>
+                        <p className="text-sm text-text-muted mt-2">
                             Free users can take one Full Assessment every 24 hours.
-                        </Text>
-                    </VStack>
+                        </p>
+                    </div>
 
-                    <Box p={6} bg="whiteAlpha.50" rounded="2xl" border="1px solid" borderColor="whiteAlpha.100" w="full">
-                        <VStack spacing={1}>
-                            <Text fontSize="sm" fontWeight="bold" color="whiteAlpha.400" textTransform="uppercase">Next available in</Text>
-                            <Heading size="xl" color="orange.400">
-                                {diffHours}h {diffMins}m
-                            </Heading>
-                        </VStack>
-                    </Box>
+                    <div className="p-6 bg-elevated-surface rounded-2xl border border-border w-full">
+                        <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Next available in</p>
+                        <p className="text-3xl font-bold text-warning">
+                            {diffHours}h {diffMins}m
+                        </p>
+                    </div>
 
-                    <VStack spacing={4} w="full">
-                        <Button w="full" variant="outline" onClick={onBack}>
+                    <div className="flex flex-col gap-3 w-full">
+                        <CadenceButton fullWidth variant="outline" onClick={onBack}>
                             Back to Intro
-                        </Button>
-                        <Button w="full" colorScheme="blue" leftIcon={<ArrowRight size={18} />} onClick={() => window.location.href = '/exercises'}>
+                        </CadenceButton>
+                        <CadenceButton fullWidth variant="primary" rightIcon={<ArrowRight className="w-4 h-4" />} onClick={() => window.location.href = '/exercises'}>
                             Try Quick Practice
-                        </Button>
-                    </VStack>
+                        </CadenceButton>
+                    </div>
 
-                    <HStack spacing={2} p={4} bg="blue.500/10" rounded="xl" border="1px solid" borderColor="blue.500/20">
-                        <AlertTriangle size={16} color="#4299E1" />
-                        <Text fontSize="xs" color="blue.300" fontWeight="bold">
+                    <div className="flex items-center gap-2 p-3 bg-brand/5 rounded-xl border border-brand/20 text-brand">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <span className="text-xs font-semibold">
                             Upgrade to PRO for unlimited assessments
-                        </Text>
-                    </HStack>
-                </VStack>
-            </GlassmorphicCard>
-        </Container>
+                        </span>
+                    </div>
+                </div>
+            </CadenceCard>
+        </div>
     );
 };
 
@@ -156,75 +153,77 @@ export function Assessment() {
     };
 
     return (
-        <Box
-            h="100vh" w="full" overflow="hidden"
-            position="relative" bg="black"
-        >
+        <div className="min-h-screen w-full relative bg-background text-text-primary overflow-x-hidden">
             <AnimatePresence mode="wait">
                 {step === 'intro' && (
-                    <AuroraBackground key="intro">
-                        <Container centerContent h="100vh" justifyContent="center">
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
+                    <div key="intro" className="relative min-h-screen flex items-center justify-center bg-background px-4">
+                        {/* Subtle background grid */}
+                        <div
+                            className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                            style={{
+                                backgroundImage: 'radial-gradient(var(--color-text-primary) 1px, transparent 1px)',
+                                backgroundSize: '24px 24px',
+                            }}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                            className="relative z-10 flex flex-col items-center text-center max-w-xl py-12"
+                        >
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand/10 border border-brand/20 text-brand text-xs font-semibold uppercase tracking-wider mb-6">
+                                Comprehensive Speech Check
+                            </div>
+                            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-text-primary tracking-tight leading-none mb-4">
+                                FULL ASSESSMENT
+                            </h1>
+                            <p className="text-base sm:text-lg text-text-muted max-w-md mb-8">
+                                Test your speaking, fluency, and grammar in a comprehensive 5-minute session.
+                            </p>
+                            <CadenceButton
+                                size="lg"
+                                onClick={handleStartClick}
+                                className="h-14 px-8 text-base font-semibold shadow-lg mb-4"
                             >
-                                <VStack spacing={8} textAlign="center">
-                                    <VStack spacing={4}>
-                                        <Heading size="3xl" color="white" fontWeight="black" letterSpacing="tight">
-                                            FULL ASSESSMENT
-                                        </Heading>
-                                        <Text color="whiteAlpha.600" fontSize="xl" maxW="md">
-                                            Test your speaking, fluency, and grammar in a comprehensive 5-minute session.
-                                        </Text>
-                                    </VStack>
-                                    <Button
-                                        size="lg"
-                                        colorScheme="blue"
-                                        h="70px" px={10} rounded="full" fontSize="xl"
-                                        onClick={handleStartClick}
-                                        boxShadow="0 0 20px rgba(66, 153, 225, 0.4)"
-                                        _hover={{ transform: 'translateY(-2px)', boxShadow: '0 0 30px rgba(66, 153, 225, 0.6)' }}
-                                    >
-                                        Start My Daily Assessment
-                                    </Button>
-                                    <Text color="whiteAlpha.400" fontSize="xs" fontWeight="bold" textTransform="uppercase" letterSpacing="widest">
-                                        Free: 1 session per 24 hours
-                                    </Text>
-                                </VStack>
-                            </motion.div>
-                        </Container>
-                    </AuroraBackground>
+                                Start My Daily Assessment
+                            </CadenceButton>
+                            <p className="text-xs font-semibold text-text-muted uppercase tracking-widest">
+                                Free: 1 session per 24 hours
+                            </p>
+                        </motion.div>
+                    </div>
                 )}
 
                 {step === 'eligibility-check' && (
-                    <AuroraBackground key="checking">
-                        <Center h="100vh">
-                            <VStack spacing={6}>
-                                <Box className="loader" /> {/* Assuming a loader CSS exists or handled by Aurora */}
-                                <Text color="white" fontWeight="bold">Validating session...</Text>
-                            </VStack>
-                        </Center>
-                    </AuroraBackground>
+                    <div key="checking" className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+                        <svg
+                            className="animate-spin w-10 h-10 text-brand mb-4"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                        >
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        <p className="text-sm font-semibold text-text-primary">Validating session...</p>
+                    </div>
                 )}
 
                 {step === 'not-eligible' && eligibility && (
-                    <Box key="not-eligible" bg="black" minH="100vh">
+                    <div key="not-eligible" className="min-h-screen bg-background">
                         <EligibilityView eligibility={eligibility} onBack={() => setStep('intro')} />
-                    </Box>
+                    </div>
                 )}
 
                 {step === 'topic-selection' && (
-                    <Box
+                    <div
                         key="topics"
-                        minH="100vh"
-                        bg="#050a1f"
-                        overflowY="auto"
-                        py={{ base: 6, md: 10 }}
-                        px={{ base: 0, md: 4 }}
+                        className="min-h-screen bg-background overflow-y-auto py-6 md:py-10 px-0 md:px-4"
                     >
                         <TopicSelection onSelect={handleTopicSelect} />
-                    </Box>
+                    </div>
                 )}
 
                 {step === 'setup' && (
@@ -257,16 +256,17 @@ export function Assessment() {
                 )}
 
                 {step === 'results' && result && (
-                    <Box key="results" h="100vh" bgGradient="linear(to-b, #0a0e27, #1a0b2e)" overflow="auto">
+                    <div key="results" className="min-h-screen bg-background overflow-auto">
                         <ResultsDashboard
                             result={result}
                             onRetry={() => setStep('intro')}
                             userName={userName}
                             sessionId={sessionId || 'CADENCE-AI-SESSION'}
                         />
-                    </Box>
+                    </div>
                 )}
             </AnimatePresence>
-        </Box>
+        </div>
     );
 }
+

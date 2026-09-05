@@ -1,7 +1,7 @@
 import React from 'react';
-import { Box, VStack, Heading, Text, SimpleGrid, Button, HStack, useColorModeValue } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
+import { CadenceButton } from '../ui/CadenceButton';
 
 const AVAILABLE_TOPICS = [
   { id: 'workplace', label: 'Workplace Communication', icon: '💼', description: 'Professional settings, meetings, presentations' },
@@ -32,125 +32,100 @@ export const TopicSelection: React.FC<TopicSelectionProps> = ({ onSelect }) => {
     };
 
     return (
-        <Box
-            px={{ base: 4, sm: 6, md: 10, lg: 16 }}
-            py={{ base: 6, md: 10 }}
-            maxW={{ base: "100%", lg: "1100px" }}
-            mx="auto"
-        >
-        <VStack spacing={10} w="full">
-            <VStack spacing={3} textAlign="center">
-                <Heading
-                    fontSize={{ base: "2xl", md: "3xl", lg: "4xl" }}
-                    bgGradient="linear(to-r, blue.400, purple.500)"
-                    bgClip="text"
-                >
-                    Choose Your Topic
-                </Heading>
-                <Text color="whiteAlpha.700" fontSize={{ base: "md", md: "lg" }}>
-                    Select a topic and difficulty level for your assessment
-                </Text>
-            </VStack>
+        <div className="px-4 sm:px-6 md:px-10 lg:px-16 py-6 md:py-10 max-w-5xl mx-auto w-full">
+            <div className="flex flex-col items-center gap-8 md:gap-10 w-full">
+                {/* Header */}
+                <div className="text-center max-w-xl">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary tracking-tight">
+                        Choose Your Topic
+                    </h1>
+                    <p className="text-sm sm:text-base text-text-muted mt-2">
+                        Select a topic and difficulty level for your assessment
+                    </p>
+                </div>
 
-            {/* 1. Topic Grid */}
-            <SimpleGrid
-                columns={{ base: 1, sm: 2, md: 2, lg: 3 }}
-                spacing={{ base: 3, md: 4, lg: 5 }}
-                w="100%"
-            >
-                {AVAILABLE_TOPICS.map((topic) => {
-                    const isSelected = selectedTopic === topic.id;
-                    return (
-                        <motion.div
-                            key={topic.id}
-                            whileHover={{ y: -5, scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                        >
-                            <Box
-                                minH={{ base: "80px", md: "auto" }}
-                                p={{ base: 4, md: 5 }}
-                                bg={isSelected ? "whiteAlpha.150" : "whiteAlpha.50"}
-                                border="1px solid"
-                                borderColor={isSelected ? "blue.400" : "whiteAlpha.100"}
-                                rounded="2xl"
-                                cursor="pointer"
-                                onClick={() => setSelectedTopic(topic.id)}
-                                transition="all 0.3s"
-                                boxShadow={isSelected ? "0 0 20px -5px rgba(66, 153, 225, 0.6)" : "none"}
-                                _hover={{
-                                    bg: "whiteAlpha.100",
-                                    borderColor: isSelected ? "blue.400" : "blue.300",
-                                    boxShadow: isSelected ? "0 0 20px -5px rgba(66, 153, 225, 0.6)" : "0 0 20px -5px rgba(66, 153, 225, 0.3)"
-                                }}
-                            >
-                                <VStack align="start" spacing={4}>
-                                    <Box p={3} bg="whiteAlpha.100" rounded="xl" fontSize="2xl">
-                                        {topic.icon}
-                                    </Box>
-                                    <VStack align="start" spacing={1}>
-                                        <Heading size="md" color="white">{topic.label}</Heading>
-                                        <Text color="whiteAlpha.600" fontSize="sm">{topic.description}</Text>
-                                    </VStack>
-                                </VStack>
-                            </Box>
-                        </motion.div>
-                    );
-                })}
-            </SimpleGrid>
-
-            {/* 2. Difficulty Selector */}
-            <VStack spacing={4} w="full" align="start" pt={6}>
-                <Heading size="md" color="white">Select Difficulty Level</Heading>
-                <SimpleGrid
-                    columns={{ base: 1, sm: 1, md: 3 }}
-                    spacing={{ base: 2, md: 4 }}
-                    w="100%"
-                >
-                    {DIFFICULTY_LEVELS.map((level) => {
-                        const isSelected = selectedDifficulty === level.id;
+                {/* 1. Topic Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 w-full">
+                    {AVAILABLE_TOPICS.map((topic) => {
+                        const isSelected = selectedTopic === topic.id;
                         return (
-                            <Box
-                                key={level.id}
-                                w={{ base: "100%", md: "auto" }}
-                                p={4}
-                                bg={isSelected ? "whiteAlpha.150" : "whiteAlpha.50"}
-                                border="1px solid"
-                                borderColor={isSelected ? "purple.400" : "whiteAlpha.100"}
-                                rounded="xl"
-                                cursor="pointer"
-                                onClick={() => setSelectedDifficulty(level.id)}
-                                transition="all 0.2s"
-                                _hover={{
-                                    bg: "whiteAlpha.100",
-                                    borderColor: isSelected ? "purple.400" : "purple.300",
-                                }}
+                            <motion.div
+                                key={topic.id}
+                                whileHover={{ y: -3, scale: 1.01 }}
+                                whileTap={{ scale: 0.98 }}
+                                transition={{ duration: 0.2 }}
                             >
-                                <VStack align="start" spacing={1}>
-                                    <Text fontWeight="bold" color="white">{level.label}</Text>
-                                    <Text color="whiteAlpha.600" fontSize="xs">{level.description}</Text>
-                                </VStack>
-                            </Box>
+                                <div
+                                    onClick={() => setSelectedTopic(topic.id)}
+                                    className={`h-full p-4 md:p-5 rounded-2xl cursor-pointer transition-all duration-200 border text-left ${
+                                        isSelected
+                                            ? 'bg-brand/5 border-brand ring-2 ring-brand/20 shadow-sm'
+                                            : 'bg-surface border-border hover:border-brand/40 hover:bg-elevated-surface'
+                                    }`}
+                                >
+                                    <div className="flex flex-col items-start gap-3">
+                                        <div className="p-3 bg-elevated-surface border border-border rounded-xl text-2xl leading-none">
+                                            {topic.icon}
+                                        </div>
+                                        <div>
+                                            <h3 className="text-base font-semibold text-text-primary mb-1">
+                                                {topic.label}
+                                            </h3>
+                                            <p className="text-xs text-text-muted leading-relaxed">
+                                                {topic.description}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
                         );
                     })}
-                </SimpleGrid>
-            </VStack>
+                </div>
 
-            {/* 3. Start Button */}
-            <Button
-                size="lg"
-                colorScheme="blue"
-                rounded="full"
-                onClick={handleStart}
-                px={12}
-                w={{ base: "100%", sm: "auto" }}
-                isDisabled={!selectedTopic}
-                leftIcon={<Sparkles size={18} />}
-                boxShadow={selectedTopic ? "0 0 20px rgba(66, 153, 225, 0.4)" : "none"}
-                _hover={selectedTopic ? { transform: 'translateY(-2px)', boxShadow: '0 0 30px rgba(66, 153, 225, 0.6)' } : {}}
-            >
-                Start Assessment
-            </Button>
-        </VStack>
-        </Box>
+                {/* 2. Difficulty Selector */}
+                <div className="w-full pt-2">
+                    <h2 className="text-sm font-semibold text-text-primary mb-3">
+                        Select Difficulty Level
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3 w-full">
+                        {DIFFICULTY_LEVELS.map((level) => {
+                            const isSelected = selectedDifficulty === level.id;
+                            return (
+                                <div
+                                    key={level.id}
+                                    onClick={() => setSelectedDifficulty(level.id)}
+                                    className={`p-4 rounded-xl cursor-pointer transition-all duration-200 border text-left ${
+                                        isSelected
+                                            ? 'bg-brand/5 border-brand ring-2 ring-brand/20 shadow-sm'
+                                            : 'bg-surface border-border hover:border-brand/40 hover:bg-elevated-surface'
+                                    }`}
+                                >
+                                    <p className="text-sm font-semibold text-text-primary mb-0.5">
+                                        {level.label}
+                                    </p>
+                                    <p className="text-xs text-text-muted">
+                                        {level.description}
+                                    </p>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* 3. Start Button */}
+                <div className="pt-2">
+                    <CadenceButton
+                        size="lg"
+                        onClick={handleStart}
+                        disabled={!selectedTopic}
+                        leftIcon={<Sparkles className="w-5 h-5" />}
+                        className="px-10 shadow-md"
+                    >
+                        Start Assessment
+                    </CadenceButton>
+                </div>
+            </div>
+        </div>
     );
 };
+

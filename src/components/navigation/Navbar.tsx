@@ -5,6 +5,7 @@ import { cn } from "../../lib/utils";
 import { useTier } from "../../lib/TierContext";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { NotificationBell } from "./NotificationBell";
+import { CadenceThemeToggle } from "../ui/CadenceThemeToggle";
 import { supabase } from "../../lib/supabase";
 import { useLanguage } from "../../lib/LanguageContext";
 
@@ -85,7 +86,7 @@ export function Navbar({ username: initialUsername }: NavbarProps) {
                         <Mic className="w-5 h-5 text-white" />
                     </div>
                     <span className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 tracking-tighter">
-                        FLUENTLY
+                        CADENCE
                     </span>
                     <div className={cn(
                         "ml-3 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
@@ -149,10 +150,14 @@ export function Navbar({ username: initialUsername }: NavbarProps) {
                         </div>
                     )}
 
+                    {/* D7 dead-code convention: Dead prototype bell button commented out in favor of CadenceThemeToggle */}
+                    {/*
                     <button className="relative p-2 text-white/60 hover:text-white transition-colors">
                         <Bell className="w-5 h-5" />
                         <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0a0a1a]" />
                     </button>
+                    */}
+                    <CadenceThemeToggle />
 
                     <div className="h-8 w-[1px] bg-white/10 mx-2" />
 

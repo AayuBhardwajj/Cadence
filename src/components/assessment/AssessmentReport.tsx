@@ -1,13 +1,9 @@
 import React from 'react';
-import {
-    Box, VStack, HStack, Text, Heading, SimpleGrid,
-    Divider, Center, Button, Badge, Table,
-    Thead, Tbody, Tr, Th, Td, Flex, Grid, GridItem
-} from '@chakra-ui/react';
 import { Download, CheckCircle, AlertTriangle, MonitorPlay } from 'lucide-react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { AnalysisResult } from '../../services/api';
 import { AssessmentReportPDF } from './AssessmentReportPDF';
+import { CadenceButton } from '../ui/CadenceButton';
 
 interface AssessmentReportProps {
     userName: string;
@@ -16,10 +12,10 @@ interface AssessmentReportProps {
     onClose?: () => void;
 }
 
-const getColor = (score: number) => {
-    if (score >= 70) return "green.500";
-    if (score >= 30) return "yellow.500";
-    return "red.500";
+const getColorClass = (score: number) => {
+    if (score >= 70) return "text-emerald-600 dark:text-emerald-500";
+    if (score >= 30) return "text-amber-600 dark:text-amber-500";
+    return "text-red-600 dark:text-red-500";
 };
 
 const getDot = (score: number) => {
@@ -29,7 +25,7 @@ const getDot = (score: number) => {
 };
 
 const PageBreak = () => (
-    <Box className="page-break" my={8} borderBottom="2px dashed" borderColor="gray.300" />
+    <div className="page-break my-8 border-b-2 border-dashed border-neutral-300 dark:border-neutral-700" />
 );
 
 export const AssessmentReport: React.FC<AssessmentReportProps> = ({
@@ -62,7 +58,7 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
     const pdfFileName = `${userName.replace(/\s+/g, '_')}_Assessment_Report.pdf`;
 
     return (
-        <Box className="report-container" p={8} bg="gray.100" minH="100vh">
+        <div className="report-container p-4 sm:p-8 bg-neutral-100 dark:bg-neutral-950 min-h-screen text-neutral-800 dark:text-neutral-200">
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @media print {
@@ -81,8 +77,14 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
             `}} />
 
             {/* ── Top action bar ── */}
-            <HStack justify="space-between" mb={8} className="no-print" maxW="900px" mx="auto">
-                <Button variant="ghost" onClick={onClose} color="gray.600">Back to Results</Button>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-8 no-print max-w-[900px] mx-auto">
+                <CadenceButton
+                    variant="ghost"
+                    onClick={onClose}
+                    className="self-start text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
+                >
+                    Back to Results
+                </CadenceButton>
 
                 <PDFDownloadLink
                     document={
@@ -95,60 +97,64 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                     fileName={pdfFileName}
                 >
                     {({ loading }) => (
-                        <Button
+                        <CadenceButton
+                            variant="primary"
                             leftIcon={<Download size={18} />}
-                            colorScheme="blue"
-                            shadow="md"
                             isLoading={loading}
                             loadingText="Preparing PDF…"
+                            className="shadow-md"
                         >
                             Download Assessment Report (PDF)
-                        </Button>
+                        </CadenceButton>
                     )}
                 </PDFDownloadLink>
-            </HStack>
+            </div>
 
-            {/* ── On-screen preview (unchanged UI) ── */}
-            <Box id="assessment-report-content" className="print-box" w="100%" maxW="900px" mx="auto" bg="white" p={12} shadow="2xl" color="gray.800">
+            {/* ── On-screen preview ── */}
+            <div id="assessment-report-content" className="print-box w-full max-w-[900px] mx-auto bg-white dark:bg-neutral-900 p-6 sm:p-12 shadow-2xl rounded-2xl border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-100">
 
                 {/* ======================= PAGE 1 ======================= */}
-                <Box className="pdf-page" minH="950px">
-                    <VStack align="stretch" spacing={2} mb={8} borderBottom="4px solid" borderColor="gray.800" pb={4}>
-                        <Heading size="xl" textTransform="uppercase" color="gray.800">CADENCE SPEECH ASSESSMENT REPORT</Heading>
-                        <HStack justify="space-between">
-                            <Text fontSize="md" fontWeight="bold">Confidential Candidate Analysis</Text>
-                            <Text fontSize="md">Date: {today}</Text>
-                        </HStack>
-                    </VStack>
+                <div className="pdf-page min-h-[950px]">
+                    <div className="flex flex-col gap-2 mb-8 border-b-4 border-neutral-800 dark:border-neutral-200 pb-4">
+                        <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-neutral-800 dark:text-neutral-100">
+                            CADENCE SPEECH ASSESSMENT REPORT
+                        </h1>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                            <span className="text-sm sm:text-base font-bold text-neutral-700 dark:text-neutral-300">Confidential Candidate Analysis</span>
+                            <span className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400">Date: {today}</span>
+                        </div>
+                    </div>
 
-                    <SimpleGrid columns={2} spacing={8} mb={10} bg="gray.50" p={6} rounded="md" border="1px solid" borderColor="gray.200">
-                        <VStack align="start" spacing={1}>
-                            <Text fontSize="sm" color="gray.500" fontWeight="bold" textTransform="uppercase">Candidate Name</Text>
-                            <Heading size="md" color="gray.800">{userName}</Heading>
-                        </VStack>
-                        <VStack align="start" spacing={1}>
-                            <Text fontSize="sm" color="gray.500" fontWeight="bold" textTransform="uppercase">Test ID</Text>
-                            <Text fontSize="lg" fontWeight="bold">{sessionId.split('-')[0].toUpperCase()}</Text>
-                        </VStack>
-                        <VStack align="start" spacing={1}>
-                            <Text fontSize="sm" color="gray.500" fontWeight="bold" textTransform="uppercase">Email</Text>
-                            <Text fontSize="md">candidate@example.com</Text>
-                        </VStack>
-                        <VStack align="start" spacing={1}>
-                            <Text fontSize="sm" color="gray.500" fontWeight="bold" textTransform="uppercase">Phone</Text>
-                            <Text fontSize="md">+1 (555) 000-0000</Text>
-                        </VStack>
-                    </SimpleGrid>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-10 bg-neutral-50 dark:bg-neutral-800/60 p-6 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs text-neutral-500 dark:text-neutral-400 font-bold uppercase tracking-wider">Candidate Name</span>
+                            <h2 className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{userName}</h2>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs text-neutral-500 dark:text-neutral-400 font-bold uppercase tracking-wider">Test ID</span>
+                            <span className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{sessionId.split('-')[0].toUpperCase()}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs text-neutral-500 dark:text-neutral-400 font-bold uppercase tracking-wider">Email</span>
+                            <span className="text-sm sm:text-base text-neutral-700 dark:text-neutral-300">candidate@example.com</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs text-neutral-500 dark:text-neutral-400 font-bold uppercase tracking-wider">Phone</span>
+                            <span className="text-sm sm:text-base text-neutral-700 dark:text-neutral-300">+1 (555) 000-0000</span>
+                        </div>
+                    </div>
 
-                    <HStack justify="space-between" mb={6}>
-                        <Heading size="lg">Score Dashboard</Heading>
-                        <HStack>
-                            <Text fontWeight="bold" fontSize="lg">CEFR Level:</Text>
-                            <Badge colorScheme="blue" fontSize="lg" px={3} py={1}>{result.cefr_level || 'B2'}</Badge>
-                        </HStack>
-                    </HStack>
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100">Score Dashboard</h2>
+                        <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm sm:text-base text-neutral-700 dark:text-neutral-300">CEFR Level:</span>
+                            <span className="inline-flex items-center px-3 py-1 rounded-lg text-sm sm:text-base font-bold bg-brand/10 text-brand border border-brand/20">
+                                {result.cefr_level || 'B2'}
+                            </span>
+                        </div>
+                    </div>
 
-                    <SimpleGrid columns={3} spacing={4} mb={10}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10">
                         {[
                             { name: "Topic Relevancy", score: m.relevancy?.score || 100 },
                             { name: "Pronunciation Accuracy", score: m.pronunciation.score },
@@ -157,169 +163,231 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                             { name: "Intonation & Stress", score: m.intonation.score },
                             { name: "Clarity & Articulation", score: m.clarity.score }
                         ].map(dim => (
-                            <Box key={dim.name} p={5} bg="white" border="1px solid" borderColor="gray.200" rounded="md" shadow="sm">
-                                <Text fontSize="sm" fontWeight="bold" color="gray.600" mb={3} h="40px">{dim.name}</Text>
-                                <HStack justify="space-between">
-                                    <Heading size="lg" color={getColor(dim.score)}>{dim.score}<Text as="span" fontSize="sm" color="gray.500">/100</Text></Heading>
-                                    <Text fontSize="2xl">{getDot(dim.score)}</Text>
-                                </HStack>
-                            </Box>
+                            <div key={dim.name} className="p-5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-sm flex flex-col justify-between">
+                                <span className="text-xs font-bold text-neutral-600 dark:text-neutral-400 mb-3 min-h-[32px]">{dim.name}</span>
+                                <div className="flex items-center justify-between">
+                                    <span className={`text-2xl font-black ${getColorClass(dim.score)}`}>
+                                        {dim.score}<span className="text-sm font-normal text-neutral-500 dark:text-neutral-400">/100</span>
+                                    </span>
+                                    <span className="text-2xl">{getDot(dim.score)}</span>
+                                </div>
+                            </div>
                         ))}
-                    </SimpleGrid>
+                    </div>
 
-                    <Box>
-                        <Heading size="md" mb={6} borderBottom="2px solid" borderColor="gray.100" pb={2}>Detailed Sub-Dimensions</Heading>
-                        <SimpleGrid columns={2} spacing={10}>
-                            <VStack align="stretch" spacing={4}>
-                                <Box>
-                                    <HStack justify="space-between" mb={1}><Text fontWeight="bold">Pronunciation Accuracy</Text><Text fontWeight="bold" color={getColor(m.pronunciation.score)}>{m.pronunciation.score}/100</Text></HStack>
-                                    <VStack align="stretch" pl={3} borderLeft="2px solid" borderColor="gray.200" spacing={1}>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">Consonant Accuracy</Text><Text fontSize="sm" fontWeight="bold">{m.pronunciation.consonant}/100</Text></HStack>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">Vowel Accuracy</Text><Text fontSize="sm" fontWeight="bold">{m.pronunciation.vowel}/100</Text></HStack>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">Word Stress Accuracy</Text><Text fontSize="sm" fontWeight="bold">{m.pronunciation.stress}/100</Text></HStack>
-                                    </VStack>
-                                </Box>
-                                <Box>
-                                    <HStack justify="space-between" mb={1}><Text fontWeight="bold">Fluency & Rhythm</Text><Text fontWeight="bold" color={getColor(m.fluency.score)}>{m.fluency.score}/100</Text></HStack>
-                                    <VStack align="stretch" pl={3} borderLeft="2px solid" borderColor="gray.200" spacing={1}>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">Speech Rate (WPM)</Text><Text fontSize="sm" fontWeight="bold">{m.fluency.rate}/100</Text></HStack>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">Pause Pattern</Text><Text fontSize="sm" fontWeight="bold">{m.fluency.pause}/100</Text></HStack>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">Filler Word Control</Text><Text fontSize="sm" fontWeight="bold">{m.fluency.fillers}/100</Text></HStack>
-                                    </VStack>
-                                </Box>
-                                <Box>
-                                    <HStack justify="space-between" mb={1}><Text fontWeight="bold">MTI / Accent Neutrality</Text><Text fontWeight="bold" color={getColor(m.mti.score)}>{m.mti.score}/100</Text></HStack>
-                                    <VStack align="stretch" pl={3} borderLeft="2px solid" borderColor="gray.200" spacing={1}>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">L1 Phoneme Substitution</Text><Text fontSize="sm" fontWeight="bold">{m.mti.l1_interference}/100</Text></HStack>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">Retroflex Influence</Text><Text fontSize="sm" fontWeight="bold">{m.mti.retroflex}/100</Text></HStack>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">Vowel Shift Frequency</Text><Text fontSize="sm" fontWeight="bold">{m.mti.vowel_shift}/100</Text></HStack>
-                                    </VStack>
-                                </Box>
-                            </VStack>
+                    <div>
+                        <h3 className="text-lg font-bold mb-6 border-b-2 border-neutral-100 dark:border-neutral-800 pb-2 text-neutral-900 dark:text-neutral-100">
+                            Detailed Sub-Dimensions
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
+                            <div className="flex flex-col gap-6">
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="font-bold text-neutral-800 dark:text-neutral-200">Pronunciation Accuracy</span>
+                                        <span className={`font-bold ${getColorClass(m.pronunciation.score)}`}>{m.pronunciation.score}/100</span>
+                                    </div>
+                                    <div className="flex flex-col pl-3 border-l-2 border-neutral-200 dark:border-neutral-700 gap-1 mt-1">
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>Consonant Accuracy</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.pronunciation.consonant}/100</span></div>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>Vowel Accuracy</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.pronunciation.vowel}/100</span></div>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>Word Stress Accuracy</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.pronunciation.stress}/100</span></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="font-bold text-neutral-800 dark:text-neutral-200">Fluency & Rhythm</span>
+                                        <span className={`font-bold ${getColorClass(m.fluency.score)}`}>{m.fluency.score}/100</span>
+                                    </div>
+                                    <div className="flex flex-col pl-3 border-l-2 border-neutral-200 dark:border-neutral-700 gap-1 mt-1">
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>Speech Rate (WPM)</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.fluency.rate}/100</span></div>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>Pause Pattern</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.fluency.pause}/100</span></div>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>Filler Word Control</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.fluency.fillers}/100</span></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="font-bold text-neutral-800 dark:text-neutral-200">MTI / Accent Neutrality</span>
+                                        <span className={`font-bold ${getColorClass(m.mti.score)}`}>{m.mti.score}/100</span>
+                                    </div>
+                                    <div className="flex flex-col pl-3 border-l-2 border-neutral-200 dark:border-neutral-700 gap-1 mt-1">
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>L1 Phoneme Substitution</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.mti.l1_interference}/100</span></div>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>Retroflex Influence</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.mti.retroflex}/100</span></div>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>Vowel Shift Frequency</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.mti.vowel_shift}/100</span></div>
+                                    </div>
+                                </div>
+                            </div>
 
-                            <VStack align="stretch" spacing={4}>
-                                <Box>
-                                    <HStack justify="space-between" mb={1}><Text fontWeight="bold">Intonation & Stress</Text><Text fontWeight="bold" color={getColor(m.intonation.score)}>{m.intonation.score}/100</Text></HStack>
-                                    <VStack align="stretch" pl={3} borderLeft="2px solid" borderColor="gray.200" spacing={1}>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">Sentence Stress</Text><Text fontSize="sm" fontWeight="bold">{m.intonation.sentence}/100</Text></HStack>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">Rise/Fall Patterns</Text><Text fontSize="sm" fontWeight="bold">{m.intonation.rise_fall}/100</Text></HStack>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">Pitch Variation</Text><Text fontSize="sm" fontWeight="bold">{m.intonation.pitch}/100</Text></HStack>
-                                    </VStack>
-                                </Box>
-                                <Box>
-                                    <HStack justify="space-between" mb={1}><Text fontWeight="bold">Clarity & Articulation</Text><Text fontWeight="bold" color={getColor(m.clarity.score)}>{m.clarity.score}/100</Text></HStack>
-                                    <VStack align="stretch" pl={3} borderLeft="2px solid" borderColor="gray.200" spacing={1}>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">Consonant Endings</Text><Text fontSize="sm" fontWeight="bold">{m.clarity.end_consonants}/100</Text></HStack>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">Vowel Enunciation</Text><Text fontSize="sm" fontWeight="bold">{m.clarity.enunciation}/100</Text></HStack>
-                                        <HStack justify="space-between"><Text fontSize="sm" color="gray.600">Pace Control</Text><Text fontSize="sm" fontWeight="bold">{m.clarity.pace}/100</Text></HStack>
-                                    </VStack>
-                                </Box>
-                            </VStack>
-                        </SimpleGrid>
-                    </Box>
-                </Box>
+                            <div className="flex flex-col gap-6">
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="font-bold text-neutral-800 dark:text-neutral-200">Intonation & Stress</span>
+                                        <span className={`font-bold ${getColorClass(m.intonation.score)}`}>{m.intonation.score}/100</span>
+                                    </div>
+                                    <div className="flex flex-col pl-3 border-l-2 border-neutral-200 dark:border-neutral-700 gap-1 mt-1">
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>Sentence Stress</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.intonation.sentence}/100</span></div>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>Rise/Fall Patterns</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.intonation.rise_fall}/100</span></div>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>Pitch Variation</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.intonation.pitch}/100</span></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="font-bold text-neutral-800 dark:text-neutral-200">Clarity & Articulation</span>
+                                        <span className={`font-bold ${getColorClass(m.clarity.score)}`}>{m.clarity.score}/100</span>
+                                    </div>
+                                    <div className="flex flex-col pl-3 border-l-2 border-neutral-200 dark:border-neutral-700 gap-1 mt-1">
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>Consonant Endings</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.clarity.end_consonants}/100</span></div>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>Vowel Enunciation</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.clarity.enunciation}/100</span></div>
+                                        <div className="flex items-center justify-between text-xs sm:text-sm text-neutral-600 dark:text-neutral-400"><span>Pace Control</span><span className="font-bold text-neutral-800 dark:text-neutral-200">{m.clarity.pace}/100</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <PageBreak />
 
                 {/* ======================= PAGE 2 ======================= */}
-                <Box className="pdf-page" minH="950px">
-                    <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">1 | Introduction</Heading>
-                    <Box bg="gray.50" p={8} rounded="md" border="1px solid" borderColor="gray.200" mb={8}>
-                        <Heading size="md" mb={4}>About This Report</Heading>
-                        <Text fontSize="md" color="gray.700" lineHeight="tall">
+                <div className="pdf-page min-h-[950px]">
+                    <h2 className="text-xl font-bold mb-6 border-b-2 border-neutral-800 dark:border-neutral-200 pb-2 text-brand">
+                        1 | Introduction
+                    </h2>
+                    <div className="bg-neutral-50 dark:bg-neutral-800/60 p-6 sm:p-8 rounded-xl border border-neutral-200 dark:border-neutral-700 mb-8">
+                        <h3 className="text-base sm:text-lg font-bold mb-4 text-neutral-900 dark:text-neutral-100">About This Report</h3>
+                        <p className="text-sm sm:text-base text-neutral-700 dark:text-neutral-300 leading-relaxed">
                             This report provides a detailed phonetic and fluency analysis of the candidate's spoken English.
                             The candidate was assessed through a read-aloud task in which standardized paragraphs were displayed on screen.
                             Analysis was performed across five core dimensions of spoken English quality.
-                        </Text>
-                    </Box>
-                    <Heading size="md" mb={4}>Score Interpretation</Heading>
-                    <Text mb={4} color="gray.600">All scores are on a scale of 0–100.</Text>
-                    <VStack align="stretch" spacing={4}>
-                        <HStack bg="green.50" p={4} border="1px solid" borderColor="green.200" rounded="md">
-                            <Text fontSize="2xl">🟢</Text>
-                            <VStack align="start" spacing={0}><Text fontWeight="bold" color="green.800" fontSize="lg">70–100: Proficient</Text><Text color="green.700" fontSize="sm">Candidate demonstrates clear, business-ready communication with minimal interference.</Text></VStack>
-                        </HStack>
-                        <HStack bg="yellow.50" p={4} border="1px solid" borderColor="yellow.200" rounded="md">
-                            <Text fontSize="2xl">🟡</Text>
-                            <VStack align="start" spacing={0}><Text fontWeight="bold" color="yellow.800" fontSize="lg">30–69: Developing</Text><Text color="yellow.700" fontSize="sm">Candidate is intelligible but demonstrates noticeable issues requiring targeted practice.</Text></VStack>
-                        </HStack>
-                        <HStack bg="red.50" p={4} border="1px solid" borderColor="red.200" rounded="md">
-                            <Text fontSize="2xl">🔴</Text>
-                            <VStack align="start" spacing={0}><Text fontWeight="bold" color="red.800" fontSize="lg">0–29: Needs Significant Work</Text><Text color="red.700" fontSize="sm">Candidate's speech frequently impedes comprehension; foundational training required.</Text></VStack>
-                        </HStack>
-                    </VStack>
-                </Box>
+                        </p>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-bold mb-4 text-neutral-900 dark:text-neutral-100">Score Interpretation</h3>
+                    <p className="mb-4 text-sm text-neutral-600 dark:text-neutral-400">All scores are on a scale of 0–100.</p>
+                    <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-4 bg-emerald-50 dark:bg-emerald-950/30 p-4 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+                            <span className="text-2xl">🟢</span>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-emerald-900 dark:text-emerald-200 text-base sm:text-lg">70–100: Proficient</span>
+                                <span className="text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm">Candidate demonstrates clear, business-ready communication with minimal interference.</span>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4 bg-amber-50 dark:bg-amber-950/30 p-4 border border-amber-200 dark:border-amber-800 rounded-xl">
+                            <span className="text-2xl">🟡</span>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-amber-900 dark:text-amber-200 text-base sm:text-lg">30–69: Developing</span>
+                                <span className="text-amber-700 dark:text-amber-400 text-xs sm:text-sm">Candidate is intelligible but demonstrates noticeable issues requiring targeted practice.</span>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4 bg-red-50 dark:bg-red-950/30 p-4 border border-red-200 dark:border-red-800 rounded-xl">
+                            <span className="text-2xl">🔴</span>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-red-900 dark:text-red-200 text-base sm:text-lg">0–29: Needs Significant Work</span>
+                                <span className="text-red-700 dark:text-red-400 text-xs sm:text-sm">Candidate's speech frequently impedes comprehension; foundational training required.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <PageBreak />
 
                 {/* ======================= PAGE 3: Insights ======================= */}
-                <Box className="pdf-page" minH="950px">
-                    <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">2 | Insights</Heading>
-                    <VStack align="stretch" spacing={6}>
+                <div className="pdf-page min-h-[950px]">
+                    <h2 className="text-xl font-bold mb-6 border-b-2 border-neutral-800 dark:border-neutral-200 pb-2 text-brand">
+                        2 | Insights
+                    </h2>
+                    <div className="flex flex-col gap-6">
                         {insights.length > 0 ? insights.map((insight: any, idx: number) => (
-                            <Box key={idx} border="1px solid" borderColor="gray.200" rounded="md" p={6} bg="white" shadow="sm">
-                                <HStack justify="space-between" mb={3}>
-                                    <Heading size="md" color="gray.800">{insight.dimension}</Heading>
-                                    <Text fontWeight="bold" color={getColor(insight.score)} fontSize="lg">{insight.score}/100 {getDot(insight.score)}</Text>
-                                </HStack>
-                                <Text fontSize="sm" color="gray.600" mb={3} fontStyle="italic">{insight.definition}</Text>
-                                <Divider mb={3} />
-                                <Text fontSize="sm" color="gray.800" lineHeight="tall">{insight.feedback}</Text>
-                            </Box>
-                        )) : <Text color="gray.500" fontStyle="italic">Per-dimension insights are not available in this analysis mode.</Text>}
-                    </VStack>
-                </Box>
+                            <div key={idx} className="border border-neutral-200 dark:border-neutral-700 rounded-xl p-6 bg-white dark:bg-neutral-800 shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-base sm:text-lg font-bold text-neutral-900 dark:text-neutral-100">{insight.dimension}</h3>
+                                    <span className={`font-bold text-base sm:text-lg ${getColorClass(insight.score)}`}>
+                                        {insight.score}/100 {getDot(insight.score)}
+                                    </span>
+                                </div>
+                                <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 mb-3 italic">{insight.definition}</p>
+                                <hr className="border-neutral-200 dark:border-neutral-700 mb-3" />
+                                <p className="text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">{insight.feedback}</p>
+                            </div>
+                        )) : <p className="text-neutral-500 italic">Per-dimension insights are not available in this analysis mode.</p>}
+                    </div>
+                </div>
 
                 <PageBreak />
 
                 {/* ======================= PAGE 4: MTI ======================= */}
-                <Box className="pdf-page" minH="950px">
-                    <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">MTI Deep Dive</Heading>
-                    <Box bg="red.50" borderLeft="4px solid" borderColor="red.500" p={4} mb={8}>
-                        <Text fontWeight="bold" color="red.900" fontSize="lg">Detected L1 Influence: {mti_deep_dive.detected_accent || "No obvious accent detected"}</Text>
-                    </Box>
-                    <VStack align="stretch" spacing={8}>
+                <div className="pdf-page min-h-[950px]">
+                    <h2 className="text-xl font-bold mb-6 border-b-2 border-neutral-800 dark:border-neutral-200 pb-2 text-brand">
+                        MTI Deep Dive
+                    </h2>
+                    <div className="bg-red-50 dark:bg-red-950/30 border-l-4 border-red-500 p-4 mb-8 rounded-r-xl">
+                        <span className="font-bold text-red-900 dark:text-red-200 text-base sm:text-lg">
+                            Detected L1 Influence: {mti_deep_dive.detected_accent || "No obvious accent detected"}
+                        </span>
+                    </div>
+                    <div className="flex flex-col gap-8">
                         {mti_deep_dive.patterns.length > 0 ? mti_deep_dive.patterns.map((item: any, idx: number) => (
-                            <Box key={idx} borderBottom="1px solid" borderColor="gray.100" pb={6}>
-                                <HStack justify="space-between" mb={4}>
-                                    <Heading size="sm">{item.pattern}</Heading>
-                                    <Badge colorScheme={item.score > 60 ? "red" : item.score > 30 ? "yellow" : "green"}>Score: {item.score}</Badge>
-                                </HStack>
-                                <Box position="relative" h="8px" bg="gray.200" rounded="full" mb={2}>
-                                    <Box position="absolute" top="-20px" left="0" fontSize="xs" color="gray.500">Rare</Box>
-                                    <Box position="absolute" top="-20px" right="0" fontSize="xs" color="gray.500">Frequent</Box>
-                                    <Box position="absolute" top="-4px" left={item.score + "%"} w="16px" h="16px" bg="gray.800" rounded="full" transform="translateX(-50%)" />
-                                </Box>
-                                <Box mt={4} pl={4}>
-                                    <ul style={{ color: "#4A5568", fontSize: "14px", lineHeight: "1.6" }}>
+                            <div key={idx} className="border-b border-neutral-200 dark:border-neutral-800 pb-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-sm sm:text-base font-bold text-neutral-900 dark:text-neutral-100">{item.pattern}</h3>
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                        item.score > 60
+                                            ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                                            : item.score > 30
+                                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                                            : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                    }`}>
+                                        Score: {item.score}
+                                    </span>
+                                </div>
+                                <div className="relative h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full mb-2">
+                                    <span className="absolute -top-5 left-0 text-xs text-neutral-500">Rare</span>
+                                    <span className="absolute -top-5 right-0 text-xs text-neutral-500">Frequent</span>
+                                    <div
+                                        className="absolute -top-1 w-4 h-4 bg-neutral-800 dark:bg-neutral-200 rounded-full -translate-x-1/2"
+                                        style={{ left: `${item.score}%` }}
+                                    />
+                                </div>
+                                <div className="mt-4 pl-4">
+                                    <ul className="list-disc list-inside text-sm text-neutral-600 dark:text-neutral-400 space-y-1">
                                         {item.behaviors?.map((b: string, i: number) => <li key={i}>{b}</li>)}
                                     </ul>
-                                </Box>
-                            </Box>
-                        )) : <Text color="gray.500" fontStyle="italic">No specific MTI patterns detected.</Text>}
-                    </VStack>
-                </Box>
+                                </div>
+                            </div>
+                        )) : <p className="text-neutral-500 italic">No specific MTI patterns detected.</p>}
+                    </div>
+                </div>
 
                 <PageBreak />
 
                 {/* ======================= PAGE 5: Response ======================= */}
-                <Box className="pdf-page" minH="950px">
-                    <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">3 | Response</Heading>
-                    <Grid templateColumns="3fr 1fr" gap={8}>
-                        <GridItem>
-                            <Box mb={8}>
-                                <Text fontWeight="bold" color="gray.600" fontSize="xs" textTransform="uppercase" mb={2}>Paragraph Displayed to Candidate:</Text>
-                                <Box bg="gray.50" p={6} border="1px solid" borderColor="gray.200" rounded="md" fontStyle="italic" color="gray.700">"{transcript.reference_text || 'Reference passage text is not available for this session.'}"</Box>
-                            </Box>
-                            <Box>
-                                <Text fontWeight="bold" color="gray.600" fontSize="xs" textTransform="uppercase" mb={2}>Candidate's Transcription (Auto-generated):</Text>
-                                <Box bg="white" p={6} border="1px solid" borderColor="gray.200" rounded="md" color="gray.800" lineHeight="tall">{transcript.user_text || 'Transcription unavailable.'}</Box>
-                            </Box>
-                        </GridItem>
-                        <GridItem>
-                            <Box bg="gray.800" color="white" rounded="md" overflow="hidden" mb={6}>
-                                <Box bg="blue.900" p={3} textAlign="center"><Text fontWeight="bold" fontSize="sm" textTransform="uppercase">Error Summary</Text></Box>
-                                <VStack align="stretch" spacing={0}>
+                <div className="pdf-page min-h-[950px]">
+                    <h2 className="text-xl font-bold mb-6 border-b-2 border-neutral-800 dark:border-neutral-200 pb-2 text-brand">
+                        3 | Response
+                    </h2>
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        <div className="lg:col-span-3 flex flex-col gap-8">
+                            <div>
+                                <span className="font-bold text-neutral-600 dark:text-neutral-400 text-xs uppercase tracking-wider block mb-2">
+                                    Paragraph Displayed to Candidate:
+                                </span>
+                                <div className="bg-neutral-50 dark:bg-neutral-800/60 p-6 border border-neutral-200 dark:border-neutral-700 rounded-xl italic text-neutral-700 dark:text-neutral-300 text-sm sm:text-base leading-relaxed">
+                                    "{transcript.reference_text || 'Reference passage text is not available for this session.'}"
+                                </div>
+                            </div>
+                            <div>
+                                <span className="font-bold text-neutral-600 dark:text-neutral-400 text-xs uppercase tracking-wider block mb-2">
+                                    Candidate's Transcription (Auto-generated):
+                                </span>
+                                <div className="bg-white dark:bg-neutral-800 p-6 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-800 dark:text-neutral-200 text-sm sm:text-base leading-relaxed">
+                                    {transcript.user_text || 'Transcription unavailable.'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-6">
+                            <div className="bg-neutral-800 text-white rounded-xl overflow-hidden shadow-sm">
+                                <div className="bg-brand p-3 text-center">
+                                    <span className="font-bold text-sm uppercase tracking-wider">Error Summary</span>
+                                </div>
+                                <div className="flex flex-col divide-y divide-neutral-700">
                                     {[
                                         { label: "Mispronunciation", val: transcript.error_summary?.mispronunciation || 0 },
                                         { label: "Vocabulary Errors", val: transcript.error_summary?.vocabulary_errors || 0 },
@@ -328,16 +396,23 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                         { label: "Filler Words", val: transcript.error_summary?.filler_words || 0 },
                                         { label: "MTI Substitutions", val: transcript.error_summary?.mti_substitutions || 0 }
                                     ].map((row, idx) => (
-                                        <HStack key={idx} justify="space-between" p={3} borderBottom="1px solid" borderColor="gray.700">
-                                            <Text fontSize="sm">{row.label}</Text>
-                                            <Badge colorScheme="red">{row.val}</Badge>
-                                        </HStack>
+                                        <div key={idx} className="flex items-center justify-between p-3">
+                                            <span className="text-xs sm:text-sm">{row.label}</span>
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-500/20 text-red-300">
+                                                {row.val}
+                                            </span>
+                                        </div>
                                     ))}
-                                </VStack>
-                            </Box>
-                            <Box border="1px solid" borderColor="gray.200" rounded="md">
-                                <Box bg="gray.100" p={3} textAlign="center" borderBottom="1px solid" borderColor="gray.200"><Text fontWeight="bold" fontSize="sm" color="gray.700" textTransform="uppercase">Speech Statistics</Text></Box>
-                                <VStack align="stretch" spacing={0}>
+                                </div>
+                            </div>
+
+                            <div className="border border-neutral-200 dark:border-neutral-700 rounded-xl overflow-hidden">
+                                <div className="bg-neutral-100 dark:bg-neutral-800 p-3 text-center border-b border-neutral-200 dark:border-neutral-700">
+                                    <span className="font-bold text-xs sm:text-sm text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                                        Speech Statistics
+                                    </span>
+                                </div>
+                                <div className="flex flex-col divide-y divide-neutral-100 dark:divide-neutral-800">
                                     {[
                                         { label: "Total Words Spoken", val: transcript.stats?.total_words || "N/A" },
                                         { label: "Speech Rate", val: (transcript.stats?.speech_rate_wpm || "N/A") + " WPM" },
@@ -346,22 +421,24 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                         { label: "Avg Sentence Length", val: (transcript.stats?.avg_sentence_duration || "N/A") + " sec" },
                                         { label: "Longest Pause", val: (transcript.stats?.longest_pause || "N/A") + " sec" }
                                     ].map((row, idx) => (
-                                        <HStack key={idx} justify="space-between" p={3} borderBottom="1px solid" borderColor="gray.100">
-                                            <Text fontSize="xs" color="gray.600">{row.label}</Text>
-                                            <Text fontSize="xs" fontWeight="bold">{String(row.val)}</Text>
-                                        </HStack>
+                                        <div key={idx} className="flex items-center justify-between p-3">
+                                            <span className="text-xs text-neutral-600 dark:text-neutral-400">{row.label}</span>
+                                            <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200">{String(row.val)}</span>
+                                        </div>
                                     ))}
-                                </VStack>
-                            </Box>
-                        </GridItem>
-                    </Grid>
-                </Box>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <PageBreak />
 
                 {/* ======================= PAGE 6: Error Log ======================= */}
-                <Box className="pdf-page" minH="950px">
-                    <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">Word-Level Error Log</Heading>
+                <div className="pdf-page min-h-[950px]">
+                    <h2 className="text-xl font-bold mb-6 border-b-2 border-neutral-800 dark:border-neutral-200 pb-2 text-brand">
+                        Word-Level Error Log
+                    </h2>
                     {(() => {
                         const visibleErrors = (error_log || []).filter((err: any) => !err.excluded_from_scoring);
                         const omissionEntry = (error_log || []).find((err: any) => err.error_type === "large_omission");
@@ -370,54 +447,75 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                         return (
                             <>
                                 {omissionEntry && (
-                                    <Box bg="orange.50" border="1px solid" borderColor="orange.200" rounded="md" p={4} mb={6}>
-                                        <HStack spacing={3}>
-                                            <AlertTriangle color="#DD6B20" size={20} />
-                                            <Box>
-                                                <Text fontWeight="bold" fontSize="sm" color="orange.900">Passage Completion Notice</Text>
-                                                <Text fontSize="xs" color="orange.800">
-                                                    Approximately {omittedCount} words of the reference passage were not read in this recording.
-                                                </Text>
-                                            </Box>
-                                        </HStack>
-                                    </Box>
+                                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6 flex items-start gap-3">
+                                        <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={20} />
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-sm text-amber-900 dark:text-amber-200">Passage Completion Notice</span>
+                                            <span className="text-xs text-amber-800 dark:text-amber-400">
+                                                Approximately {omittedCount} words of the reference passage were not read in this recording.
+                                            </span>
+                                        </div>
+                                    </div>
                                 )}
                                 {visibleErrors.length === 0 ? (
-                                    <Text color="gray.500" fontStyle="italic">No specific word-level errors were heavily detected.</Text>
+                                    <p className="text-neutral-500 italic">No specific word-level errors were heavily detected.</p>
                                 ) : (
-                                    <Table size="sm" variant="simple" bg="white" border="1px solid" borderColor="gray.200">
-                                        <Thead bg="gray.50">
-                                            <Tr><Th>Timestamp</Th><Th>Word</Th><Th>Candidate Said</Th><Th>Correct Form</Th><Th>Error Type</Th><Th>Severity</Th></Tr>
-                                        </Thead>
-                                        <Tbody>
-                                            {visibleErrors.map((err: any, i: number) => (
-                                                <Tr key={i}>
-                                                    <Td fontSize="xs" color="gray.500">{err.timestamp}</Td>
-                                                    <Td fontSize="sm" fontWeight="bold">"{err.word}"</Td>
-                                                    <Td fontSize="sm" color="red.600">"{err.said_as}"</Td>
-                                                    <Td fontSize="sm" color="green.600">"{err.correct_ipa}"</Td>
-                                                    <Td fontSize="sm">{err.error_type} ({err.category})</Td>
-                                                    <Td><Badge colorScheme={err.severity === 'major' ? 'red' : err.severity === 'moderate' ? 'yellow' : 'gray'}>{err.severity}</Badge></Td>
-                                                </Tr>
-                                            ))}
-                                        </Tbody>
-                                    </Table>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded-xl overflow-hidden">
+                                            <thead className="bg-neutral-50 dark:bg-neutral-700/50 text-neutral-600 dark:text-neutral-300 text-xs uppercase tracking-wider">
+                                                <tr>
+                                                    <th className="p-3 border-b border-neutral-200 dark:border-neutral-700">Timestamp</th>
+                                                    <th className="p-3 border-b border-neutral-200 dark:border-neutral-700">Word</th>
+                                                    <th className="p-3 border-b border-neutral-200 dark:border-neutral-700">Candidate Said</th>
+                                                    <th className="p-3 border-b border-neutral-200 dark:border-neutral-700">Correct Form</th>
+                                                    <th className="p-3 border-b border-neutral-200 dark:border-neutral-700">Error Type</th>
+                                                    <th className="p-3 border-b border-neutral-200 dark:border-neutral-700">Severity</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700 text-sm">
+                                                {visibleErrors.map((err: any, i: number) => (
+                                                    <tr key={i} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-750">
+                                                        <td className="p-3 text-xs text-neutral-500">{err.timestamp}</td>
+                                                        <td className="p-3 font-bold text-neutral-900 dark:text-neutral-100">"{err.word}"</td>
+                                                        <td className="p-3 text-red-600 dark:text-red-400 font-medium">"{err.said_as}"</td>
+                                                        <td className="p-3 text-emerald-600 dark:text-emerald-400 font-medium">"{err.correct_ipa}"</td>
+                                                        <td className="p-3 text-neutral-700 dark:text-neutral-300">{err.error_type} ({err.category})</td>
+                                                        <td className="p-3">
+                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                                                err.severity === 'major'
+                                                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                                                                    : err.severity === 'moderate'
+                                                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                                                                    : 'bg-neutral-100 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-300'
+                                                            }`}>
+                                                                {err.severity}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 )}
                             </>
                         );
                     })()}
-                </Box>
+                </div>
 
                 <PageBreak />
 
                 {/* ======================= PAGE 7: Sentence Breakdown ======================= */}
-                <Box className="pdf-page" minH="950px">
-                    <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">Sentence-by-Sentence Breakdown</Heading>
-                    <VStack align="stretch" spacing={8}>
+                <div className="pdf-page min-h-[950px]">
+                    <h2 className="text-xl font-bold mb-6 border-b-2 border-neutral-800 dark:border-neutral-200 pb-2 text-brand">
+                        Sentence-by-Sentence Breakdown
+                    </h2>
+                    <div className="flex flex-col gap-6">
                         {sentences.length > 0 ? sentences.map((sentence: any, idx: number) => (
-                            <Box key={idx} borderLeft="4px solid" borderColor="blue.500" bg="gray.50" pl={4} py={3} pr={4} roundedRight="md">
-                                <Text fontWeight="bold" fontSize="md" mb={3} color="gray.800">Sentence {idx + 1}: "{sentence.text}"</Text>
-                                <SimpleGrid columns={1} spacing={2} pl={4}>
+                            <div key={idx} className="border-l-4 border-brand bg-neutral-50 dark:bg-neutral-800/60 p-4 rounded-r-xl">
+                                <h3 className="font-bold text-base mb-3 text-neutral-900 dark:text-neutral-100">
+                                    Sentence {idx + 1}: "{sentence.text}"
+                                </h3>
+                                <div className="grid grid-cols-1 gap-2 pl-4">
                                     {[
                                         { label: "Pronunciation Issues", val: sentence.pronunciation_issues },
                                         { label: "Fluency", val: sentence.fluency },
@@ -425,124 +523,165 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                                         { label: "Rhythm", val: sentence.rhythm },
                                         { label: "Intonation", val: sentence.intonation },
                                     ].map((row, i) => (
-                                        <Text key={i} fontSize="sm">
-                                            <Text as="span" fontWeight="bold" color="gray.600">{row.label}: </Text>{row.val}
-                                        </Text>
+                                        <p key={i} className="text-xs sm:text-sm text-neutral-700 dark:text-neutral-300">
+                                            <span className="font-bold text-neutral-600 dark:text-neutral-400">{row.label}: </span>
+                                            {row.val}
+                                        </p>
                                     ))}
-                                </SimpleGrid>
-                            </Box>
-                        )) : <Text color="gray.500" fontStyle="italic">Sentence-level analysis is not available for this session.</Text>}
-                    </VStack>
-                </Box>
+                                </div>
+                            </div>
+                        )) : <p className="text-neutral-500 italic">Sentence-level analysis is not available for this session.</p>}
+                    </div>
+                </div>
 
                 <PageBreak />
 
                 {/* ======================= PAGE 8: Learning Resources ======================= */}
-                <Box className="pdf-page" minH="950px">
-                    <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">4 | Learning Resources</Heading>
-                    <HStack mb={8} justify="center" spacing={10} bg="blue.50" p={6} rounded="md" border="1px solid" borderColor="blue.100">
-                        <VStack>
-                            <Text fontSize="sm" fontWeight="bold" textTransform="uppercase" color="blue.600">Overall Speech Score</Text>
-                            <Heading size="2xl" color="blue.900">{result.overall_score || 58}<Text as="span" fontSize="lg" color="gray.500">/100</Text></Heading>
-                        </VStack>
-                        <Box h="60px" w="2px" bg="blue.200" />
-                        <VStack>
-                            <Text fontSize="sm" fontWeight="bold" textTransform="uppercase" color="blue.600">CEFR Speaking Level</Text>
-                            <Heading size="2xl" color="blue.900">{result.cefr_level || 'B1'}</Heading>
-                        </VStack>
-                    </HStack>
-                    <SimpleGrid columns={2} spacing={8} mb={10}>
-                        <Box bg="green.50" p={6} rounded="md" border="1px solid" borderColor="green.200">
-                            <HStack mb={4}><CheckCircle color="#38A169" /><Heading size="md" color="green.900">Top Strengths</Heading></HStack>
-                            <VStack align="start" spacing={3}>
-                                {summary.top_strengths?.map((str: string, i: number) => <Text key={i} fontSize="sm" color="green.800">• {str}</Text>)
-                                    || <Text fontSize="sm" color="green.800">No defined strengths collected.</Text>}
-                            </VStack>
-                        </Box>
-                        <Box bg="red.50" p={6} rounded="md" border="1px solid" borderColor="red.200">
-                            <HStack mb={4}><AlertTriangle color="#E53E3E" /><Heading size="md" color="red.900">Priority Improvements</Heading></HStack>
-                            <VStack align="start" spacing={3}>
-                                {summary.top_improvements?.map((imp: string, i: number) => <Text key={i} fontSize="sm" color="red.800">• {imp}</Text>)
-                                    || <Text fontSize="sm" color="red.800">No priority improvements derived.</Text>}
-                            </VStack>
-                        </Box>
-                    </SimpleGrid>
-                    <Heading size="md" mb={4}>Personalized Learning Resources</Heading>
-                    <VStack align="stretch" spacing={6}>
+                <div className="pdf-page min-h-[950px]">
+                    <h2 className="text-xl font-bold mb-6 border-b-2 border-neutral-800 dark:border-neutral-200 pb-2 text-brand">
+                        4 | Learning Resources
+                    </h2>
+                    <div className="flex items-center justify-center gap-8 sm:gap-12 mb-8 bg-brand/5 p-6 rounded-xl border border-brand/20">
+                        <div className="flex flex-col items-center">
+                            <span className="text-xs font-bold uppercase tracking-wider text-brand">Overall Speech Score</span>
+                            <span className="text-3xl sm:text-4xl font-black text-neutral-900 dark:text-neutral-100">
+                                {result.overall_score || 58}<span className="text-sm font-normal text-neutral-500">/100</span>
+                            </span>
+                        </div>
+                        <div className="h-12 w-px bg-brand/30" />
+                        <div className="flex flex-col items-center">
+                            <span className="text-xs font-bold uppercase tracking-wider text-brand">CEFR Speaking Level</span>
+                            <span className="text-3xl sm:text-4xl font-black text-neutral-900 dark:text-neutral-100">
+                                {result.cefr_level || 'B1'}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-10">
+                        <div className="bg-emerald-50 dark:bg-emerald-950/30 p-6 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                            <div className="flex items-center gap-2 mb-4">
+                                <CheckCircle className="text-emerald-600 dark:text-emerald-400" size={20} />
+                                <h3 className="font-bold text-base sm:text-lg text-emerald-900 dark:text-emerald-200">Top Strengths</h3>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                {summary.top_strengths?.map((str: string, i: number) => (
+                                    <span key={i} className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-300">• {str}</span>
+                                )) || <span className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-300">No defined strengths collected.</span>}
+                            </div>
+                        </div>
+
+                        <div className="bg-red-50 dark:bg-red-950/30 p-6 rounded-xl border border-red-200 dark:border-red-800">
+                            <div className="flex items-center gap-2 mb-4">
+                                <AlertTriangle className="text-red-600 dark:text-red-400" size={20} />
+                                <h3 className="font-bold text-base sm:text-lg text-red-900 dark:text-red-200">Priority Improvements</h3>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                {summary.top_improvements?.map((imp: string, i: number) => (
+                                    <span key={i} className="text-xs sm:text-sm text-red-800 dark:text-red-300">• {imp}</span>
+                                )) || <span className="text-xs sm:text-sm text-red-800 dark:text-red-300">No priority improvements derived.</span>}
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 className="text-base sm:text-lg font-bold mb-4 text-neutral-900 dark:text-neutral-100">Personalized Learning Resources</h3>
+                    <div className="flex flex-col gap-6">
                         {summary.learning_resources?.map((res: any, idx: number) => (
-                            <Box key={idx}>
-                                <Heading size="sm" mb={3}>{res.area}</Heading>
-                                <VStack align="stretch" spacing={2}>
+                            <div key={idx}>
+                                <h4 className="font-bold text-sm sm:text-base mb-3 text-neutral-800 dark:text-neutral-200">{res.area}</h4>
+                                <div className="flex flex-col gap-2">
                                     {res.items?.map((item: any, i: number) => (
-                                        <HStack key={i} justify="space-between" bg="white" p={3} border="1px solid" borderColor="gray.200" rounded="md">
-                                            <HStack><MonitorPlay size={16} color="gray" /><Text fontSize="sm">{item.title}</Text></HStack>
-                                            <Badge colorScheme={item.type === 'YouTube' ? 'red' : item.type === 'Paid | App' ? 'blue' : undefined}>{item.type}</Badge>
-                                        </HStack>
+                                        <div key={i} className="flex items-center justify-between bg-white dark:bg-neutral-800 p-3 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-sm">
+                                            <div className="flex items-center gap-3">
+                                                <MonitorPlay size={16} className="text-neutral-500" />
+                                                <span className="text-xs sm:text-sm font-medium text-neutral-800 dark:text-neutral-200">{item.title}</span>
+                                            </div>
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                                item.type === 'YouTube'
+                                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                                                    : 'bg-brand/10 text-brand'
+                                            }`}>
+                                                {item.type}
+                                            </span>
+                                        </div>
                                     ))}
-                                </VStack>
-                            </Box>
-                        )) || <Text color="gray.500" fontStyle="italic">No specific learning resources matched yet.</Text>}
-                    </VStack>
-                </Box>
+                                </div>
+                            </div>
+                        )) || <p className="text-neutral-500 italic">No specific learning resources matched yet.</p>}
+                    </div>
+                </div>
 
                 <PageBreak />
 
                 {/* ======================= PAGE 9: 3-Week Plan ======================= */}
-                <Box className="pdf-page" minH="950px">
-                    <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">5 | 3-Week Improvement Plan</Heading>
-                    <Text mb={8} color="gray.600">This structured plan is designed to address your specific weaknesses identified during this assessment.</Text>
-                    <VStack align="stretch" spacing={8}>
+                <div className="pdf-page min-h-[950px]">
+                    <h2 className="text-xl font-bold mb-6 border-b-2 border-neutral-800 dark:border-neutral-200 pb-2 text-brand">
+                        5 | 3-Week Improvement Plan
+                    </h2>
+                    <p className="mb-8 text-sm text-neutral-600 dark:text-neutral-400">
+                        This structured plan is designed to address your specific weaknesses identified during this assessment.
+                    </p>
+                    <div className="flex flex-col gap-8">
                         {(result as any).improvement_plan ? Object.entries((result as any).improvement_plan).map(([week, data]: [string, any]) => (
-                            <Box key={week} p={6} bg="blue.50" rounded="md" border="1px solid" borderColor="blue.100" position="relative">
-                                <Badge colorScheme="blue" position="absolute" top="-10px" left="20px" px={4} py={1} rounded="full" shadow="sm">{week.replace('_', ' ').toUpperCase()}</Badge>
-                                <HStack justify="space-between" mb={4} mt={2}>
-                                    <Heading size="md" color="blue.900">Focus: {data.focus}</Heading>
-                                    <Badge colorScheme="purple">{data.daily_minutes} mins / day</Badge>
-                                </HStack>
-                                <Box bg="white" p={4} rounded="sm" border="1px solid" borderColor="blue.100">
-                                    <Text fontWeight="bold" fontSize="sm" mb={1} color="gray.500">Daily Exercise:</Text>
-                                    <Text color="gray.800">{data.exercise}</Text>
-                                </Box>
-                            </Box>
-                        )) : <Text color="gray.500" fontStyle="italic">A personalized improvement plan is not available for this session.</Text>}
-                    </VStack>
-                </Box>
+                            <div key={week} className="p-6 bg-brand/5 rounded-xl border border-brand/20 relative pt-7">
+                                <span className="absolute -top-3 left-5 px-3 py-0.5 rounded-full text-xs font-bold bg-brand text-white shadow-sm">
+                                    {week.replace('_', ' ').toUpperCase()}
+                                </span>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="font-bold text-base sm:text-lg text-brand">Focus: {data.focus}</h3>
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
+                                        {data.daily_minutes} mins / day
+                                    </span>
+                                </div>
+                                <div className="bg-white dark:bg-neutral-800 p-4 rounded-lg border border-brand/15 shadow-sm">
+                                    <span className="font-bold text-xs uppercase tracking-wider text-neutral-500 block mb-1">Daily Exercise:</span>
+                                    <p className="text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">{data.exercise}</p>
+                                </div>
+                            </div>
+                        )) : <p className="text-neutral-500 italic">A personalized improvement plan is not available for this session.</p>}
+                    </div>
+                </div>
 
                 <PageBreak />
 
                 {/* ======================= PAGE 10: Practice ======================= */}
-                <Box className="pdf-page" minH="950px">
-                    <Heading size="lg" mb={6} borderBottom="2px solid" borderColor="gray.800" pb={2} color="blue.900">6 | Recommended Practice</Heading>
-                    <Text mb={8} color="gray.600">Immediate actions you can take to see improvement in your communication clarity and flow.</Text>
-                    <SimpleGrid columns={1} spacing={6}>
+                <div className="pdf-page min-h-[950px]">
+                    <h2 className="text-xl font-bold mb-6 border-b-2 border-neutral-800 dark:border-neutral-200 pb-2 text-brand">
+                        6 | Recommended Practice
+                    </h2>
+                    <p className="mb-8 text-sm text-neutral-600 dark:text-neutral-400">
+                        Immediate actions you can take to see improvement in your communication clarity and flow.
+                    </p>
+                    <div className="grid grid-cols-1 gap-6">
                         {(result as any).practice_exercises?.map((ex: any, idx: number) => (
-                            <Box key={idx} p={6} border="1px solid" borderColor="gray.200" rounded="lg" shadow="sm">
-                                <HStack justify="space-between" mb={4}>
-                                    <HStack spacing={3}>
-                                        <Box bg="blue.100" p={2} rounded="full" color="blue.600"><MonitorPlay size={24} /></Box>
-                                        <Heading size="md" color="gray.800">{ex.title}</Heading>
-                                    </HStack>
-                                    <Badge variant="subtle" colorScheme="orange" px={3} py={1} rounded="md">{ex.duration_minutes} MINS</Badge>
-                                </HStack>
-                                <Text color="gray.700" lineHeight="tall" pl={12}>{ex.description}</Text>
-                            </Box>
-                        )) || <Text color="gray.500" fontStyle="italic">No practice exercises suggested for this session.</Text>}
-                    </SimpleGrid>
-                    <Box mt={12} p={6} bg="gray.800" color="white" rounded="lg">
-                        <HStack spacing={4}>
-                            <AlertTriangle color="#F6AD55" />
-                            <Box>
-                                <Text fontWeight="bold">Suggested Next Topic:</Text>
-                                <Text fontSize="lg" fontStyle="italic">"{(result as any).next_topic_suggestion || "Public Speaking Basics"}"</Text>
-                            </Box>
-                        </HStack>
-                    </Box>
-                </Box>
+                            <div key={idx} className="p-6 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-sm bg-white dark:bg-neutral-800">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-full bg-brand/10 text-brand">
+                                            <MonitorPlay size={20} />
+                                        </div>
+                                        <h3 className="font-bold text-base sm:text-lg text-neutral-800 dark:text-neutral-200">{ex.title}</h3>
+                                    </div>
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                        {ex.duration_minutes} MINS
+                                    </span>
+                                </div>
+                                <p className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed pl-11">{ex.description}</p>
+                            </div>
+                        )) || <p className="text-neutral-500 italic">No practice exercises suggested for this session.</p>}
+                    </div>
+                    <div className="mt-12 p-6 bg-neutral-900 text-white rounded-xl shadow-sm flex items-start sm:items-center gap-4">
+                        <AlertTriangle className="text-amber-400 shrink-0" size={24} />
+                        <div className="flex flex-col">
+                            <span className="font-bold text-sm text-neutral-300">Suggested Next Topic:</span>
+                            <span className="text-base sm:text-lg italic font-semibold text-white">"{(result as any).next_topic_suggestion || "Public Speaking Basics"}"</span>
+                        </div>
+                    </div>
+                </div>
 
-                <Center mt={12} borderTop="1px solid" borderColor="gray.200" pt={8} className="no-print">
-                    <Text fontSize="xs" color="gray.400">--- END OF REPORT ---</Text>
-                </Center>
-            </Box>
-        </Box>
+                <div className="flex items-center justify-center mt-12 border-t border-neutral-200 dark:border-neutral-700 pt-8 no-print">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">--- END OF REPORT ---</span>
+                </div>
+            </div>
+        </div>
     );
 };

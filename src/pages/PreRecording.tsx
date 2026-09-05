@@ -1,197 +1,278 @@
-import { Box, Flex, Heading, Text, VStack, Icon, HStack, Spinner, Grid, GridItem } from "@chakra-ui/react";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FloatingOrb, GlassCard, PulseGlow } from "../components/animations/FloatingElements";
-import { Button } from "@chakra-ui/react";
 import { motion } from "framer-motion";
+import { CadenceButton } from "../components/ui/CadenceButton";
 
-// Icons for Checklist
+// ─── Icons ──────────────────────────────────────────────────────────────────
 const CheckIcon = () => (
-    <svg viewBox="0 0 24 24" fill="#48BB78" width="24px" height="24px">
-        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-    </svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+    strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-success" aria-hidden="true">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
 );
+
 const CameraIcon = () => (
-    <svg viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
-); // Using user icon as placeholder for camera self-view
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5" aria-hidden="true">
+    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+  </svg>
+);
 
 const MicIcon = () => (
-    <svg viewBox="0 0 24 24" fill="currentColor" width="24px" height="24px"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" /><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" /></svg>
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5" aria-hidden="true">
+    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+  </svg>
 );
 
-const MotionBox = motion(Box);
+const LightIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+    strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden="true">
+    <circle cx="12" cy="12" r="5" />
+    <line x1="12" y1="1" x2="12" y2="3" />
+    <line x1="12" y1="21" x2="12" y2="23" />
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+    <line x1="1" y1="12" x2="3" y2="12" />
+    <line x1="21" y1="12" x2="23" y2="12" />
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+  </svg>
+);
 
-export const PreRecording = () => {
-    const navigate = useNavigate();
-    const videoRef = useRef<HTMLVideoElement>(null);
+const SoundIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+    strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden="true">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+  </svg>
+);
 
-    const [permissions, setPermissions] = useState({
-        camera: false,
-        mic: false,
-    });
-    const [checks, setChecks] = useState({
-        lighting: "checking", // checking, good, bad
-        noise: "checking", // checking, good, bad
-    });
+// ─── Spinner ────────────────────────────────────────────────────────────────
+const Spinner = () => (
+  <svg className="animate-spin w-4 h-4 text-brand" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+  </svg>
+);
 
-    const requestPermissions = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-            }
-            setPermissions({ camera: true, mic: true });
+// ─── Checklist item ─────────────────────────────────────────────────────────
+interface ChecklistItemProps {
+  label: string;
+  status: "loading" | "done" | "error";
+  subText?: string;
+  icon: React.ReactNode;
+  delay?: number;
+}
 
-            // Simulate environment checks
-            setTimeout(() => setChecks(prev => ({ ...prev, lighting: "good" })), 1500);
-            setTimeout(() => setChecks(prev => ({ ...prev, noise: "good" })), 2500);
+const ChecklistItem = ({ label, status, subText, icon, delay = 0 }: ChecklistItemProps) => {
+  const borderColor =
+    status === "done" ? "border-l-success" :
+    status === "error" ? "border-l-error" :
+    "border-l-brand";
 
-        } catch (err) {
-            console.error("Error accessing media devices:", err);
-            // Handle error state appropriately in real app
-        }
-    };
+  const bgColor =
+    status === "done" ? "bg-success/5" : "bg-surface";
 
-    useEffect(() => {
-        requestPermissions();
-        return () => {
-            // Cleanup stream on unmount
-            if (videoRef.current && videoRef.current.srcObject) {
-                const stream = videoRef.current.srcObject as MediaStream;
-                stream.getTracks().forEach(track => track.stop());
-            }
-        };
-    }, []);
-
-    const allReady = permissions.camera && permissions.mic && checks.lighting === "good" && checks.noise === "good";
-
-    return (
-        <Flex
-            minH="100vh"
-            bg="gray.900"
-            bgGradient="radial(circle at top right, #2c003e, #000)"
-            align="center"
-            justify="center"
-            position="relative"
-            overflow="hidden"
-            p={4}
-        >
-            {/* Holographic Grid Background (Simple CSS implementation) */}
-            <Box
-                position="absolute"
-                top={0} left={0} right={0} bottom={0}
-                opacity={0.15}
-                backgroundImage="linear-gradient(#4a148c 1px, transparent 1px), linear-gradient(90deg, #4a148c 1px, transparent 1px)"
-                backgroundSize="40px 40px"
-                pointerEvents="none"
-            />
-
-            <GlassCard w="100%" maxW="6xl" height="80vh" display="flex" flexDirection="column" p={0} overflow="hidden">
-                <Grid templateColumns={{ base: "1fr", md: "1fr 350px" }} height="100%">
-                    {/* Left: Video Preview Area */}
-                    <GridItem position="relative" bg="black" display="flex" alignItems="center" justifyContent="center">
-                        <Box position="relative" width="100%" height="100%">
-                            <video
-                                ref={videoRef}
-                                autoPlay
-                                muted
-                                playsInline
-                                style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }}
-                            />
-
-                            {/* Face Mesh Overlay (Visual Fluff) */}
-                            {permissions.camera && (
-                                <Box
-                                    position="absolute" top="0" left="0" right="0" bottom="0"
-                                    border="2px solid rgba(0, 255, 128, 0.3)"
-                                    boxShadow="inset 0 0 50px rgba(0, 255, 128, 0.2)"
-                                    pointerEvents="none"
-                                />
-                            )}
-
-                            {!permissions.camera && (
-                                <Flex direction="column" align="center" justify="center" height="100%" color="whiteAlpha.600">
-                                    <Spinner size="xl" mb={4} />
-                                    <Text>Accessing Camera...</Text>
-                                </Flex>
-                            )}
-                        </Box>
-                    </GridItem>
-
-                    {/* Right: Checklist & Controls */}
-                    <GridItem bg="rgba(0,0,0,0.3)" p={8} display="flex" flexDirection="column" justifyContent="center">
-                        <VStack align="stretch" spacing={6}>
-                            <Heading size="md" color="white" mb={2}>Setup Checklist</Heading>
-
-                            <ChecklistItem
-                                label="Camera Access"
-                                status={permissions.camera ? "done" : "loading"}
-                                icon={<Icon as={CameraIcon} />}
-                            />
-                            <ChecklistItem
-                                label="Microphone Ready"
-                                status={permissions.mic ? "done" : "loading"}
-                                icon={<Icon as={MicIcon} />}
-                            />
-                            <ChecklistItem
-                                label="Lighting Check"
-                                status={checks.lighting === "good" ? "done" : checks.lighting === "checking" ? "loading" : "error"}
-                                subText="Ensure your face is clearly visible"
-                            />
-                            <ChecklistItem
-                                label="Noise Check"
-                                status={checks.noise === "good" ? "done" : checks.noise === "checking" ? "loading" : "error"}
-                                subText="Find a quiet environment"
-                            />
-
-                            <Box pt={8}>
-                                <PulseGlow>
-                                    <Button
-                                        size="lg"
-                                        w="full"
-                                        colorScheme="green"
-                                        bgGradient={allReady ? "linear(to-r, green.400, teal.500)" : "linear(to-r, gray.600, gray.700)"}
-                                        isDisabled={!allReady}
-                                        _hover={allReady ? {
-                                            transform: "translateY(-2px)",
-                                            boxShadow: "0 5px 15px rgba(72, 187, 120, 0.4)"
-                                        } : {}}
-                                        onClick={() => navigate("/assessment")}
-                                    >
-                                        {allReady ? "I'm Ready - Start Assessment" : "Checking System..."}
-                                    </Button>
-                                </PulseGlow>
-                            </Box>
-                        </VStack>
-                    </GridItem>
-                </Grid>
-            </GlassCard>
-        </Flex>
-    );
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 16 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.35, delay, ease: [0.16, 1, 0.3, 1] }}
+      className={`flex items-center justify-between rounded-lg border border-border border-l-4 ${borderColor} ${bgColor} px-4 py-3 transition-colors duration-300`}
+    >
+      <div className="flex items-center gap-3">
+        <span className={status === "done" ? "text-success" : "text-text-muted"}>{icon}</span>
+        <div>
+          <p className="text-sm font-medium text-text-primary">{label}</p>
+          {subText && <p className="text-xs text-text-muted">{subText}</p>}
+        </div>
+      </div>
+      <div className="flex-shrink-0 ml-3">
+        {status === "done"    && <CheckIcon />}
+        {status === "loading" && <Spinner />}
+        {status === "error"   && <span className="text-xs text-error font-medium">Failed</span>}
+      </div>
+    </motion.div>
+  );
 };
 
-const ChecklistItem = ({ label, status, subText, icon }: { label: string, status: string, subText?: string, icon?: React.ReactNode }) => {
-    return (
-        <MotionBox
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            p={3}
-            bg={status === "done" ? "rgba(72, 187, 120, 0.1)" : "rgba(255,255,255,0.05)"}
-            borderRadius="lg"
-            borderLeft="4px solid"
-            borderColor={status === "done" ? "green.400" : status === "error" ? "red.400" : "blue.400"}
+// ─── Component ──────────────────────────────────────────────────────────────
+export const PreRecording = () => {
+  const navigate = useNavigate();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // ── State (unchanged logic) ──────────────────────────────────────────────
+  const [permissions, setPermissions] = useState({ camera: false, mic: false });
+  const [checks, setChecks] = useState({
+    lighting: "checking", // checking, good, bad
+    noise: "checking",    // checking, good, bad
+  });
+
+  // ── Media permission request (unchanged logic) ───────────────────────────
+  const requestPermissions = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      if (videoRef.current) videoRef.current.srcObject = stream;
+      setPermissions({ camera: true, mic: true });
+      setTimeout(() => setChecks((prev) => ({ ...prev, lighting: "good" })), 1500);
+      setTimeout(() => setChecks((prev) => ({ ...prev, noise: "good" })), 2500);
+    } catch (err) {
+      console.error("Error accessing media devices:", err);
+    }
+  };
+
+  useEffect(() => {
+    requestPermissions();
+    return () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  const allReady =
+    permissions.camera && permissions.mic &&
+    checks.lighting === "good" && checks.noise === "good";
+
+  // ── Render ───────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen w-full bg-background text-text-primary flex items-center justify-center p-4 transition-colors duration-200">
+      <div className="w-full max-w-5xl">
+
+        {/* Page header */}
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="mb-6 flex items-center gap-3"
         >
-            <HStack justify="space-between">
-                <HStack>
-                    {icon && <Box color={status === "done" ? "green.400" : "whiteAlpha.700"}>{icon}</Box>}
-                    <VStack align="start" spacing={0}>
-                        <Text color="white" fontWeight="medium">{label}</Text>
-                        {subText && <Text fontSize="xs" color="whiteAlpha.600">{subText}</Text>}
-                    </VStack>
-                </HStack>
-                {status === "done" && <Icon as={CheckIcon} />}
-                {status === "loading" && <Spinner size="sm" color="blue.400" />}
-            </HStack>
-        </MotionBox>
-    )
-}
+          <div className="h-9 w-9 rounded-xl bg-brand flex items-center justify-center shadow-sm flex-shrink-0">
+            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 2v20M17 5v14M7 8v8M22 10v4M2 10v4" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-text-primary">Setup Check</h1>
+            <p className="text-xs text-text-secondary">Verify your camera and microphone before the assessment</p>
+          </div>
+        </motion.div>
+
+        {/* Two-column layout */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_340px] gap-4 h-[70vh] min-h-[480px]">
+
+          {/* Left: Video preview */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="relative bg-black rounded-2xl overflow-hidden flex items-center justify-center"
+          >
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+              style={{ transform: "scaleX(-1)" }}
+            />
+
+            {/* Active camera overlay border */}
+            {permissions.camera && (
+              <div className="absolute inset-0 rounded-2xl border-2 border-success/30 pointer-events-none" />
+            )}
+
+            {/* Loading state */}
+            {!permissions.camera && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/60">
+                <Spinner />
+                <p className="text-sm">Accessing camera…</p>
+              </div>
+            )}
+
+            {/* Status badge */}
+            <div className="absolute bottom-3 left-3">
+              <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
+                permissions.camera
+                  ? "bg-success/20 text-success border border-success/30"
+                  : "bg-white/10 text-white/60 border border-white/10"
+              }`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${permissions.camera ? "bg-success animate-pulse" : "bg-white/40"}`} />
+                {permissions.camera ? "Camera live" : "Connecting…"}
+              </span>
+            </div>
+          </motion.div>
+
+          {/* Right: Checklist + CTA */}
+          <motion.div
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="bg-surface border border-border rounded-2xl p-6 flex flex-col justify-between"
+          >
+            <div className="space-y-4">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-text-secondary">
+                Setup Checklist
+              </h2>
+
+              <div className="space-y-3">
+                <ChecklistItem
+                  label="Camera Access"
+                  status={permissions.camera ? "done" : "loading"}
+                  icon={<CameraIcon />}
+                  delay={0.25}
+                />
+                <ChecklistItem
+                  label="Microphone Ready"
+                  status={permissions.mic ? "done" : "loading"}
+                  icon={<MicIcon />}
+                  delay={0.35}
+                />
+                <ChecklistItem
+                  label="Lighting Check"
+                  status={
+                    checks.lighting === "good" ? "done" :
+                    checks.lighting === "checking" ? "loading" : "error"
+                  }
+                  subText="Ensure your face is clearly visible"
+                  icon={<LightIcon />}
+                  delay={0.45}
+                />
+                <ChecklistItem
+                  label="Noise Check"
+                  status={
+                    checks.noise === "good" ? "done" :
+                    checks.noise === "checking" ? "loading" : "error"
+                  }
+                  subText="Find a quiet environment"
+                  icon={<SoundIcon />}
+                  delay={0.55}
+                />
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="mt-6 space-y-3">
+              {!allReady && (
+                <p className="text-xs text-text-muted text-center">
+                  Waiting for all checks to pass…
+                </p>
+              )}
+              <CadenceButton
+                variant="primary"
+                size="lg"
+                fullWidth
+                disabled={!allReady}
+                onClick={() => navigate("/assessment")}
+              >
+                {allReady ? "I'm Ready — Start Assessment" : "Checking System…"}
+              </CadenceButton>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
+};

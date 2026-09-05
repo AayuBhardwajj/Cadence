@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Box, Text, VStack, Flex, Button } from '@chakra-ui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { subscribeToAssessment, AssessmentNotification } from '../../services/websocket';
 import { fetchAssessmentReport, AnalysisResult } from '../../services/api';
+import { CadenceButton } from '../ui/CadenceButton';
 
 interface ProcessingScreenProps {
     sessionId: string;
@@ -129,101 +129,89 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({
 
     if (errorMessage) {
         return (
-            <Flex
-                position="fixed" top={0} left={0} w="full" h="100vh"
-                bgGradient="radial(circle at center, #1a202c 0%, #000000 100%)"
-                align="center" justify="center" zIndex={20}
-                direction="column" px={6}
-            >
-                <VStack spacing={6} maxW="500px" textAlign="center">
-                    <Box w="60px" h="60px" rounded="full" bg="red.500" display="flex" alignItems="center" justifyContent="center" color="white" fontSize="2xl">
+            <div className="fixed inset-0 z-30 flex flex-col items-center justify-center bg-background px-6">
+                <div className="max-w-md w-full text-center flex flex-col items-center gap-6">
+                    <div className="w-16 h-16 rounded-full bg-error/10 text-error flex items-center justify-center text-2xl font-bold border border-error/20">
                         ✕
-                    </Box>
-                    <Text fontSize="2xl" fontWeight="bold" color="white">
-                        Analysis Failed
-                    </Text>
-                    <Text color="red.200" fontSize="md">
-                        {errorMessage}
-                    </Text>
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-text-primary tracking-tight">
+                            Analysis Failed
+                        </h2>
+                        <p className="text-sm text-error mt-2">
+                            {errorMessage}
+                        </p>
+                    </div>
                     {onRetry && (
-                        <Button colorScheme="blue" size="lg" onClick={onRetry} rounded="full" px={8}>
+                        <CadenceButton size="lg" variant="primary" onClick={onRetry} className="px-8 shadow-md">
                             Retry Assessment
-                        </Button>
+                        </CadenceButton>
                     )}
-                </VStack>
-            </Flex>
+                </div>
+            </div>
         );
     }
 
     return (
-        <Flex
-            position="fixed" top={0} left={0} w="full" h="100vh"
-            bgGradient="radial(circle at center, #1a202c 0%, #000000 100%)"
-            align="center" justify="center" zIndex={20}
-            overflow="hidden"
-            direction="column"
-        >
+        <div className="fixed inset-0 z-30 flex flex-col items-center justify-center bg-background px-6 overflow-hidden">
             {/* Visual Center - Orbital System */}
-            <Box position="relative" w="300px" h="300px" display="flex" alignItems="center" justifyContent="center">
-                {/* Core */}
-                <Box
-                    position="absolute"
-                    w="80px" h="80px"
-                    bgGradient="radial(white, blue.500)"
-                    rounded="full"
-                    boxShadow="0 0 50px rgba(66, 153, 225, 0.6)"
-                    animation="pulse 2s infinite"
-                />
+            <div className="relative w-72 h-72 flex items-center justify-center">
+                {/* Core glowing orb */}
+                <div className="absolute w-20 h-20 rounded-full bg-brand/30 shadow-[0_0_50px_rgba(79,70,229,0.4)] animate-pulse flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-brand" />
+                </div>
 
                 {/* Orbit 1 */}
                 <motion.div
-                    style={{ position: 'absolute', width: '200px', height: '200px', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '50%' }}
+                    className="absolute w-48 h-48 rounded-full border border-dashed border-border"
                     animate={{ rotate: 360 }}
                     transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                 >
-                    <Box w="20px" h="20px" bg="blue.400" rounded="full" position="absolute" top="-10px" left="50%" boxShadow="0 0 20px blue" />
+                    <div className="w-4 h-4 rounded-full bg-brand absolute -top-2 left-1/2 -translate-x-1/2 shadow-[0_0_12px_rgba(79,70,229,0.6)]" />
                 </motion.div>
 
                 {/* Orbit 2 */}
                 <motion.div
-                    style={{ position: 'absolute', width: '280px', height: '280px', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '50%' }}
+                    className="absolute w-64 h-64 rounded-full border border-dashed border-border/60"
                     animate={{ rotate: -360 }}
                     transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
                 >
-                    <Box w="15px" h="15px" bg="purple.400" rounded="full" position="absolute" bottom="-7px" left="50%" boxShadow="0 0 20px purple" />
+                    <div className="w-3.5 h-3.5 rounded-full bg-success absolute -bottom-1.5 left-1/2 -translate-x-1/2 shadow-[0_0_12px_rgba(16,185,129,0.6)]" />
                 </motion.div>
-            </Box>
+            </div>
 
             {/* Messages */}
-            <VStack mt={12} spacing={4}>
-                <Text fontSize="xl" fontWeight="bold" color="white">
+            <div className="mt-10 text-center flex flex-col items-center gap-3">
+                <h2 className="text-xl font-bold text-text-primary tracking-tight">
                     AI Analysis in Progress
-                </Text>
-                <Box h="30px" overflow="hidden" position="relative">
-                    <AnimatePresence mode='wait'>
+                </h2>
+                <div className="h-8 relative overflow-hidden flex items-center justify-center">
+                    <AnimatePresence mode="wait">
                         <motion.div
                             key={statusMessage || currentStep}
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 12 }}
                             animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
+                            exit={{ opacity: 0, y: -12 }}
+                            transition={{ duration: 0.25 }}
                         >
-                            <Text color="blue.200" fontSize="lg">
+                            <p className="text-sm sm:text-base font-medium text-text-secondary">
                                 {statusMessage || steps[currentStep]}
-                            </Text>
+                            </p>
                         </motion.div>
                     </AnimatePresence>
-                </Box>
-            </VStack>
+                </div>
+            </div>
 
             {/* Loading Bar */}
-            <Box w="60%" maxW="600px" h="4px" bg="gray.800" mt={10} rounded="full" overflow="hidden">
+            <div className="w-full max-w-sm h-1.5 bg-elevated-surface border border-border rounded-full mt-8 overflow-hidden">
                 <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: "100%" }}
                     transition={{ duration: 25, ease: "linear" }}
-                    style={{ height: "100%", background: "linear-gradient(90deg, #00d4aa, #3b82f6)" }}
+                    className="h-full bg-brand rounded-full"
                 />
-            </Box>
-        </Flex>
+            </div>
+        </div>
     );
 };
+
