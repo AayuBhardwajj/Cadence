@@ -57,8 +57,8 @@ export interface AnalysisResult {
     amcat_mti_deep_dive?: {
         detected_accent: string;
         patterns: Array<{
-            name: string;
-            frequency: number; // 0 to 100
+            pattern: string;  // empty string = placeholder/not detected
+            score: number;    // 0 to 100 (frequency/severity)
             behaviors: string[];
         }>;
     };
@@ -106,7 +106,9 @@ export interface AnalysisResult {
         top_improvements: string[];
         learning_resources: Array<{
             area: string;
-            items: Array<{ title: string; type: "Free" | "Paid" | "YouTube" | "Web"; }>;
+            // type is a free-form label from ml-analysis; real values include compound
+            // strings like "Paid | App" that don't fit a narrow union.
+            items: Array<{ title: string; type: string; }>;
         }>;
     };
     improvement_plan?: Record<string, { focus: string; exercise: string; daily_minutes: number; }>;
@@ -238,6 +240,7 @@ export const fetchAssessmentReport = async (sessionId: string): Promise<Analysis
         },
         error_summary: {
             mispronunciation: errorLog ? errorLog.filter((e: any) => e.category === 'Pronunciation').length : 0,
+            vocabulary_errors: errorLog ? errorLog.filter((e: any) => e.category === 'Vocabulary' && (e.error_type === 'substitution' || e.error_type === 'deletion')).length : 0,
             stutters: errorLog ? errorLog.filter((e: any) => e.category === 'Fluency' && e.said_as?.includes('Stutter')).length : 0,
             unnatural_pauses: 0,
             filler_words: data.filler_word_count ?? 0,

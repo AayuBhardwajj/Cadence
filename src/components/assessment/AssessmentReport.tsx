@@ -323,7 +323,10 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                         </span>
                     </div>
                     <div className="flex flex-col gap-8">
-                        {mti_deep_dive.patterns.length > 0 ? mti_deep_dive.patterns.map((item: any, idx: number) => (
+                        {mti_deep_dive.patterns.filter((p: any) => p.pattern && p.pattern.trim() !== '').length > 0
+                            ? mti_deep_dive.patterns
+                                .filter((item: any) => item.pattern && item.pattern.trim() !== '')
+                                .map((item: any, idx: number) => (
                             <div key={idx} className="border-b border-neutral-200 dark:border-neutral-800 pb-6">
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-sm sm:text-base font-bold text-neutral-900 dark:text-neutral-100">{item.pattern}</h3>
@@ -612,7 +615,56 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
 
                 <PageBreak />
 
+                {/* ======================= PAGE 8.5: Grammar Errors ======================= */}
+                <div className="pdf-page min-h-[950px]">
+                    <h2 className="text-xl font-bold mb-6 border-b-2 border-neutral-800 dark:border-neutral-200 pb-2 text-brand">
+                        Grammar Errors Detected
+                    </h2>
+                    <p className="mb-6 text-sm text-neutral-600 dark:text-neutral-400">
+                        The following grammatical inaccuracies were identified in the candidate's spoken response.
+                        Each entry shows the original phrasing, the corrected form, and the rule being applied.
+                    </p>
+                    {(result.grammar_errors && result.grammar_errors.length > 0) ? (
+                        <div className="flex flex-col gap-4">
+                            {result.grammar_errors.map((err, idx) => (
+                                <div
+                                    key={idx}
+                                    className="border border-neutral-200 dark:border-neutral-700 rounded-xl p-5 bg-white dark:bg-neutral-800 shadow-sm"
+                                >
+                                    <div className="flex items-start gap-3 mb-4">
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 shrink-0 mt-0.5">
+                                            #{idx + 1}
+                                        </span>
+                                        <p className="text-xs sm:text-sm font-semibold text-neutral-700 dark:text-neutral-300 leading-relaxed">
+                                            {err.rule}
+                                        </p>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-9">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400">Original</span>
+                                            <span className="text-sm text-neutral-800 dark:text-neutral-200 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 leading-relaxed">
+                                                "{err.original}"
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Corrected</span>
+                                            <span className="text-sm text-neutral-800 dark:text-neutral-200 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg px-3 py-2 leading-relaxed">
+                                                "{err.corrected}"
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-neutral-500 italic">No specific grammar errors were flagged in this session.</p>
+                    )}
+                </div>
+
+                <PageBreak />
+
                 {/* ======================= PAGE 9: 3-Week Plan ======================= */}
+
                 <div className="pdf-page min-h-[950px]">
                     <h2 className="text-xl font-bold mb-6 border-b-2 border-neutral-800 dark:border-neutral-200 pb-2 text-brand">
                         5 | 3-Week Improvement Plan
