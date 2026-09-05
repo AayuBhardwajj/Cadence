@@ -27,4 +27,3 @@ agents/
 .env.local
 backend/test_recordings/
 
-img/
