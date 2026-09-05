@@ -190,8 +190,9 @@ Cadence is split into specialized services so that speech processing, applicatio
 
 The assessment pipeline is the core workflow of Cadence.
 
-> **[IMAGE PLACEHOLDER — Assessment pipeline diagram]**
->
+> 
+>![ass_pipe](./img/ass_pipe.png)
+
 > `docs/images/assessment-pipeline.png`
 
 ```text
