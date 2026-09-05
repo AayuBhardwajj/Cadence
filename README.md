@@ -141,7 +141,7 @@ The platform combines React on the frontend, FastAPI and Spring Boot services on
 
 ### High-Level Architecture
 
-![hld](./img/.hld)
+![hld](./img/.hld.png)
                          
 ```
 
