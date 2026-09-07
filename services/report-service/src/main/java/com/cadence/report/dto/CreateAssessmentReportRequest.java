@@ -20,6 +20,7 @@ public class CreateAssessmentReportRequest {
     private UUID assessmentSessionId;
 
     private String transcription;
+    private String referencePassageText;
     private Double overallScore;
     private Double pronunciationScore;
     private Double fluencyScore;

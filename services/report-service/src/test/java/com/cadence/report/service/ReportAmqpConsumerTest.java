@@ -60,6 +60,7 @@ class ReportAmqpConsumerTest {
           "session_id": "%s",
           "user_id": "user-123",
           "topic_id": "interview",
+          "reference_passage": "This is the reference passage text.",
           "audio_data": {
             "transcription": "Test speech transcription.",
             "wpm": 135.5,
@@ -87,7 +88,7 @@ class ReportAmqpConsumerTest {
         AssessmentReportResponse reportResponse = new AssessmentReportResponse(
                 reportId, sessionId, "Test speech transcription.",
                 86, 80, 89, 82, 90, 85, 87, "B2", 136, 2, 75,
-                List.of("Clear tone"), List.of("Pacing"), "Great delivery.", null,
+                List.of("Clear tone"), List.of("Pacing"), "Great delivery.", null, null,
                 null, null, null, null, null, null, null, null, null, null, OffsetDateTime.now()
         );
 
@@ -103,6 +104,7 @@ class ReportAmqpConsumerTest {
         verify(reportService).createReport(requestCaptor.capture());
         CreateAssessmentReportRequest req = requestCaptor.getValue();
         assertThat(req.getAssessmentSessionId()).isEqualTo(sessionId);
+        assertThat(req.getReferencePassageText()).isEqualTo("This is the reference passage text.");
         assertThat(req.getOverallScore()).isEqualTo(85.66);
         assertThat(req.getFluencyScore()).isEqualTo(88.5);
 

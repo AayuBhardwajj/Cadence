@@ -65,6 +65,7 @@ public class ReportAmqpConsumer {
             CreateAssessmentReportRequest request = CreateAssessmentReportRequest.builder()
                     .assessmentSessionId(sessionId)
                     .transcription(audioData.path("transcription").asText(""))
+                    .referencePassageText(root.path("reference_passage").asText(null))
                     .overallScore(getDoubleOrNull(scoreData, "overall_score"))
                     .pronunciationScore(getDoubleOrNull(breakdown, "pronunciation"))
                     .fluencyScore(getDoubleOrNull(breakdown, "fluency"))

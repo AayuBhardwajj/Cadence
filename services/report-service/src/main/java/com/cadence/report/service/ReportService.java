@@ -30,6 +30,7 @@ public class ReportService {
                 .id(UUID.randomUUID())
                 .assessmentSessionId(request.getAssessmentSessionId())
                 .transcription(request.getTranscription())
+                .referencePassageText(request.getReferencePassageText())
                 .overallScore(roundScore(request.getOverallScore()))
                 .pronunciationScore(roundScore(request.getPronunciationScore()))
                 .fluencyScore(roundScore(request.getFluencyScore()))

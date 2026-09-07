@@ -34,6 +34,9 @@ public class AssessmentReport {
     @Column(name = "transcription")
     private String transcription;
 
+    @Column(name = "reference_passage_text")
+    private String referencePassageText;
+
     @Column(name = "overall_score")
     private Integer overallScore;
 

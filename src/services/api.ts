@@ -226,7 +226,7 @@ export const fetchAssessmentReport = async (sessionId: string): Promise<Analysis
     const sentences = data.amcat_sentences || undefined;
 
     const amcatTranscript = {
-        reference_text: '',
+        reference_text: data.reference_passage_text || '',
         user_text: transcription,
         error_words: [],
         stats: {
