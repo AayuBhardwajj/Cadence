@@ -7,8 +7,42 @@ SESSION_SERVICE_URL = "http://localhost:8082"
 USER_ID = "fcee8cf2-f9ba-4da8-b745-8cc7de110679"
 TOPIC_ID = "interview"
 
-# Read DB connection details
-DB_URL = os.environ.get("SUPABASE_DB_URL", "postgresql://postgres:1@Aayush9277@db.kvubxhrfipcvlephrxam.supabase.co:5432/postgres")
+def load_env_file(filepath):
+    if not os.path.exists(filepath):
+        return
+    with open(filepath) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                k, v = line.split('=', 1)
+                k = k.strip()
+                v = v.strip().strip("'").strip('"')
+                if k not in os.environ:
+                    os.environ[k] = v
+
+# Load environment variables from project root .env or services/.env.local if not already present
+load_env_file(os.path.join(os.path.dirname(__file__), "..", ".env"))
+load_env_file(os.path.join(os.path.dirname(__file__), "..", "services", ".env.local"))
+
+def get_db_connection():
+    db_url = os.environ.get("SUPABASE_DB_URL")
+    if db_url:
+        return psycopg2.connect(db_url)
+
+    host = os.environ.get("DB_HOST")
+    password = os.environ.get("DB_PASSWORD")
+    if not host or not password:
+        raise RuntimeError(
+            "Database credentials not found. Please set SUPABASE_DB_URL or DB_HOST/DB_PASSWORD in your environment or .env."
+        )
+
+    return psycopg2.connect(
+        host=host,
+        port=int(os.environ.get("DB_PORT", 5432)),
+        dbname=os.environ.get("DB_NAME", "postgres"),
+        user=os.environ.get("DB_USER", "postgres"),
+        password=password
+    )
 
 def main():
     print(f"=== [Part 1] Live session-service sanity check against {SESSION_SERVICE_URL} ===")
@@ -28,13 +62,7 @@ def main():
 
     # 2. Query Supabase directly
     print("\n--- Verifying Supabase DB Dual-Write (D6) ---")
-    conn = psycopg2.connect(
-        host="db.kvubxhrfipcvlephrxam.supabase.co",
-        port=5432,
-        dbname="postgres",
-        user="postgres",
-        password="9277Aayush13"
-    )
+    conn = get_db_connection()
     cur = conn.cursor()
 
     # Query legacy assessments table

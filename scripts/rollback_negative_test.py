@@ -27,13 +27,40 @@ def redis_get(key):
     )
     return r.stdout.strip()
 
+import os
+
+def load_env_file(filepath):
+    if not os.path.exists(filepath):
+        return
+    with open(filepath) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                k, v = line.split('=', 1)
+                k = k.strip()
+                v = v.strip().strip("'").strip('"')
+                if k not in os.environ:
+                    os.environ[k] = v
+
+load_env_file(os.path.join(os.path.dirname(__file__), "..", ".env"))
+load_env_file(os.path.join(os.path.dirname(__file__), "..", "services", ".env.local"))
+
 def pg_query(sql):
-    # Query Supabase Postgres using psql or python supabase connection
-    # We can inspect via curl to practice-game-service or psql if available, or docker
-    # Let's run query via python psycopg2 if available or psql / node / python pg
+    db_url = os.environ.get("SUPABASE_DB_URL")
+    if not db_url:
+        host = os.environ.get("DB_HOST")
+        password = os.environ.get("DB_PASSWORD")
+        user = os.environ.get("DB_USER", "postgres")
+        port = os.environ.get("DB_PORT", "5432")
+        dbname = os.environ.get("DB_NAME", "postgres")
+        if host and password:
+            db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+        else:
+            raise RuntimeError("Missing SUPABASE_DB_URL or DB_PASSWORD in environment.")
+
     cmd = [
         "psql",
-        "postgresql://postgres:9277Aayush13@db.kvubxhrfipcvlephrxam.supabase.co:5432/postgres",
+        db_url,
         "-t", "-A", "-c", sql
     ]
     r = subprocess.run(cmd, capture_output=True, text=True)
