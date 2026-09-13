@@ -193,6 +193,7 @@ class AmqpConsumer:
             # 1. Look up session metadata and linked generated_passages (D15 Q3 / D16 join move)
             real_passage_text = None
             topic_id = payload.get("topic_id") or "custom"
+            pid = None  # declared here so the except block can reference it if the sessions query succeeded
 
             try:
                 sess_res = (
@@ -222,10 +223,39 @@ class AmqpConsumer:
                                 session_id,
                                 pid,
                             )
+                        else:
+                            # Mode C: passage_id is set but generated_passages returned no row.
+                            # Previously silent — now surfaced so it can be distinguished from
+                            # a race condition or a Supabase error.
+                            logger.warning(
+                                "passage_id %s for session %s resolved to no row in generated_passages "
+                                "— reference_passage_text will be NULL (dangling FK or deleted passage)",
+                                pid,
+                                session_id,
+                            )
+                    else:
+                        # No passage was ever linked to this session. Expected for test-harness runs
+                        # and any session created without a passage-generation step. Not a bug on its own.
+                        logger.info(
+                            "No passage_id linked for session %s — falling back to topic prompt "
+                            "(expected for harness-created sessions; confirm if this is a real assessment)",
+                            session_id,
+                        )
+                else:
+                    # assessment_sessions row not found — unexpected if the session was created normally.
+                    logger.warning(
+                        "assessment_sessions query returned 0 rows for session %s "
+                        "— passage lookup skipped, reference_passage_text will be NULL",
+                        session_id,
+                    )
             except Exception as db_err:
-                logger.warning(
-                    "Failed to fetch linked passage for session %s: %s (falling back to topic prompt)",
+                # Upgraded from WARNING to ERROR: a Supabase exception here silently degrades
+                # the report (reference_passage_text → NULL) without any downstream failure signal.
+                logger.error(
+                    "Supabase error fetching passage for session %s (pid=%s): %s "
+                    "— reference_passage_text will be NULL (falling back to topic prompt)",
                     session_id,
+                    pid,
                     db_err,
                 )
 

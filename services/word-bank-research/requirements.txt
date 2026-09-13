@@ -1,0 +1,4 @@
+-e ../ml-shared
+google-genai==1.69.0
+groq>=0.11.0
+supabase>=2.0.0

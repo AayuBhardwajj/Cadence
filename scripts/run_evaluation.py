@@ -134,7 +134,8 @@ def _stop_llm_capture() -> tuple[str, str]:
 
 def _fetch_all_word_bank_entries() -> list[dict]:
     """
-    Fetch every active+verified entry from the word_bank table.
+    Fetch every active servable entry from the word_bank table
+    (active=True and (verified_by_slp='yes' or source='llm_research'), per DECISIONS.md D20).
     Returns list of dicts with keys: id, word_code, word, issue_type, bucket.
     Raises on DB error so the caller can decide how to handle it.
     """
@@ -143,6 +144,7 @@ def _fetch_all_word_bank_entries() -> list[dict]:
         .table("word_bank")
         .select("id, word_code, word, issue_type, bucket")
         .eq("active", True)
+        .or_("verified_by_slp.eq.yes,source.eq.llm_research")
         .execute()
     )
     return res.data or []
@@ -510,7 +512,7 @@ def _compute_summary(
         "num_files_with_gt":          files_with_gt,
         "mean_wer":                   mean_wer,
         "wordbank_coverage_note": (
-            "Percentage of the total word_bank entries (active+verified) that "
+            "Percentage of the total servable word_bank entries (active and verified_by_slp='yes' or source='llm_research') that "
             "were triggered at least once across the full sample set. "
             "This measures SAMPLE REPRESENTATIVENESS (coverage), not accuracy."
         ),
@@ -619,7 +621,7 @@ async def main() -> None:
     log.info("Fetching word_bank entries from Supabase…")
     try:
         word_bank_entries = _fetch_all_word_bank_entries()
-        log.info(f"Loaded {len(word_bank_entries)} active+verified word_bank entries.")
+        log.info(f"Loaded {len(word_bank_entries)} active servable word_bank entries.")
     except Exception as e:
         log.error(f"Failed to fetch word_bank: {e}")
         log.warning("Word-bank matching will be skipped (results will show 0 matches).")

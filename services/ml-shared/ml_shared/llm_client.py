@@ -2,6 +2,7 @@ import os
 import logging
 from groq import Groq
 from google import genai
+from google.genai import types
 from ml_shared.ai_usage_logger import log_llm_usage
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,7 @@ async def call_llm(
     assessment_id: str | None = None,
     user_id: str | None = None,
     response_format_json: bool = True,
+    tools: list | None = None,
 ) -> str:
     """
     Stakes-tiered LLM client with per-tier model fallback chains.
@@ -49,6 +51,8 @@ async def call_llm(
         assessment_id: Passed through to ai_usage_logs for cost attribution.
         user_id: Passed through to ai_usage_logs for cost attribution.
         response_format_json: If True, instructs Groq to return JSON mode output.
+        tools: Optional list of tools (e.g. [types.Tool(google_search=types.GoogleSearch())]).
+               Supported by Gemini. When provided, Groq leg is bypassed.
 
     Returns:
         The model's text response (stripped of markdown fences if present).
@@ -75,20 +79,21 @@ async def call_llm(
                 errors.append(f"gemini/{model_id}: client not initialized (missing GEMINI_API_KEY)")
                 continue
             try:
+                gen_kwargs: dict = {
+                    "model": model_id,
+                    "contents": prompt,
+                }
+                if tools is not None:
+                    gen_kwargs["config"] = types.GenerateContentConfig(tools=tools)
+
                 try:
-                    resp = gemini_client.models.generate_content(
-                        model=model_id,
-                        contents=prompt,
-                    )
+                    resp = gemini_client.models.generate_content(**gen_kwargs)
                 except Exception as gemini_err:
                     if "UNAVAILABLE" in str(gemini_err):
                         logger.warning(
                             "Gemini model '%s' returned 503 UNAVAILABLE (high demand). Retrying once...", model_id
                         )
-                        resp = gemini_client.models.generate_content(
-                            model=model_id,
-                            contents=prompt,
-                        )
+                        resp = gemini_client.models.generate_content(**gen_kwargs)
                     else:
                         raise gemini_err
 
@@ -113,6 +118,12 @@ async def call_llm(
                 errors.append(f"gemini/{model_id}: {e}")
         else:
             # ── Groq branch ────────────────────────────────────────────────────
+            if tools is not None:
+                # Groq has no native search/grounding tool support; skip to next provider in chain
+                logger.info(
+                    "Skipping Groq model '%s' because tools/grounding was requested.", model_id
+                )
+                continue
             if not groq_client:
                 errors.append(f"groq/{model_id}: client not initialized (missing GROQ_API_KEY)")
                 continue
