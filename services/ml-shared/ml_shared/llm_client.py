@@ -38,6 +38,8 @@ async def call_llm(
     user_id: str | None = None,
     response_format_json: bool = True,
     tools: list | None = None,
+    provider: str | None = None,
+    purpose: str | None = None,
 ) -> str:
     """
     Stakes-tiered LLM client with per-tier model fallback chains.
@@ -53,6 +55,8 @@ async def call_llm(
         response_format_json: If True, instructs Groq to return JSON mode output.
         tools: Optional list of tools (e.g. [types.Tool(google_search=types.GoogleSearch())]).
                Supported by Gemini. When provided, Groq leg is bypassed.
+        provider: Optional provider filter ("gemini" or "groq") to target a specific leg.
+        purpose: Optional purpose string for ai_usage_logs (defaults to chain).
 
     Returns:
         The model's text response (stripped of markdown fences if present).
@@ -71,8 +75,12 @@ async def call_llm(
     errors: list[str] = []
     groq_client = _get_groq_client()
     gemini_client = _get_gemini_client()
+    log_purpose = purpose or chain
 
     for model_id in TASK_CHAINS[chain]:
+        if provider and not model_id.startswith(provider):
+            continue
+
         if model_id.startswith("gemini"):
             # ── Gemini branch ──────────────────────────────────────────────────
             if not gemini_client:
@@ -108,7 +116,7 @@ async def call_llm(
                     model=model_id,
                     input_tokens=meta.prompt_token_count if meta else 0,
                     output_tokens=meta.candidates_token_count if meta else 0,
-                    purpose=chain,
+                    purpose=log_purpose,
                     chain=chain,
                     assessment_id=assessment_id,
                     user_id=user_id,
@@ -157,7 +165,7 @@ async def call_llm(
                     model=model_id,
                     input_tokens=usage.prompt_tokens if usage else 0,
                     output_tokens=usage.completion_tokens if usage else 0,
-                    purpose=chain,
+                    purpose=log_purpose,
                     chain=chain,
                     assessment_id=assessment_id,
                     user_id=user_id,
