@@ -469,6 +469,38 @@ Explicit Constraints:
             # ── STAGE 2B: Groq Reasoning-Only Verification (openai/gpt-oss-20b) ──
             verified_accepted: list[tuple[dict[str, Any], str]] = []
 
+            def _record_verification_failure(error_reason: str) -> None:
+                nonlocal total_rejected
+                for s in selected_survivors:
+                    total_rejected += 1
+                    log_payload = {
+                        "batch_id": batch_id,
+                        "proposed_word": s["word"],
+                        "word_code": None,
+                        "issue_type": s["issue_type"],
+                        "bucket": s["bucket"],
+                        "bucket_2": s["bucket_2"],
+                        "topic_fit": topic,
+                        "difficulty": difficulty,
+                        "why": f"{s['definition']} Example: {s['example']}".strip() or None,
+                        "source_urls": [],
+                        "llm_raw_rationale": None,
+                        "status": "rejected_verification",
+                        "rejection_reason": error_reason,
+                        "grounded_attempt": False,
+                    }
+                    if not dry_run:
+                        try:
+                            supabase.table("word_bank_research_log").insert(log_payload).execute()
+                        except Exception as log_err:
+                            logger.warning("Failed to write audit log: %s", log_err)
+                    proposals_summary.append({
+                        "word": s["word"],
+                        "status": "rejected_verification",
+                        "rejection_reason": error_reason,
+                        "code": None,
+                    })
+
             if verification_calls_count < max_verification_calls and groq_verifier:
                 candidates_formatted = "\n".join([
                     f"- Candidate: '{s['word']}' | Target Bucket: '{s['bucket']}' | Issue: '{s['issue_type']}' | Definition: {s['definition']} | Example: {s['example']}"
@@ -581,6 +613,7 @@ No markdown preamble, no long justification."""
                         difficulty,
                         rle,
                     )
+                    _record_verification_failure(f"Groq verification request failed: {rle}")
                 except APIError as apie:
                     logger.warning(
                         "Groq verification APIError for combo %s/%s (%s). Skipping verification.",
@@ -588,6 +621,7 @@ No markdown preamble, no long justification."""
                         difficulty,
                         apie,
                     )
+                    _record_verification_failure(f"Groq verification request failed: {apie}")
                 except Exception as verif_err:
                     logger.warning(
                         "Groq verification failed for combo %s/%s: %s. Skipping verification.",
@@ -595,13 +629,16 @@ No markdown preamble, no long justification."""
                         difficulty,
                         verif_err,
                     )
+                    _record_verification_failure(f"Groq verification request failed: {verif_err}")
             else:
+                skip_msg = f"Groq verification skipped (calls={verification_calls_count}/{max_verification_calls}, groq_available={bool(groq_verifier)})"
                 logger.info(
                     "Skipping Groq verification (verification_calls=%d/%d, groq_available=%s).",
                     verification_calls_count,
                     max_verification_calls,
                     bool(groq_verifier),
                 )
+                _record_verification_failure(skip_msg)
 
             # ── STAGE 2C: Persist Best 1-2 Accepted Survivors ──────────────────
             # Take top 1-2 accepted survivors in order
