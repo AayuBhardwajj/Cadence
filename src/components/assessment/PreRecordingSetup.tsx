@@ -112,6 +112,20 @@ export const PreRecordingSetup: React.FC<PreRecordingSetupProps> = ({ onReady })
     const isFaceDetected = faceSensing.status === 'active' && faceSensing.latestEvent?.faceDetected === true;
     const isFaceInitializing = faceSensing.status === 'initializing';
 
+    const isPermissionsGranted = checks.camera === 'granted' && checks.mic === 'granted';
+    const isButtonDisabled = !isPermissionsGranted || !isFaceDetected;
+
+    let disabledHint: string | null = null;
+    if (checks.camera === 'denied' || checks.mic === 'denied') {
+        disabledHint = 'Camera and microphone permissions are required to start';
+    } else if (checks.camera === 'pending' || checks.mic === 'pending') {
+        disabledHint = 'Requesting camera and microphone access…';
+    } else if (isFaceInitializing) {
+        disabledHint = 'Detecting face…';
+    } else if (!isFaceDetected) {
+        disabledHint = 'Position your face in frame to continue';
+    }
+
     const checklistItems = [
         { id: 'camera', icon: Video, label: 'Camera Access', status: checks.camera === 'granted' },
         {
@@ -279,10 +293,16 @@ export const PreRecordingSetup: React.FC<PreRecordingSetupProps> = ({ onReady })
                             size="lg"
                             fullWidth
                             onClick={onReady}
+                            disabled={isButtonDisabled}
                             className="h-12 text-sm font-semibold shadow-md"
                         >
                             I'm Ready - Start Recording
                         </CadenceButton>
+                        {disabledHint && (
+                            <p className="text-center text-xs text-text-muted mt-2">
+                                {disabledHint}
+                            </p>
+                        )}
                     </div>
                 </div>
             </motion.div>
