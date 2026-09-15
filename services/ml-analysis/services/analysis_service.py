@@ -3,6 +3,7 @@ import json
 import logging
 from typing import Dict, Any
 from services.audio_service import detect_stutters
+from services.mti_region_classifier import classify_mti_region
 from ml_shared.llm_client import call_llm
 from utils.transcript_alignment import align_transcript, _normalize_for_alignment
 
@@ -118,7 +119,9 @@ async def deep_analyze_speech(
     topic_prompt: str = "",
     reference_passage: str | None = None,
     assessment_id: str | None = None,
-    user_id: str | None = None
+    user_id: str | None = None,
+    target_words: list[dict] | None = None,
+    bucket_l1_mapping: dict[str, dict] | None = None,
 ) -> Dict[str, Any]:
     transcription = audio_data.get("transcription", "")
     words_data    = audio_data.get("words_data", [])
@@ -132,11 +135,17 @@ async def deep_analyze_speech(
 
     if not transcription or transcription == "Could not analyze audio." or metrics.get("overall_score") == 0:
         logger.info("Skipping deep analysis — missing/failed transcription.")
-        return _get_fallback_analysis(metrics, audio_data, topic_prompt, reference_passage=reference_passage)
+        return _get_fallback_analysis(
+            metrics, audio_data, topic_prompt, reference_passage=reference_passage,
+            target_words=target_words, bucket_l1_mapping=bucket_l1_mapping
+        )
 
     if not os.environ.get("GROQ_API_KEY") and not os.environ.get("GEMINI_API_KEY"):
         logger.info("Skipping deep analysis — no LLM API keys found.")
-        return _get_fallback_analysis(metrics, audio_data, topic_prompt, reference_passage=reference_passage)
+        return _get_fallback_analysis(
+            metrics, audio_data, topic_prompt, reference_passage=reference_passage,
+            target_words=target_words, bucket_l1_mapping=bucket_l1_mapping
+        )
 
     timing_summary  = _generate_timing_summary(words_data)
     transcript_trunc = transcription[:900]
@@ -200,10 +209,8 @@ REQUIRED JSON SCHEMA:
     "overall": "string summary of overall performance"
   }},
   "cefr_level": "B1",
-  "mti_detected": null,
-  "mti_patterns": [{{"pattern": "", "score": 0, "behaviors": []}}],
 {pronunciation_schema_block}  "grammar_errors": [{{"original": "", "corrected": "", "rule": ""}}],
-  "sentence_analysis": [{{"text": "", "pronunciation_issues": "None detected", "fluency": "smooth", "mti_detected": "no", "rhythm": "natural", "intonation": "appropriate"}}],
+  "sentence_analysis": [{{"text": "", "pronunciation_issues": "None detected", "fluency": "smooth", "rhythm": "natural", "intonation": "appropriate"}}],
   "strengths": ["", "", ""],
   "weaknesses": ["", "", ""],
   "filler_analysis": {{"most_used": "none", "impact_level": "low", "replacement_tip": ""}},
@@ -234,11 +241,16 @@ REQUIRED JSON SCHEMA:
             audio_data,
             topic_prompt,
             stutter_data,
-            reference_passage=reference_passage
+            reference_passage=reference_passage,
+            target_words=target_words,
+            bucket_l1_mapping=bucket_l1_mapping,
         )
     except Exception as e:
         logger.error("LLM pipeline failed, using heuristic fallback: %s", e)
-        return _get_fallback_analysis(metrics, audio_data, topic_prompt, reference_passage=reference_passage)
+        return _get_fallback_analysis(
+            metrics, audio_data, topic_prompt, reference_passage=reference_passage,
+            target_words=target_words, bucket_l1_mapping=bucket_l1_mapping
+        )
 
 def _map_consolidated_to_amcat(
     data: Dict[str, Any],
@@ -246,7 +258,9 @@ def _map_consolidated_to_amcat(
     audio_data: Dict[str, Any],
     topic_prompt: str = "",
     stutter_data=None,
-    reference_passage: str | None = None
+    reference_passage: str | None = None,
+    target_words: list[dict] | None = None,
+    bucket_l1_mapping: dict[str, dict] | None = None,
 ) -> Dict[str, Any]:
     stutter_data = stutter_data or {}
     transcription = audio_data.get("transcription", "")
@@ -263,9 +277,6 @@ def _map_consolidated_to_amcat(
 
     wpm_score    = _wpm_to_score(wpm)
     filler_score = _clamp(100 - (filler_count * 8))
-
-    mti_patterns_raw = data.get("mti_patterns", [])
-    mti_score = 80 if not data.get("mti_detected") else _clamp(100 - len(mti_patterns_raw) * 10)
 
     error_log = []
     if reference_passage is not None and reference_passage.strip():
@@ -344,6 +355,13 @@ def _map_consolidated_to_amcat(
         for e in scored_errors if e.get("error_type") in ("substitution", "deletion", "insertion", "mispronunciation")
     ]
 
+    mti_deep_dive = classify_mti_region(
+        error_log_entries=error_log,
+        target_words=target_words or [],
+        bucket_l1_mapping=bucket_l1_mapping or {},
+    )
+    mti_score = 80 if mti_deep_dive.get("insufficient_signal", True) else _clamp(100 - len(mti_deep_dive.get("patterns", [])) * 10)
+
     amcat_sentences = []
     for s in data.get("sentence_analysis", []):
         amcat_sentences.append({
@@ -354,8 +372,6 @@ def _map_consolidated_to_amcat(
             "rhythm":               s.get("rhythm", "natural"),
             "intonation":           s.get("intonation", "appropriate")
         })
-
-    mti_patterns = [{"pattern": p.get("pattern","Unknown Pattern"), "score": _clamp(p.get("score",0)), "behaviors": p.get("behaviors",[])} for p in mti_patterns_raw]
 
     topic_relevancy = data.get("topic_relevancy", {})
     q_feedback = data.get("qualitative_feedback", {})
@@ -400,10 +416,7 @@ def _map_consolidated_to_amcat(
             {"dimension": "Oral Communication",     "score": overall_score, "definition": "Overall effectiveness of spoken communication including clarity, coherence, and impact.",   "feedback": q_feedback.get("overall_summary", "Overall communication assessed.")},
             {"dimension": "Intonation & Stress",    "score": _clamp(fluency_score-5), "definition": "Pitch modulation, sentence stress patterns, and natural rise/fall patterns.",    "feedback": q_feedback.get("intonation_notes") or q_feedback.get("delivery_notes", "Intonation assessed from speech patterns.")}
         ],
-        "amcat_mti_deep_dive": {
-            "detected_accent": data.get("mti_detected") or "Neutral / No strong L1 influence detected",
-            "patterns": mti_patterns
-        },
+        "amcat_mti_deep_dive": mti_deep_dive,
         "amcat_transcript": {
             "reference_text": topic_prompt or "Candidate spoke on a topic of their choice.",
             "user_text":      transcription,
@@ -471,7 +484,9 @@ def _get_fallback_analysis(
     metrics: Dict[str, Any],
     audio_data: Dict[str, Any],
     topic_prompt: str = "",
-    reference_passage: str | None = None
+    reference_passage: str | None = None,
+    target_words: list[dict] | None = None,
+    bucket_l1_mapping: dict[str, dict] | None = None,
 ) -> Dict[str, Any]:
     transcription = audio_data.get("transcription", "")
     words_data    = audio_data.get("words_data", [])
@@ -548,6 +563,13 @@ def _get_fallback_analysis(
         for e in scored_errors if e.get("error_type") in ("substitution", "deletion", "insertion", "mispronunciation")
     ]
 
+    mti_deep_dive = classify_mti_region(
+        error_log_entries=error_log,
+        target_words=target_words or [],
+        bucket_l1_mapping=bucket_l1_mapping or {},
+    )
+    mti_score = 80 if mti_deep_dive.get("insufficient_signal", True) else _clamp(100 - len(mti_deep_dive.get("patterns", [])) * 10)
+
     return {
         "overall_score": metrics.get("overall_score", 0),
         "cefr_level":    metrics.get("cefr_level", "N/A"),
@@ -561,7 +583,7 @@ def _get_fallback_analysis(
             "fluency":       {"score":fluency, "rate":wpm_score,              "pause":_clamp(100-fluency+10), "fillers":filler_score},
             "intonation":    {"score":_clamp(fluency-5), "sentence":_clamp(fluency-3), "rise_fall":_clamp(fluency-8), "pitch":_clamp(fluency-5)},
             "clarity":       {"score":clarity, "end_consonants":_clamp(pron-8),"enunciation":_clamp(pron-3),"pace":wpm_score},
-            "mti":           {"score":80,"l1_interference":80,"retroflex":85,"vowel_shift":85},
+            "mti":           {"score":mti_score,"l1_interference":mti_score,"retroflex":mti_score,"vowel_shift":mti_score},
             "relevancy":     {"score":80,"feedback":"Topic relevancy analysis unavailable — AI processing limit reached."}
         },
         "amcat_insights":[
@@ -569,7 +591,7 @@ def _get_fallback_analysis(
             {"dimension":"Fluency & Rhythm",       "score":fluency, "definition":"Smoothness of speech delivery.","feedback":f"Heuristic analysis: Speech rate was {wpm} WPM. Ideal range is 130–160 WPM."},
             {"dimension":"Oral Communication",     "score":metrics.get("overall_score",0),"definition":"Overall effectiveness of spoken communication.","feedback":"Successfully delivered a spoken sample. Upgrade for AI-detailed feedback."}
         ],
-        "amcat_mti_deep_dive": {"detected_accent": "Heuristic Analysis Only", "patterns": []},
+        "amcat_mti_deep_dive": mti_deep_dive,
         "amcat_transcript":{
             "reference_text":topic_prompt or "Candidate spoke on a topic of their choice.",
             "user_text":transcription,"error_words":error_words_list,

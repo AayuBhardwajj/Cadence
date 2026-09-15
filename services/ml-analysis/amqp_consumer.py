@@ -192,6 +192,7 @@ class AmqpConsumer:
         try:
             # 1. Look up session metadata and linked generated_passages (D15 Q3 / D16 join move)
             real_passage_text = None
+            target_words: list[dict] = []
             topic_id = payload.get("topic_id") or "custom"
             pid = None  # declared here so the except block can reference it if the sessions query succeeded
 
@@ -211,15 +212,18 @@ class AmqpConsumer:
                     if pid:
                         pass_res = (
                             supabase.table("generated_passages")
-                            .select("passage_text")
+                            .select("passage_text, target_words")
                             .eq("id", pid)
                             .limit(1)
                             .execute()
                         )
                         if pass_res.data and len(pass_res.data) > 0:
                             real_passage_text = pass_res.data[0].get("passage_text")
+                            raw_tw = pass_res.data[0].get("target_words")
+                            target_words = raw_tw if isinstance(raw_tw, list) else []
                             logger.info(
-                                "Linked passage_text fetched for session %s (passage_id=%s)",
+                                "Linked passage_text and target_words (%d items) fetched for session %s (passage_id=%s)",
+                                len(target_words),
                                 session_id,
                                 pid,
                             )
@@ -259,6 +263,31 @@ class AmqpConsumer:
                     db_err,
                 )
 
+            # Fetch bucket_l1_mapping per session (D22 Step 5)
+            bucket_l1_mapping: dict[str, dict] = {}
+            try:
+                map_res = supabase.table("bucket_l1_mapping").select("*").execute()
+                if map_res.data:
+                    bucket_l1_mapping = {
+                        row["bucket"]: {
+                            "region_weights": row.get("region_weights") or {},
+                            "reviewed_by_slp": bool(row.get("reviewed_by_slp", False)),
+                        }
+                        for row in map_res.data
+                        if "bucket" in row
+                    }
+                    logger.info(
+                        "Fetched %d bucket_l1_mapping entries for session %s",
+                        len(bucket_l1_mapping),
+                        session_id,
+                    )
+            except Exception as map_err:
+                logger.error(
+                    "Failed to fetch bucket_l1_mapping for session %s: %s",
+                    session_id,
+                    map_err,
+                )
+
             chosen_topic_prompt = real_passage_text or TOPIC_PROMPTS.get(
                 topic_id, TOPIC_PROMPTS["custom"]
             )
@@ -276,6 +305,8 @@ class AmqpConsumer:
                 reference_passage=real_passage_text,
                 assessment_id=session_id,
                 user_id=user_id,
+                target_words=target_words,
+                bucket_l1_mapping=bucket_l1_mapping,
             )
             elapsed = round(asyncio.get_event_loop().time() - t0, 2)
 
