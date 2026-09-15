@@ -1,6 +1,6 @@
 """Deterministic MTI region classifier for Cadence ml-analysis service.
 
-Implements Phase 2 of MTI region-attribution feature (D22).
+Implements Phase 2 of MTI region-attribution feature (D23).
 Pure deterministic classification without LLM calls or network requests.
 """
 
@@ -13,7 +13,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# Cluster-level human-readable labels per D22 (never single state names)
+# Cluster-level human-readable labels per D23 (never single state names)
 REGION_DISPLAY_NAMES: dict[str, str] = {
     "hindi_belt": "Hindi-belt (Bhojpuri/Rajasthani/Haryanvi cluster) influence patterns detected",
     "bengali_odia_belt": "Bengali/Odia/Assamese cluster influence patterns detected",

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Live verification script for MTI region classifier (D22).
+"""Live verification script for MTI region classifier (D23).
 
 Verifies:
 1. Live query of bucket_l1_mapping table from Supabase.

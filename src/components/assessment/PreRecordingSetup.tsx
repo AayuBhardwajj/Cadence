@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Video, Mic, Sun, Volume2, CheckCircle2, XCircle } from 'lucide-react';
+import { Video, Mic, Sun, Volume2, CheckCircle2, XCircle, User, Loader2 } from 'lucide-react';
 import { CadenceButton } from '../ui/CadenceButton';
+import { useFaceSensing } from '../../hooks/useFaceSensing';
 
 interface PreRecordingSetupProps {
     onReady: () => void;
@@ -10,20 +11,33 @@ interface PreRecordingSetupProps {
 export const PreRecordingSetup: React.FC<PreRecordingSetupProps> = ({ onReady }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+    const lightingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
     const [stream, setStream] = useState<MediaStream | null>(null);
-    const [checks, setChecks] = useState({
-        camera: 'pending', // pending, granted, denied
+    const [checks, setChecks] = useState<{
+        camera: 'pending' | 'granted' | 'denied';
+        mic: 'pending' | 'granted' | 'denied';
+        lighting: 'pending' | 'good' | 'toodark' | 'toobright';
+        noise: 'pending' | 'quiet' | 'noisy';
+    }>({
+        camera: 'pending',
         mic: 'pending',
-        lighting: 'pending', // pending, good, poor
-        noise: 'pending', // pending, quiet, noisy
+        lighting: 'pending',
+        noise: 'pending',
     });
     const [audioLevel, setAudioLevel] = useState(0);
+
+    const faceSensing = useFaceSensing({ debug: false });
 
     useEffect(() => {
         startCamera();
         return () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
+            if (lightingIntervalRef.current) {
+                clearInterval(lightingIntervalRef.current);
+            }
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
             }
         };
     }, []);
@@ -31,9 +45,11 @@ export const PreRecordingSetup: React.FC<PreRecordingSetupProps> = ({ onReady })
     const startCamera = async () => {
         try {
             const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            streamRef.current = mediaStream;
             setStream(mediaStream);
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
+                faceSensing.start(videoRef.current);
             }
             setChecks(prev => ({ ...prev, camera: 'granted', mic: 'granted' }));
 
@@ -64,7 +80,7 @@ export const PreRecordingSetup: React.FC<PreRecordingSetupProps> = ({ onReady })
             checkAudio();
 
             // Lighting Check (Periodic)
-            setInterval(checkLighting, 1000);
+            lightingIntervalRef.current = setInterval(checkLighting, 1000);
 
         } catch (err) {
             console.error(err);
@@ -88,13 +104,28 @@ export const PreRecordingSetup: React.FC<PreRecordingSetupProps> = ({ onReady })
         }
         const avgBrightness = brightnessSum / (32 * 32);
 
-        if (avgBrightness < 50) setChecks(prev => ({ ...prev, lighting: 'poor' })); // Dark
-        else if (avgBrightness > 200) setChecks(prev => ({ ...prev, lighting: 'poor' })); // Too bright
+        if (avgBrightness < 50) setChecks(prev => ({ ...prev, lighting: 'toodark' }));
+        else if (avgBrightness > 200) setChecks(prev => ({ ...prev, lighting: 'toobright' }));
         else setChecks(prev => ({ ...prev, lighting: 'good' }));
     };
 
+    const isFaceDetected = faceSensing.status === 'active' && faceSensing.latestEvent?.faceDetected === true;
+    const isFaceInitializing = faceSensing.status === 'initializing';
+
     const checklistItems = [
         { id: 'camera', icon: Video, label: 'Camera Access', status: checks.camera === 'granted' },
+        {
+            id: 'face',
+            icon: User,
+            label: 'Face Detected',
+            status: isFaceDetected,
+            initializing: isFaceInitializing,
+            subLabel: isFaceInitializing
+                ? 'Detecting face…'
+                : !isFaceDetected && checks.camera === 'granted'
+                ? 'Position your face in frame'
+                : undefined,
+        },
         {
             id: 'mic',
             icon: Mic,
@@ -113,7 +144,17 @@ export const PreRecordingSetup: React.FC<PreRecordingSetupProps> = ({ onReady })
                 </div>
             )
         },
-        { id: 'light', icon: Sun, label: 'Lighting Quality', status: checks.lighting === 'good' },
+        {
+            id: 'light',
+            icon: Sun,
+            label: 'Lighting Quality',
+            status: checks.lighting === 'good',
+            subLabel: checks.lighting === 'toodark'
+                ? 'Too dark — add more light'
+                : checks.lighting === 'toobright'
+                ? 'Too bright — reduce direct light'
+                : undefined,
+        },
         { id: 'noise', icon: Volume2, label: 'Noise Level', status: checks.noise === 'quiet' },
     ];
 
@@ -156,17 +197,32 @@ export const PreRecordingSetup: React.FC<PreRecordingSetupProps> = ({ onReady })
                         {/* Face Guide Overlay */}
                         {checks.camera === 'granted' && (
                             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                                <div className="w-36 h-48 border border-dashed border-success/40 rounded-full opacity-60" />
+                                <div className={`w-36 h-48 border border-dashed rounded-full transition-colors duration-300 ${
+                                    isFaceDetected ? 'border-success/60 opacity-80' : 'border-success/40 opacity-60'
+                                }`} />
                             </div>
                         )}
                     </div>
-                    <p
-                        className={`text-center mt-3 text-xs font-semibold text-success transition-opacity duration-300 ${
-                            checks.camera === 'granted' ? 'opacity-100' : 'opacity-0'
-                        }`}
-                    >
-                        Face Detected ✓
-                    </p>
+
+                    {/* Dynamic Face Sensing Badge */}
+                    <div className="mt-3 flex items-center justify-center min-h-[1.25rem]">
+                        {checks.camera === 'granted' && (
+                            isFaceInitializing ? (
+                                <p className="text-center text-xs font-semibold text-text-muted flex items-center justify-center gap-1.5">
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    Detecting face…
+                                </p>
+                            ) : isFaceDetected ? (
+                                <p className="text-center text-xs font-semibold text-success">
+                                    Face Detected ✓
+                                </p>
+                            ) : (
+                                <p className="text-center text-xs font-semibold text-text-muted">
+                                    No face detected
+                                </p>
+                            )
+                        )}
+                    </div>
                 </div>
 
                 {/* Right Side: Checklist */}
@@ -199,10 +255,15 @@ export const PreRecordingSetup: React.FC<PreRecordingSetupProps> = ({ onReady })
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium text-text-primary">{item.label}</p>
-                                        {item.extra}
+                                        {'subLabel' in item && item.subLabel && (
+                                            <p className="text-xs text-text-muted mt-0.5">{item.subLabel}</p>
+                                        )}
+                                        {'extra' in item && item.extra}
                                     </div>
                                     <div className="shrink-0">
-                                        {item.status ? (
+                                        {'initializing' in item && item.initializing ? (
+                                            <Loader2 className="w-5 h-5 text-text-muted animate-spin" />
+                                        ) : item.status ? (
                                             <CheckCircle2 className="w-5 h-5 text-success" />
                                         ) : (
                                             <XCircle className="w-5 h-5 text-text-muted" />
@@ -228,6 +289,3 @@ export const PreRecordingSetup: React.FC<PreRecordingSetupProps> = ({ onReady })
         </div>
     );
 };
-
-
-

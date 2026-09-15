@@ -1,5 +1,5 @@
 -- Migration 039: bucket_l1_mapping
--- Phase 1 of MTI region-attribution feature (D22).
+-- Phase 1 of MTI region-attribution feature (D23).
 -- Additive migration — no changes to existing tables or data.
 --
 -- Purpose: stores the mapping from word_bank.bucket values to region-weight
@@ -18,7 +18,7 @@
 --   generic_indian_english — pan-Indian feature; low regional discrimination
 --
 -- All seed rows are first-pass drafts: reviewed_by_slp = FALSE.
--- SLP review gate before production use is a tracked requirement in D22.
+-- SLP review gate before production use is a tracked requirement in D23.
 
 CREATE TABLE IF NOT EXISTS public.bucket_l1_mapping (
   bucket TEXT PRIMARY KEY
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.bucket_l1_mapping (
 
 COMMENT ON TABLE public.bucket_l1_mapping IS
   'Maps word_bank phonological bucket values to region-weight vectors for MTI '
-  'region-attribution (D22). Only the ten buckets with plausible L1 signal are '
+  'region-attribution (D23). Only the ten buckets with plausible L1 signal are '
   'included; five structural/lexical buckets are excluded by design.';
 
 COMMENT ON COLUMN public.bucket_l1_mapping.region_weights IS
@@ -50,7 +50,7 @@ COMMENT ON COLUMN public.bucket_l1_mapping.source_notes IS
 
 COMMENT ON COLUMN public.bucket_l1_mapping.reviewed_by_slp IS
   'FALSE on all seed rows. Must be set to TRUE by an SLP before a bucket''s '
-  'weights are used in live region-attribution scoring (D22 gate).';
+  'weights are used in live region-attribution scoring (D23 gate).';
 
 -- RLS: public read, service-role-only write (matches word_bank_research_lock pattern).
 ALTER TABLE public.bucket_l1_mapping ENABLE ROW LEVEL SECURITY;

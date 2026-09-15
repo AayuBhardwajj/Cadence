@@ -263,7 +263,7 @@ class AmqpConsumer:
                     db_err,
                 )
 
-            # Fetch bucket_l1_mapping per session (D22 Step 5)
+            # Fetch bucket_l1_mapping per session (D23 Step 5)
             bucket_l1_mapping: dict[str, dict] = {}
             try:
                 map_res = supabase.table("bucket_l1_mapping").select("*").execute()
