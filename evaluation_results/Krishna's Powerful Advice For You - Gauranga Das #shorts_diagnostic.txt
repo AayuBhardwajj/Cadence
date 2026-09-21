@@ -1,0 +1,252 @@
+=== Cadence Diagnostic Output ===
+File     : Krishna's Powerful Advice For You - Gauranga Das #shorts.mp3
+Provider : unknown/unknown
+LLM ms   : 4276.71
+Transcript:
+What exactly is the purpose of spirituality? Purpose of any kind of visits to the temples or satsangs or kirtans or any kind of spiritual discussion? Krishna says, process of progress and renunciation and spirituality is nothing but refining of intentions. Spirituality, spiritual knowledge, spiritual sound vibration, spiritual practices, spiritual people, spiritual places, spiritual podcasts, spiritual podcasts. It is for refining of desires or intentions to elevate the intention from fear to desire to at least duty if not love.
+
+=== Raw LLM JSON ===
+{
+  "overall_score": 81,
+  "cefr_level": "B1",
+  "transcription": "What exactly is the purpose of spirituality? Purpose of any kind of visits to the temples or satsangs or kirtans or any kind of spiritual discussion? Krishna says, process of progress and renunciation and spirituality is nothing but refining of intentions. Spirituality, spiritual knowledge, spiritual sound vibration, spiritual practices, spiritual people, spiritual places, spiritual podcasts, spiritual podcasts. It is for refining of desires or intentions to elevate the intention from fear to desire to at least duty if not love.",
+  "breakdown": {
+    "fluency": 70,
+    "pronunciation": 71,
+    "clarity": 49,
+    "grammar": 80,
+    "vocabulary": 97,
+    "confidence": 0,
+    "wpm": 123,
+    "fillers": 2,
+    "eye_contact": 0
+  },
+  "strengths": [
+    "Clear articulation of complex spiritual terms",
+    "Rich, topic‑specific vocabulary",
+    "Consistent speech pace throughout"
+  ],
+  "focus_areas": [
+    "Two filler words slightly break flow",
+    "Minor grammatical omissions (missing articles)",
+    "Limited intonation variation across sentences"
+  ],
+  "feedback": "The candidate delivered a coherent and vocabulary‑rich discussion on spirituality, with clear pronunciation and steady pacing, though occasional fillers and flat intonation suggest areas for refinement.",
+  "amcat_metrics": {
+    "pronunciation": {
+      "score": 71,
+      "consonant": 68,
+      "vowel": 73,
+      "stress": 66
+    },
+    "fluency": {
+      "score": 70,
+      "rate": 94,
+      "pause": 40,
+      "fillers": 84
+    },
+    "intonation": {
+      "score": 65,
+      "sentence": 67,
+      "rise_fall": 62,
+      "pitch": 65
+    },
+    "clarity": {
+      "score": 49,
+      "end_consonants": 63,
+      "enunciation": 68,
+      "pace": 94
+    },
+    "mti": {
+      "score": 80,
+      "l1_interference": 80,
+      "retroflex": 80,
+      "vowel_shift": 80
+    },
+    "relevancy": {
+      "score": 85,
+      "feedback": "The response stays on topic, exploring the purpose of spirituality and related practices, directly addressing the prompt."
+    }
+  },
+  "amcat_insights": [
+    {
+      "dimension": "Pronunciation Accuracy",
+      "score": 71,
+      "definition": "Measures the precision of individual sounds, consonants, vowels, and word stress.",
+      "feedback": "Speech pace was steady and pauses were minimal, but the two filler words (e.g., \"process of progress\") slightly interrupted the flow."
+    },
+    {
+      "dimension": "Fluency & Rhythm",
+      "score": 70,
+      "definition": "Smoothness of speech delivery, including pace, pausing, and absence of filler words.",
+      "feedback": "The candidate delivered a coherent and vocabulary‑rich discussion on spirituality, with clear pronunciation and steady pacing, though occasional fillers and flat intonation suggest areas for refinement."
+    },
+    {
+      "dimension": "Grammar & Vocabulary",
+      "score": 80,
+      "definition": "Grammatical accuracy and range and precision of vocabulary used.",
+      "feedback": "Generally correct, but occasional missing articles (e.g., \"purpose of spirituality\") reduce grammatical precision. Excellent use of domain‑specific words such as \"renunciation,\" \"kirtans,\" and \"intention,\" which enhance the depth of the response."
+    },
+    {
+      "dimension": "Oral Communication",
+      "score": 81,
+      "definition": "Overall effectiveness of spoken communication including clarity, coherence, and impact.",
+      "feedback": "The candidate delivered a coherent and vocabulary‑rich discussion on spirituality, with clear pronunciation and steady pacing, though occasional fillers and flat intonation suggest areas for refinement."
+    },
+    {
+      "dimension": "Intonation & Stress",
+      "score": 65,
+      "definition": "Pitch modulation, sentence stress patterns, and natural rise/fall patterns.",
+      "feedback": "Tone remained fairly uniform; adding more pitch variation would make the delivery more engaging."
+    }
+  ],
+  "amcat_mti_deep_dive": {
+    "detected_accent": "Neutral / No strong L1 influence detected",
+    "patterns": [
+      {
+        "pattern": "",
+        "score": 0,
+        "behaviors": []
+      }
+    ]
+  },
+  "amcat_transcript": {
+    "reference_text": "Please speak on a topic of your choice.",
+    "user_text": "What exactly is the purpose of spirituality? Purpose of any kind of visits to the temples or satsangs or kirtans or any kind of spiritual discussion? Krishna says, process of progress and renunciation and spirituality is nothing but refining of intentions. Spirituality, spiritual knowledge, spiritual sound vibration, spiritual practices, spiritual people, spiritual places, spiritual podcasts, spiritual podcasts. It is for refining of desires or intentions to elevate the intention from fear to desire to at least duty if not love.",
+    "error_words": [],
+    "stats": {
+      "total_words": 80,
+      "speech_rate_wpm": 123,
+      "ideal_wpm_range": "130-160",
+      "total_sentences": 5,
+      "avg_sentence_duration": 7.8,
+      "longest_pause": 0.79,
+      "filler_count": 2
+    },
+    "error_summary": {
+      "mispronunciation": 0,
+      "vocabulary_errors": 0,
+      "stutters": 0,
+      "unnatural_pauses": 0,
+      "filler_words": 2,
+      "mti_substitutions": 0
+    }
+  },
+  "amcat_error_log": [],
+  "amcat_sentences": [
+    {
+      "text": "What exactly is the purpose of spirituality?",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "Purpose of any kind of visits to the temples or satsangs or kirtans or any kind of spiritual discussion?",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "Krishna says, process of progress and renunciation and spirituality is nothing but refining of intentions.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "Spirituality, spiritual knowledge, spiritual sound vibration, spiritual practices, spiritual people, spiritual places, spiritual podcasts, spiritual podcasts.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "It is for refining of desires or intentions to elevate the intention from fear to desire to at least duty if not love.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    }
+  ],
+  "amcat_summary": {
+    "top_strengths": [
+      "Clear articulation of complex spiritual terms",
+      "Rich, topic‑specific vocabulary",
+      "Consistent speech pace throughout"
+    ],
+    "top_improvements": [
+      "Two filler words slightly break flow",
+      "Minor grammatical omissions (missing articles)",
+      "Limited intonation variation across sentences"
+    ],
+    "learning_resources": [
+      {
+        "area": "Fluency & Pace",
+        "items": [
+          {
+            "title": "Shadowing Technique for Fluency",
+            "type": "YouTube"
+          },
+          {
+            "title": "TED Talks - Study delivery and pacing",
+            "type": "Web"
+          },
+          {
+            "title": "Speeko - Public Speaking Coach",
+            "type": "Paid | App"
+          }
+        ]
+      },
+      {
+        "area": "Grammar",
+        "items": [
+          {
+            "title": "English Grammar in Use - Raymond Murphy",
+            "type": "Paid"
+          },
+          {
+            "title": "Grammarly",
+            "type": "Web"
+          },
+          {
+            "title": "EnglishClass101 - Grammar Lessons",
+            "type": "YouTube"
+          }
+        ]
+      }
+    ]
+  },
+  "practice_exercises": [
+    {
+      "title": "Spiritual Vocabulary Drill",
+      "description": "Repeat a list of spiritual terms (e.g., renunciation, kirtans, intention) focusing on clear pronunciation and stress patterns.",
+      "duration_minutes": 10
+    }
+  ],
+  "improvement_plan": {
+    "week_1": {
+      "focus": "Fluency and filler reduction",
+      "exercise": "Read a short paragraph aloud, pausing instead of using filler words",
+      "daily_minutes": 15
+    },
+    "week_2": {
+      "focus": "Grammar accuracy",
+      "exercise": "Rewrite sentences from the transcript, inserting missing articles and checking subject‑verb agreement",
+      "daily_minutes": 15
+    },
+    "week_3": {
+      "focus": "Intonation variety",
+      "exercise": "Practice reading the same sentences with deliberate pitch changes, recording and reviewing each session",
+      "daily_minutes": 15
+    }
+  },
+  "next_topic_suggestion": "Discuss the role of meditation in daily life.",
+  "api_error": false
+}

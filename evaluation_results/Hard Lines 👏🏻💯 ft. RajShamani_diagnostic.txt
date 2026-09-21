@@ -1,0 +1,178 @@
+=== Cadence Diagnostic Output ===
+File     : Hard Lines 👏🏻💯 ft. RajShamani.mp3
+Provider : unknown/unknown
+LLM ms   : 3828.12
+Transcript:
+I genuinely believe the most dangerous people are the ones who can stay calm when they're disrespected. Beautiful.
+
+=== Raw LLM JSON ===
+{
+  "overall_score": 85,
+  "cefr_level": "B1",
+  "transcription": "I genuinely believe the most dangerous people are the ones who can stay calm when they're disrespected. Beautiful.",
+  "breakdown": {
+    "fluency": 87,
+    "pronunciation": 70,
+    "clarity": 61,
+    "grammar": 75,
+    "vocabulary": 100,
+    "confidence": 0,
+    "wpm": 134,
+    "fillers": 0,
+    "eye_contact": 0
+  },
+  "strengths": [
+    "insufficient_sample"
+  ],
+  "focus_areas": [
+    "insufficient_sample"
+  ],
+  "feedback": "insufficient_sample",
+  "amcat_metrics": {
+    "pronunciation": {
+      "score": 70,
+      "consonant": 67,
+      "vowel": 72,
+      "stress": 65
+    },
+    "fluency": {
+      "score": 87,
+      "rate": 100,
+      "pause": 23,
+      "fillers": 100
+    },
+    "intonation": {
+      "score": 82,
+      "sentence": 84,
+      "rise_fall": 79,
+      "pitch": 82
+    },
+    "clarity": {
+      "score": 61,
+      "end_consonants": 62,
+      "enunciation": 67,
+      "pace": 100
+    },
+    "mti": {
+      "score": 80,
+      "l1_interference": 80,
+      "retroflex": 80,
+      "vowel_shift": 80
+    },
+    "relevancy": {
+      "score": 85,
+      "feedback": "insufficient_sample"
+    }
+  },
+  "amcat_insights": [
+    {
+      "dimension": "Pronunciation Accuracy",
+      "score": 70,
+      "definition": "Measures the precision of individual sounds, consonants, vowels, and word stress.",
+      "feedback": "insufficient_sample"
+    },
+    {
+      "dimension": "Fluency & Rhythm",
+      "score": 87,
+      "definition": "Smoothness of speech delivery, including pace, pausing, and absence of filler words.",
+      "feedback": "insufficient_sample"
+    },
+    {
+      "dimension": "Grammar & Vocabulary",
+      "score": 75,
+      "definition": "Grammatical accuracy and range and precision of vocabulary used.",
+      "feedback": "insufficient_sample insufficient_sample"
+    },
+    {
+      "dimension": "Oral Communication",
+      "score": 85,
+      "definition": "Overall effectiveness of spoken communication including clarity, coherence, and impact.",
+      "feedback": "insufficient_sample"
+    },
+    {
+      "dimension": "Intonation & Stress",
+      "score": 82,
+      "definition": "Pitch modulation, sentence stress patterns, and natural rise/fall patterns.",
+      "feedback": "insufficient_sample"
+    }
+  ],
+  "amcat_mti_deep_dive": {
+    "detected_accent": "Neutral / No strong L1 influence detected",
+    "patterns": [
+      {
+        "pattern": "",
+        "score": 0,
+        "behaviors": []
+      }
+    ]
+  },
+  "amcat_transcript": {
+    "reference_text": "Please speak on a topic of your choice.",
+    "user_text": "I genuinely believe the most dangerous people are the ones who can stay calm when they're disrespected. Beautiful.",
+    "error_words": [],
+    "stats": {
+      "total_words": 18,
+      "speech_rate_wpm": 134,
+      "ideal_wpm_range": "130-160",
+      "total_sentences": 2,
+      "avg_sentence_duration": 4.0,
+      "longest_pause": 0.38,
+      "filler_count": 0
+    },
+    "error_summary": {
+      "mispronunciation": 0,
+      "vocabulary_errors": 0,
+      "stutters": 0,
+      "unnatural_pauses": 0,
+      "filler_words": 0,
+      "mti_substitutions": 0
+    }
+  },
+  "amcat_error_log": [],
+  "amcat_sentences": [],
+  "amcat_summary": {
+    "top_strengths": [
+      "insufficient_sample"
+    ],
+    "top_improvements": [
+      "insufficient_sample"
+    ],
+    "learning_resources": [
+      {
+        "area": "General Practice",
+        "items": [
+          {
+            "title": "BBC Learning English",
+            "type": "Web"
+          }
+        ]
+      }
+    ]
+  },
+  "practice_exercises": [
+    {
+      "title": "insufficient_sample",
+      "description": "insufficient_sample",
+      "duration_minutes": 10
+    }
+  ],
+  "improvement_plan": {
+    "week_1": {
+      "focus": "insufficient_sample",
+      "exercise": "insufficient_sample",
+      "daily_minutes": 15
+    },
+    "week_2": {
+      "focus": "insufficient_sample",
+      "exercise": "insufficient_sample",
+      "daily_minutes": 15
+    },
+    "week_3": {
+      "focus": "insufficient_sample",
+      "exercise": "insufficient_sample",
+      "daily_minutes": 15
+    }
+  },
+  "next_topic_suggestion": "insufficient_sample",
+  "api_error": false
+}

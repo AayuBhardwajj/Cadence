@@ -32,6 +32,7 @@ import { ExercisesPage } from "./pages/Exercises";
 import { CommunityPage } from "./pages/Community";
 import { TestReportPage } from "./pages/TestReportPage";
 import { SensingTestPage } from "./pages/SensingTestPage";
+import { SpeechRunnerPage } from "./pages/SpeechRunnerPage";
 
 
 
@@ -79,6 +80,7 @@ export default function App() {
                     <Route path="/pre-recording" element={<PreRecording />} />
                     <Route path="/assessment" element={<Assessment />} />
                     <Route path="/practice" element={<PracticePage />} />
+                    <Route path="/practice/speech-runner" element={<SpeechRunnerPage />} />
                     <Route path="/progress" element={<ProgressPage />} />
                     <Route path="/exercises" element={<ExercisesPage />} />
                     <Route path="/community" element={<CommunityPage />} />

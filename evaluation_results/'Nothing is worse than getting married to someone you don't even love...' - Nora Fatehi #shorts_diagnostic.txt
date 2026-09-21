@@ -1,0 +1,280 @@
+=== Cadence Diagnostic Output ===
+File     : 'Nothing is worse than getting married to someone you don't even love...' - Nora Fatehi #shorts.mp3
+Provider : unknown/unknown
+LLM ms   : 5147.63
+Transcript:
+Nothing is worse than getting married to someone that you don't even love and living with them for years. You see that at home? Come on now. Most of the people in our industry are doing that nonsense, you know. Just because they want to be in the right camps and circles and they want to be relevant because they don't know where their career is going to go. So they need to, you know, have backup plan, plan A, plan B, plan C, but to start making personal life decisions because of cloud and stuff, I think it's like a plan. Too much. It's almost a predatory, for sure. Because the other person doesn't even know you're doing this, the other person thinks you love them and you're married to them or you're loving them and you're dating them. Actually you have something else going on that is scary.
+
+=== Raw LLM JSON ===
+{
+  "overall_score": 70,
+  "cefr_level": "B1",
+  "transcription": "Nothing is worse than getting married to someone that you don't even love and living with them for years. You see that at home? Come on now. Most of the people in our industry are doing that nonsense, you know. Just because they want to be in the right camps and circles and they want to be relevant because they don't know where their career is going to go. So they need to, you know, have backup plan, plan A, plan B, plan C, but to start making personal life decisions because of cloud and stuff, I think it's like a plan. Too much. It's almost a predatory, for sure. Because the other person doesn't even know you're doing this, the other person thinks you love them and you're married to them or you're loving them and you're dating them. Actually you have something else going on that is scary.",
+  "breakdown": {
+    "fluency": 27,
+    "pronunciation": 73,
+    "clarity": 18,
+    "grammar": 100,
+    "vocabulary": 95,
+    "confidence": 0,
+    "wpm": 225,
+    "fillers": 7,
+    "eye_contact": 0
+  },
+  "strengths": [
+    "Strong vocabulary with precise terms like \"predatory\" and \"nonsense\"",
+    "Accurate grammar throughout the speech",
+    "Clear pronunciation on most words"
+  ],
+  "focus_areas": [
+    "Frequent filler words such as \"you know\" and \"actually\"",
+    "Stutter on the word \"plan\" disrupts fluency",
+    "Limited variation in intonation, leading to a somewhat flat delivery"
+  ],
+  "feedback": "The speaker demonstrates solid grammar and vocabulary, with decent pronunciation, but fluency suffers from filler usage and a brief stutter.",
+  "amcat_metrics": {
+    "pronunciation": {
+      "score": 73,
+      "consonant": 70,
+      "vowel": 75,
+      "stress": 68
+    },
+    "fluency": {
+      "score": 27,
+      "rate": 0,
+      "pause": 83,
+      "fillers": 44
+    },
+    "intonation": {
+      "score": 22,
+      "sentence": 24,
+      "rise_fall": 19,
+      "pitch": 22
+    },
+    "clarity": {
+      "score": 18,
+      "end_consonants": 65,
+      "enunciation": 70,
+      "pace": 0
+    },
+    "mti": {
+      "score": 80,
+      "l1_interference": 80,
+      "retroflex": 80,
+      "vowel_shift": 80
+    },
+    "relevancy": {
+      "score": 85,
+      "feedback": "The content stays relevant to the prompt about personal decisions, though it drifts into industry commentary; overall relevance is good."
+    }
+  },
+  "amcat_insights": [
+    {
+      "dimension": "Pronunciation Accuracy",
+      "score": 73,
+      "definition": "Measures the precision of individual sounds, consonants, vowels, and word stress.",
+      "feedback": "Maintain a smoother flow by reducing filler words and practicing the repeated \"plan\" segment to eliminate the stutter."
+    },
+    {
+      "dimension": "Fluency & Rhythm",
+      "score": 27,
+      "definition": "Smoothness of speech delivery, including pace, pausing, and absence of filler words.",
+      "feedback": "The speaker demonstrates solid grammar and vocabulary, with decent pronunciation, but fluency suffers from filler usage and a brief stutter."
+    },
+    {
+      "dimension": "Grammar & Vocabulary",
+      "score": 100,
+      "definition": "Grammatical accuracy and range and precision of vocabulary used.",
+      "feedback": "Grammar is flawless; keep up the correct sentence structures. Excellent word choice; continue using expressive terms like \"nonsense\" and \"predatory\" to enrich content."
+    },
+    {
+      "dimension": "Oral Communication",
+      "score": 70,
+      "definition": "Overall effectiveness of spoken communication including clarity, coherence, and impact.",
+      "feedback": "The speaker demonstrates solid grammar and vocabulary, with decent pronunciation, but fluency suffers from filler usage and a brief stutter."
+    },
+    {
+      "dimension": "Intonation & Stress",
+      "score": 22,
+      "definition": "Pitch modulation, sentence stress patterns, and natural rise/fall patterns.",
+      "feedback": "Add more pitch variation, especially after rhetorical questions like \"You see that at home?\" to avoid a monotone feel."
+    }
+  ],
+  "amcat_mti_deep_dive": {
+    "detected_accent": "Neutral / No strong L1 influence detected",
+    "patterns": []
+  },
+  "amcat_transcript": {
+    "reference_text": "Please speak on a topic of your choice.",
+    "user_text": "Nothing is worse than getting married to someone that you don't even love and living with them for years. You see that at home? Come on now. Most of the people in our industry are doing that nonsense, you know. Just because they want to be in the right camps and circles and they want to be relevant because they don't know where their career is going to go. So they need to, you know, have backup plan, plan A, plan B, plan C, but to start making personal life decisions because of cloud and stuff, I think it's like a plan. Too much. It's almost a predatory, for sure. Because the other person doesn't even know you're doing this, the other person thinks you love them and you're married to them or you're loving them and you're dating them. Actually you have something else going on that is scary.",
+    "error_words": [],
+    "stats": {
+      "total_words": 150,
+      "speech_rate_wpm": 225,
+      "ideal_wpm_range": "130-160",
+      "total_sentences": 10,
+      "avg_sentence_duration": 4.0,
+      "longest_pause": 1.04,
+      "filler_count": 7
+    },
+    "error_summary": {
+      "mispronunciation": 0,
+      "vocabulary_errors": 0,
+      "stutters": 1,
+      "unnatural_pauses": 0,
+      "filler_words": 7,
+      "mti_substitutions": 0
+    }
+  },
+  "amcat_error_log": [
+    {
+      "timestamp": "0:20",
+      "word": "plan",
+      "said_as": "Stutter (Repetition)",
+      "correct_ipa": "",
+      "error_type": "repetition",
+      "severity": "moderate",
+      "category": "Fluency",
+      "excluded_from_scoring": false
+    }
+  ],
+  "amcat_sentences": [
+    {
+      "text": "Nothing is worse than getting married to someone that you don't even love and living with them for years.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "You see that at home?",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "Come on now.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "Most of the people in our industry are doing that nonsense, you know.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "Just because they want to be in the right camps and circles and they want to be relevant because they don't know where their career is going to go.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "So they need to, you know, have backup plan, plan A, plan B, plan C, but to start making personal life decisions because of cloud and stuff, I think it's like a plan.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "Too much.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "It's almost a predatory, for sure.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "Because the other person doesn't even know you're doing this, the other person thinks you love them and you're married to them or you're loving them and you're dating them.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "Actually you have something else going on that is scary.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    }
+  ],
+  "amcat_summary": {
+    "top_strengths": [
+      "Strong vocabulary with precise terms like \"predatory\" and \"nonsense\"",
+      "Accurate grammar throughout the speech",
+      "Clear pronunciation on most words"
+    ],
+    "top_improvements": [
+      "Frequent filler words such as \"you know\" and \"actually\"",
+      "Stutter on the word \"plan\" disrupts fluency",
+      "Limited variation in intonation, leading to a somewhat flat delivery"
+    ],
+    "learning_resources": [
+      {
+        "area": "Fluency & Pace",
+        "items": [
+          {
+            "title": "Shadowing Technique for Fluency",
+            "type": "YouTube"
+          },
+          {
+            "title": "TED Talks - Study delivery and pacing",
+            "type": "Web"
+          },
+          {
+            "title": "Speeko - Public Speaking Coach",
+            "type": "Paid | App"
+          }
+        ]
+      }
+    ]
+  },
+  "practice_exercises": [
+    {
+      "title": "Filler‑Free Storytelling",
+      "description": "Tell a personal story for 2 minutes without using any filler words; replay and note any slips.",
+      "duration_minutes": 10
+    }
+  ],
+  "improvement_plan": {
+    "week_1": {
+      "focus": "Reduce filler words",
+      "exercise": "Record short 1‑minute monologues and pause instead of saying \"you know\"",
+      "daily_minutes": 15
+    },
+    "week_2": {
+      "focus": "Stutter elimination",
+      "exercise": "Practice the phrase \"backup plan, plan A, plan B\" slowly, then gradually increase speed",
+      "daily_minutes": 15
+    },
+    "week_3": {
+      "focus": "Intonation variety",
+      "exercise": "Read the transcript aloud, emphasizing rising intonation on questions and falling on statements",
+      "daily_minutes": 15
+    }
+  },
+  "next_topic_suggestion": "Discuss the impact of work‑life balance on personal relationships.",
+  "api_error": false
+}

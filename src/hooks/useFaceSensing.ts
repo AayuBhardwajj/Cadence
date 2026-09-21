@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
+import { perfProbe } from "../lib/perfProbe";
 
 export interface FacialEvent {
   timestamp: number;
@@ -15,13 +16,28 @@ export interface FacialEvent {
 export interface UseFaceSensingOptions {
   /** Target delegate (default: GPU, fallback to CPU automatically on error) */
   delegate?: "GPU" | "CPU";
+  /** Optional throttle target in Hz (e.g. 5 for 5 Hz / 200ms). Default: unthrottled (runs every rAF frame) */
+  throttleHz?: number;
+  /** Enable adaptive degradation under high latency. Default: false */
+  adaptiveDegradation?: boolean;
+  /** Pause inference when document.hidden is true. Default: false */
+  pauseOnHidden?: boolean;
+  /** Fired on cosmetic/high-freq frames. If true, suppresses React setState on every frame. Default: false */
+  cosmeticOnly?: boolean;
   /** Callback fired on each facial sensing frame update */
   onEvent?: (event: FacialEvent) => void;
   /** Log performance and state updates */
   debug?: boolean;
 }
 
-export type FaceSensingStatus = "idle" | "initializing" | "active" | "error" | "closed";
+export type FaceSensingStatus =
+  | "idle"
+  | "initializing"
+  | "active"
+  | "degraded"
+  | "disabled"
+  | "error"
+  | "closed";
 
 export interface UseFaceSensingReturn {
   status: FaceSensingStatus;
@@ -29,6 +45,7 @@ export interface UseFaceSensingReturn {
   fps: number;
   avgFrameTimeMs: number;
   latestEvent: FacialEvent | null;
+  latestEventRef: React.MutableRefObject<FacialEvent | null>;
   error: Error | null;
   start: (videoElement: HTMLVideoElement) => Promise<void>;
   stop: () => void;
@@ -42,11 +59,19 @@ const MODEL_ASSET_PATH =
 
 /**
  * Pure face sensing hook using MediaPipe FaceLandmarker with GPU delegate and CPU fallback.
- * Emits extracted blendshapes (jawOpen, mouthClose, eyeBlinkLeft, eyeBlinkRight),
- * head pose screen gaze approximation, and measures real FPS and frame latency.
+ * Default behavior is unthrottled, continuous, and non-degrading for assessment gating.
+ * Opt-in flags (throttleHz, adaptiveDegradation, cosmeticOnly) are passed by performance-sensitive views.
  */
 export function useFaceSensing(options: UseFaceSensingOptions = {}): UseFaceSensingReturn {
-  const { delegate = "GPU", onEvent: externalOnEvent, debug = true } = options;
+  const {
+    delegate = "GPU",
+    throttleHz,
+    adaptiveDegradation = false,
+    pauseOnHidden = false,
+    cosmeticOnly = false,
+    onEvent: externalOnEvent,
+    debug = true,
+  } = options;
 
   const [status, setStatus] = useState<FaceSensingStatus>("idle");
   const [activeDelegate, setActiveDelegate] = useState<"GPU" | "CPU" | null>(null);
@@ -59,10 +84,22 @@ export function useFaceSensing(options: UseFaceSensingOptions = {}): UseFaceSens
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
   const isRunningRef = useRef<boolean>(false);
+  const latestEventRef = useRef<FacialEvent | null>(null);
 
   const listenersRef = useRef<Set<(event: FacialEvent) => void>>(new Set());
   const externalOnEventRef = useRef(externalOnEvent);
   externalOnEventRef.current = externalOnEvent;
+
+  // Throttling & degradation refs
+  const targetIntervalMsRef = useRef<number>(
+    throttleHz && throttleHz > 0 ? 1000 / throttleHz : 0
+  );
+  const lastInferTimestampRef = useRef<number>(0);
+  const degradationStageRef = useRef<number>(0); // 0: baseline, 1: degraded, 2: disabled
+  const inferDurationsRef = useRef<number[]>([]);
+  const lastDegradationCheckTsRef = useRef<number>(performance.now());
+  const readyTimestampRef = useRef<number>(performance.now());
+  const sampleCountRef = useRef<number>(0);
 
   // FPS and frame duration calculation refs
   const frameCountRef = useRef<number>(0);
@@ -71,36 +108,45 @@ export function useFaceSensing(options: UseFaceSensingOptions = {}): UseFaceSens
   const lastVideoTimeRef = useRef<number>(-1);
 
   // Approximate looking at screen heuristic from landmarks
-  const estimateLookingAtScreen = useCallback((landmarks: Array<{ x: number; y: number; z: number }>): boolean => {
-    if (!landmarks || landmarks.length < 264) return false;
-    const nose = landmarks[1];
-    const leftEye = landmarks[33];
-    const rightEye = landmarks[263];
-    const forehead = landmarks[10];
-    const chin = landmarks[152];
+  const estimateLookingAtScreen = useCallback(
+    (landmarks: Array<{ x: number; y: number; z: number }>): boolean => {
+      if (!landmarks || landmarks.length < 264) return false;
+      const nose = landmarks[1];
+      const leftEye = landmarks[33];
+      const rightEye = landmarks[263];
+      const forehead = landmarks[10];
+      const chin = landmarks[152];
 
-    if (!nose || !leftEye || !rightEye || !forehead || !chin) return false;
+      if (!nose || !leftEye || !rightEye || !forehead || !chin) return false;
 
-    // Horizontal ratio: nose position between eyes (centered is ~0.5)
-    const eyeSpan = rightEye.x - leftEye.x;
-    if (eyeSpan <= 0.01) return false;
-    const hRatio = (nose.x - leftEye.x) / eyeSpan;
+      // Horizontal ratio: nose position between eyes (centered is ~0.5)
+      const eyeSpan = rightEye.x - leftEye.x;
+      if (eyeSpan <= 0.01) return false;
+      const hRatio = (nose.x - leftEye.x) / eyeSpan;
 
-    // Vertical ratio: nose position between forehead and chin
-    const faceHeight = chin.y - forehead.y;
-    if (faceHeight <= 0.01) return false;
-    const vRatio = (nose.y - forehead.y) / faceHeight;
+      // Vertical ratio: nose position between forehead and chin
+      const faceHeight = chin.y - forehead.y;
+      if (faceHeight <= 0.01) return false;
+      const vRatio = (nose.y - forehead.y) / faceHeight;
 
-    // Generous bounding box for soft gaze check (per D19)
-    const isLookingHorizontal = hRatio >= 0.25 && hRatio <= 0.75;
-    const isLookingVertical = vRatio >= 0.3 && vRatio <= 0.75;
+      // Generous bounding box for soft gaze check (per D19)
+      const isLookingHorizontal = hRatio >= 0.25 && hRatio <= 0.75;
+      const isLookingVertical = vRatio >= 0.3 && vRatio <= 0.75;
 
-    return isLookingHorizontal && isLookingVertical;
-  }, []);
+      return isLookingHorizontal && isLookingVertical;
+    },
+    []
+  );
 
   // Frame processing loop
   const processFrame = useCallback(() => {
-    if (!isRunningRef.current) return;
+    if (!isRunningRef.current || status === "disabled") return;
+
+    // Optional: Pause inference when document is hidden (only if pauseOnHidden is true)
+    if (pauseOnHidden && typeof document !== "undefined" && document.hidden) {
+      animFrameIdRef.current = requestAnimationFrame(processFrame);
+      return;
+    }
 
     const video = videoElementRef.current;
     const landmarker = landmarkerRef.current;
@@ -109,12 +155,76 @@ export function useFaceSensing(options: UseFaceSensingOptions = {}): UseFaceSens
     if (video && video.readyState >= 2 && landmarker) {
       const startT = performance.now();
 
-      if (video.currentTime !== lastVideoTimeRef.current) {
+      // Throttling logic (only applies if targetIntervalMs > 0)
+      if (
+        targetIntervalMsRef.current === 0 ||
+        startT - lastInferTimestampRef.current >= targetIntervalMsRef.current
+      ) {
+        lastInferTimestampRef.current = startT;
         lastVideoTimeRef.current = video.currentTime;
 
         try {
+          // Fix: Always measure synchronous detectForVideo execution duration with performance.now() deltas
+          const tInferStart = performance.now();
           const results = landmarker.detectForVideo(video, startT);
-          const faceDetected = Boolean(results.faceLandmarks && results.faceLandmarks.length > 0);
+          const durationMs = performance.now() - tInferStart;
+
+          if (perfProbe.isEnabled()) {
+            perfProbe.recordMediaPipeInference(durationMs);
+          }
+
+          sampleCountRef.current += 1;
+          const timeSinceReady = startT - readyTimestampRef.current;
+
+          // Opt-in adaptive degradation measurement
+          // Filter out warm-up: Ignore first 10 samples OR first 2000ms after landmarker is ready
+          if (adaptiveDegradation && sampleCountRef.current > 10 && timeSinceReady > 2000) {
+            inferDurationsRef.current.push(durationMs);
+
+            // Evaluate degradation window every >= 3000ms
+            if (startT - lastDegradationCheckTsRef.current >= 3000) {
+              const windowSamples = [...inferDurationsRef.current];
+              const windowTime = startT - lastDegradationCheckTsRef.current;
+              inferDurationsRef.current = [];
+              lastDegradationCheckTsRef.current = startT;
+
+              // Require >= 30 samples over >= 3s window
+              if (windowSamples.length >= 30 && windowTime >= 3000) {
+                const sorted = [...windowSamples].sort((a, b) => a - b);
+                const p95 =
+                  sorted[Math.floor(sorted.length * 0.95)] ?? sorted[sorted.length - 1];
+
+                if (p95 > 20) {
+                  if (degradationStageRef.current === 0) {
+                    degradationStageRef.current = 1;
+                    const baseHz = throttleHz || 30;
+                    const degradedHz = Math.max(1, baseHz / 2);
+                    targetIntervalMsRef.current = 1000 / degradedHz;
+                    console.warn(
+                      `[useFaceSensing] High inference latency (p95 = ${p95.toFixed(1)}ms > 20ms over ${windowSamples.length} samples). ` +
+                        `Raw sample values: [${windowSamples.map((s) => s.toFixed(1)).join(", ")}]. Degrading rate to ${degradedHz} Hz.`
+                    );
+                    setStatus("degraded");
+                  } else if (degradationStageRef.current === 1) {
+                    degradationStageRef.current = 2;
+                    console.warn(
+                      `[useFaceSensing] High inference latency persisted (p95 = ${p95.toFixed(1)}ms > 20ms over ${windowSamples.length} samples). ` +
+                        `Raw sample values: [${windowSamples.map((s) => s.toFixed(1)).join(", ")}]. Disabling face tracking.`
+                    );
+                    try {
+                      landmarkerRef.current?.close();
+                    } catch {}
+                    landmarkerRef.current = null;
+                    setStatus("disabled");
+                  }
+                }
+              }
+            }
+          }
+
+          const faceDetected = Boolean(
+            results.faceLandmarks && results.faceLandmarks.length > 0
+          );
 
           let jawOpen = 0;
           let mouthClose = 0;
@@ -152,7 +262,18 @@ export function useFaceSensing(options: UseFaceSensingOptions = {}): UseFaceSens
             delegate: currentDelegate,
           };
 
-          setLatestEvent(event);
+          latestEventRef.current = event;
+
+          if (!cosmeticOnly) {
+            // Default assessment path: Always update React state on every frame so PreRecordingSetup re-renders
+            setLatestEvent(event);
+          } else {
+            // Practice game cosmetic path: Only update React state on presence/status change
+            if (!latestEvent || latestEvent.faceDetected !== faceDetected) {
+              setLatestEvent(event);
+            }
+          }
+
           externalOnEventRef.current?.(event);
           listenersRef.current.forEach((listener) => {
             try {
@@ -195,7 +316,18 @@ export function useFaceSensing(options: UseFaceSensingOptions = {}): UseFaceSens
     }
 
     animFrameIdRef.current = requestAnimationFrame(processFrame);
-  }, [activeDelegate, delegate, estimateLookingAtScreen, debug]);
+  }, [
+    activeDelegate,
+    delegate,
+    estimateLookingAtScreen,
+    debug,
+    throttleHz,
+    adaptiveDegradation,
+    pauseOnHidden,
+    cosmeticOnly,
+    status,
+    latestEvent,
+  ]);
 
   // Start face sensing with video element
   const start = useCallback(
@@ -255,6 +387,17 @@ export function useFaceSensing(options: UseFaceSensingOptions = {}): UseFaceSens
         setStatus("active");
         isRunningRef.current = true;
 
+        // Reset measurement timing & window counters on fresh startup
+        readyTimestampRef.current = performance.now();
+        sampleCountRef.current = 0;
+        inferDurationsRef.current = [];
+        lastDegradationCheckTsRef.current = performance.now();
+        degradationStageRef.current = 0;
+        targetIntervalMsRef.current =
+          throttleHz && throttleHz > 0 ? 1000 / throttleHz : 0;
+
+        perfProbe.logInitMetadataOnce("useFaceSensing", { mediaPipeDelegate: chosenDelegate });
+
         if (debug) {
           console.log(`[useFaceSensing] ✅ FaceLandmarker active with ${chosenDelegate} delegate`);
         }
@@ -271,7 +414,7 @@ export function useFaceSensing(options: UseFaceSensingOptions = {}): UseFaceSens
         setStatus("error");
       }
     },
-    [delegate, debug, processFrame]
+    [delegate, debug, processFrame, throttleHz]
   );
 
   // Stop face sensing
@@ -315,6 +458,7 @@ export function useFaceSensing(options: UseFaceSensingOptions = {}): UseFaceSens
     fps,
     avgFrameTimeMs,
     latestEvent,
+    latestEventRef,
     error,
     start,
     stop,

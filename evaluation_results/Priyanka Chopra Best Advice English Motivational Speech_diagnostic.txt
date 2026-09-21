@@ -1,0 +1,236 @@
+=== Cadence Diagnostic Output ===
+File     : Priyanka Chopra Best Advice English Motivational Speech.mp3
+Provider : unknown/unknown
+LLM ms   : 5710.71
+Transcript:
+Every girl needs to be financially independent. So you're not just someone's wife or someone's daughter or someone's sister. Your identity will be defined by your ability to be independent and that comes with finance in the world that we look today.
+
+=== Raw LLM JSON ===
+{
+  "overall_score": 82,
+  "cefr_level": "B1",
+  "transcription": "Every girl needs to be financially independent. So you're not just someone's wife or someone's daughter or someone's sister. Your identity will be defined by your ability to be independent and that comes with finance in the world that we look today.",
+  "breakdown": {
+    "fluency": 72,
+    "pronunciation": 70,
+    "clarity": 50,
+    "grammar": 80,
+    "vocabulary": 100,
+    "confidence": 0,
+    "wpm": 180,
+    "fillers": 1,
+    "eye_contact": 0
+  },
+  "strengths": [
+    "Clear articulation of key terms such as \"financially independent\"",
+    "Confident and steady delivery without long pauses",
+    "Effective use of persuasive vocabulary"
+  ],
+  "focus_areas": [
+    "Speaking rate (180 WPM) exceeds the optimal range",
+    "Awkward phrasing in the final sentence",
+    "Limited use of varied intonation to emphasize points"
+  ],
+  "feedback": "A solid presentation with strong vocabulary and clear pronunciation, though the speed and a minor grammatical slip reduce the overall impact.",
+  "amcat_metrics": {
+    "pronunciation": {
+      "score": 70,
+      "consonant": 67,
+      "vowel": 72,
+      "stress": 65
+    },
+    "fluency": {
+      "score": 72,
+      "rate": 66,
+      "pause": 38,
+      "fillers": 92
+    },
+    "intonation": {
+      "score": 67,
+      "sentence": 69,
+      "rise_fall": 64,
+      "pitch": 67
+    },
+    "clarity": {
+      "score": 50,
+      "end_consonants": 62,
+      "enunciation": 67,
+      "pace": 66
+    },
+    "mti": {
+      "score": 80,
+      "l1_interference": 80,
+      "retroflex": 80,
+      "vowel_shift": 80
+    },
+    "relevancy": {
+      "score": 85,
+      "feedback": "The response stays on topic, emphasizing financial independence for women, and directly addresses the prompt."
+    }
+  },
+  "amcat_insights": [
+    {
+      "dimension": "Pronunciation Accuracy",
+      "score": 70,
+      "definition": "Measures the precision of individual sounds, consonants, vowels, and word stress.",
+      "feedback": "Maintain the steady rhythm but slow down slightly to stay within the 130‑160 WPM range, allowing listeners to absorb each point fully."
+    },
+    {
+      "dimension": "Fluency & Rhythm",
+      "score": 72,
+      "definition": "Smoothness of speech delivery, including pace, pausing, and absence of filler words.",
+      "feedback": "A solid presentation with strong vocabulary and clear pronunciation, though the speed and a minor grammatical slip reduce the overall impact."
+    },
+    {
+      "dimension": "Grammar & Vocabulary",
+      "score": 80,
+      "definition": "Grammatical accuracy and range and precision of vocabulary used.",
+      "feedback": "Re‑phrase the final clause for clarity, e.g., \"and that is essential in today's financial world.\" Excellent choice of words that reinforce the empowerment theme; continue using precise terms like \"independent\" and \"identity.\""
+    },
+    {
+      "dimension": "Oral Communication",
+      "score": 82,
+      "definition": "Overall effectiveness of spoken communication including clarity, coherence, and impact.",
+      "feedback": "A solid presentation with strong vocabulary and clear pronunciation, though the speed and a minor grammatical slip reduce the overall impact."
+    },
+    {
+      "dimension": "Intonation & Stress",
+      "score": 67,
+      "definition": "Pitch modulation, sentence stress patterns, and natural rise/fall patterns.",
+      "feedback": "Introduce subtle pitch variation at the start of each new idea to highlight the contrast between independence and traditional roles."
+    }
+  ],
+  "amcat_mti_deep_dive": {
+    "detected_accent": "Neutral / No strong L1 influence detected",
+    "patterns": [
+      {
+        "pattern": "",
+        "score": 0,
+        "behaviors": []
+      }
+    ]
+  },
+  "amcat_transcript": {
+    "reference_text": "Please speak on a topic of your choice.",
+    "user_text": "Every girl needs to be financially independent. So you're not just someone's wife or someone's daughter or someone's sister. Your identity will be defined by your ability to be independent and that comes with finance in the world that we look today.",
+    "error_words": [],
+    "stats": {
+      "total_words": 42,
+      "speech_rate_wpm": 180,
+      "ideal_wpm_range": "130-160",
+      "total_sentences": 3,
+      "avg_sentence_duration": 4.7,
+      "longest_pause": 0.58,
+      "filler_count": 1
+    },
+    "error_summary": {
+      "mispronunciation": 0,
+      "vocabulary_errors": 0,
+      "stutters": 0,
+      "unnatural_pauses": 0,
+      "filler_words": 1,
+      "mti_substitutions": 0
+    }
+  },
+  "amcat_error_log": [],
+  "amcat_sentences": [
+    {
+      "text": "Every girl needs to be financially independent.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "So you're not just someone's wife or someone's daughter or someone's sister.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    },
+    {
+      "text": "Your identity will be defined by your ability to be independent and that comes with finance in the world that we look today.",
+      "pronunciation_issues": "None detected",
+      "fluency": "smooth",
+      "mti_detected": "no",
+      "rhythm": "natural",
+      "intonation": "appropriate"
+    }
+  ],
+  "amcat_summary": {
+    "top_strengths": [
+      "Clear articulation of key terms such as \"financially independent\"",
+      "Confident and steady delivery without long pauses",
+      "Effective use of persuasive vocabulary"
+    ],
+    "top_improvements": [
+      "Speaking rate (180 WPM) exceeds the optimal range",
+      "Awkward phrasing in the final sentence",
+      "Limited use of varied intonation to emphasize points"
+    ],
+    "learning_resources": [
+      {
+        "area": "Grammar",
+        "items": [
+          {
+            "title": "English Grammar in Use - Raymond Murphy",
+            "type": "Paid"
+          },
+          {
+            "title": "Grammarly",
+            "type": "Web"
+          },
+          {
+            "title": "EnglishClass101 - Grammar Lessons",
+            "type": "YouTube"
+          }
+        ]
+      },
+      {
+        "area": "Vocabulary",
+        "items": [
+          {
+            "title": "Anki - Spaced repetition flashcards",
+            "type": "Free"
+          },
+          {
+            "title": "Word Power Made Easy",
+            "type": "Paid"
+          },
+          {
+            "title": "Merriam-Webster Word of the Day",
+            "type": "Web"
+          }
+        ]
+      }
+    ]
+  },
+  "practice_exercises": [
+    {
+      "title": "Speed‑Control Drill",
+      "description": "Read a paragraph aloud while using a metronome set to 150 WPM; adjust as needed to stay on beat.",
+      "duration_minutes": 10
+    }
+  ],
+  "improvement_plan": {
+    "week_1": {
+      "focus": "Control speaking rate",
+      "exercise": "Record a 1‑minute speech and practice pausing after each sentence to target 150 WPM",
+      "daily_minutes": 15
+    },
+    "week_2": {
+      "focus": "Grammar refinement",
+      "exercise": "Rewrite the final sentence for clarity and rehearse it aloud",
+      "daily_minutes": 15
+    },
+    "week_3": {
+      "focus": "Intonation variety",
+      "exercise": "Practice reading the script with deliberate pitch changes on key phrases",
+      "daily_minutes": 15
+    }
+  },
+  "next_topic_suggestion": "Discuss the role of financial literacy education in empowering young women.",
+  "api_error": false
+}

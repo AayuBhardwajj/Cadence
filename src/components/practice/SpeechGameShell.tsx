@@ -20,6 +20,7 @@ import { utils } from "@ricky0123/vad-web";
 
 import { cn } from "../../lib/utils";
 import { supabase } from "../../lib/supabase";
+import { perfProbe } from "../../lib/perfProbe";
 import { EnhancedCard } from "../dashboard/EnhancedCard";
 import {
   STATIC_DRILL_PHRASES,
@@ -42,10 +43,167 @@ interface SpeechGameShellProps {
   initialBucket?: "th_sound" | "v_w_mix";
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Memoized Phaser Canvas Host Component (Created once, avoids shell re-renders)
+ * ────────────────────────────────────────────────────────────────────────── */
+interface PhaserHostProps {
+  runnerState: RunnerState;
+  onSceneReady?: (scene: SpeechRunnerScene) => void;
+  videoRef: React.RefObject<HTMLVideoElement>;
+}
+
+const PhaserHost: React.FC<PhaserHostProps> = React.memo(
+  ({ runnerState, onSceneReady, videoRef }) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const phaserGameRef = useRef<Phaser.Game | null>(null);
+    const sceneRef = useRef<SpeechRunnerScene | null>(null);
+
+    useEffect(() => {
+      if (!containerRef.current) return;
+
+      const config: Phaser.Types.Core.GameConfig = {
+        type: Phaser.AUTO,
+        parent: containerRef.current,
+        width: 720,
+        height: 200,
+        backgroundColor: "#0f172a",
+        scene: [SpeechRunnerScene],
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+        render: {
+          transparent: false,
+        },
+      };
+
+      const game = new Phaser.Game(config);
+      phaserGameRef.current = game;
+
+      game.events.once("ready", () => {
+        const scene = game.scene.getScene("SpeechRunnerScene") as SpeechRunnerScene;
+        sceneRef.current = scene;
+        if (onSceneReady) {
+          onSceneReady(scene);
+        }
+      });
+
+      return () => {
+        game.destroy(true);
+        phaserGameRef.current = null;
+        sceneRef.current = null;
+      };
+    }, []);
+
+    useEffect(() => {
+      if (sceneRef.current) {
+        sceneRef.current.setState(runnerState);
+      }
+    }, [runnerState]);
+
+    return (
+      <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-slate-950">
+        <div
+          ref={containerRef}
+          className="w-full flex justify-center items-center"
+          style={{ minHeight: 200 }}
+        />
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          style={{
+            position: "absolute",
+            bottom: 8,
+            right: 8,
+            width: 90,
+            height: 68,
+            borderRadius: 8,
+            opacity: 0.25,
+            pointerEvents: "none",
+            objectFit: "cover",
+            border: "1px solid rgba(255,255,255,0.2)",
+          }}
+        />
+      </div>
+    );
+  }
+);
+PhaserHost.displayName = "PhaserHost";
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Memoized HUD Component (Reads VAD & Face metrics via ≤4 Hz timer / refs)
+ * ────────────────────────────────────────────────────────────────────────── */
+interface SpeechGameHUDProps {
+  speechSensingStatus: string;
+  speechProbRef: React.MutableRefObject<number>;
+  faceSensingStatus: string;
+  faceFps: number;
+}
+
+const SpeechGameHUD: React.FC<SpeechGameHUDProps> = React.memo(
+  ({ speechSensingStatus, speechProbRef, faceSensingStatus, faceFps }) => {
+    const [liveProb, setLiveProb] = useState<number>(0);
+
+    // Poll high-frequency VAD speech probability at 4 Hz (250ms) to avoid shell re-renders
+    useEffect(() => {
+      const timer = setInterval(() => {
+        setLiveProb(speechProbRef.current || 0);
+      }, 250);
+      return () => clearInterval(timer);
+    }, [speechProbRef]);
+
+    return (
+      <div className="flex items-center justify-between text-[11px] text-white/40 px-2 pt-2 border-t border-white/5 font-mono">
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1.5">
+            <Mic className="w-3.5 h-3.5 text-indigo-400" />
+            VAD: {speechSensingStatus === "active" ? "Active" : speechSensingStatus} (Prob: {(liveProb * 100).toFixed(0)}%)
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Video className="w-3.5 h-3.5 text-sky-400" />
+            Face Tracker: {faceSensingStatus === "active" ? `${faceFps} fps` : faceSensingStatus}
+          </span>
+        </div>
+        <span>Speak clearly into your microphone to run</span>
+      </div>
+    );
+  }
+);
+SpeechGameHUD.displayName = "SpeechGameHUD";
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Memoized Progress Bar Component (Uses transform scaleX to prevent layout reflows)
+ * ────────────────────────────────────────────────────────────────────────── */
+interface ProgressBarProps {
+  progressRatio: number;
+}
+
+const ProgressBar: React.FC<ProgressBarProps> = React.memo(({ progressRatio }) => {
+  return (
+    <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+      <div
+        className="h-full bg-gradient-to-r from-indigo-500 via-sky-400 to-emerald-400 transition-transform duration-300 ease-out origin-left"
+        style={{
+          transform: `scaleX(${Math.max(0, Math.min(1, progressRatio))})`,
+        }}
+      />
+    </div>
+  );
+});
+ProgressBar.displayName = "ProgressBar";
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Main Speech Game Shell Container
+ * ────────────────────────────────────────────────────────────────────────── */
 export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
   onClose,
   initialBucket = "th_sound",
 }) => {
+  if (perfProbe.isEnabled()) {
+    perfProbe.markRender();
+  }
+
   const [selectedBucket, setSelectedBucket] = useState<"th_sound" | "v_w_mix">(
     initialBucket
   );
@@ -53,10 +211,9 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
   const [streamStatus, setStreamStatus] = useState<"requesting" | "ready" | "error">("requesting");
   const [streamError, setStreamError] = useState<string | null>(null);
   const [session, setSession] = useState<PracticeSessionResponse | null>(null);
+  const [isStillChecking, setIsStillChecking] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const phaserContainerRef = useRef<HTMLDivElement>(null);
-  const phaserGameRef = useRef<Phaser.Game | null>(null);
   const sceneRef = useRef<SpeechRunnerScene | null>(null);
   const isSubmittingRef = useRef<boolean>(false);
 
@@ -127,45 +284,53 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
     };
   }, []);
 
-  // 2. Pure Face Sensing Hook
+  // 2. Pure Face Sensing Hook (MediaPipe 5 Hz capped, opt-in degradation & cosmetic ref-dispatch)
   const faceSensing = useFaceSensing({
     delegate: "GPU",
+    throttleHz: 5,
+    adaptiveDegradation: true,
+    pauseOnHidden: true,
+    cosmeticOnly: true,
     debug: false,
     onEvent: (ev) => {
-      // JawOpen is COSMETIC ONLY -> feed to Phaser scene
-      if (sceneRef.current) {
-        sceneRef.current.setJawOpen(ev.jawOpen);
-      }
+      sceneRef.current?.setJawOpen(ev.jawOpen);
     },
   });
 
-  // Start face sensing once video is active
+  // Start face sensing when stream & video element are ready
   useEffect(() => {
-    if (stream && videoRef.current && streamStatus === "ready") {
+    if (streamStatus === "ready" && videoRef.current) {
       faceSensing.start(videoRef.current);
     }
     return () => {
       faceSensing.stop();
     };
-  }, [stream, streamStatus]);
+  }, [streamStatus]);
 
-  // 3. Utterance ASR Handoff
+  // 3. Audio Utterance Submission Helper (Whisper backend evaluation)
   const handleUtteranceAudio = useCallback(
     async (audioData: Float32Array) => {
-      if (!session || !currentPhrase || isSubmittingRef.current) return;
+      if (isSubmittingRef.current || !session || !currentPhrase) return;
       isSubmittingRef.current = true;
 
       try {
-        // Convert Float32Array PCM to 16-bit 16kHz mono WAV Blob via @ricky0123/vad-web utils
+        const tEncodeStart = perfProbe.isEnabled() ? performance.now() : 0;
         const wavBuffer = utils.encodeWAV(audioData, 1, 16000, 1, 16);
         const wavBlob = new Blob([wavBuffer], { type: "audio/wav" });
+        if (perfProbe.isEnabled()) {
+          perfProbe.recordEncodeWav(performance.now() - tEncodeStart);
+        }
 
+        const tVerdictStart = perfProbe.isEnabled() ? performance.now() : 0;
         const result = await submitDrillAttempt(
           session.sessionId,
           currentPhrase.targetText,
           state.context.attemptNumber,
           wavBlob
         );
+        if (perfProbe.isEnabled()) {
+          perfProbe.recordVerdictRtt(performance.now() - tVerdictStart);
+        }
 
         if (result.isMatch) {
           send({
@@ -184,7 +349,7 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
         console.error("[SpeechGameShell] Submission error:", err);
         send({
           type: "VERDICT_FAILURE",
-          errorMessage: err.message || "Speech analysis failed.",
+          errorMessage: err.message || "Speech analysis failed. Please try again.",
         });
       } finally {
         isSubmittingRef.current = false;
@@ -267,61 +432,31 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
     };
   }, [selectedBucket]);
 
-  // 6. Mount Phaser Game Scene
+  // 6. Monitor 5s verdict timeout
   useEffect(() => {
-    if (!phaserContainerRef.current) return;
-
-    const config: Phaser.Types.Core.GameConfig = {
-      type: Phaser.AUTO,
-      parent: phaserContainerRef.current,
-      width: 720,
-      height: 200,
-      backgroundColor: "#0f172a",
-      scene: [SpeechRunnerScene],
-      scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-      },
-      render: {
-        transparent: false,
-      },
-    };
-
-    const game = new Phaser.Game(config);
-    phaserGameRef.current = game;
-
-    game.events.once("ready", () => {
-      const scene = game.scene.getScene("SpeechRunnerScene") as SpeechRunnerScene;
-      sceneRef.current = scene;
-    });
-
-    return () => {
-      game.destroy(true);
-      phaserGameRef.current = null;
-      sceneRef.current = null;
-    };
-  }, []);
-
-  // 7. Sync XState Game State to Phaser Scene State
-  useEffect(() => {
-    if (!sceneRef.current) return;
-
-    let runnerState: RunnerState = "idle";
-
-    if (state.matches("idle") || state.matches("listening")) {
-      runnerState = "idle";
-    } else if (state.matches("speaking") || state.matches("pause_warning")) {
-      runnerState = "running";
-    } else if (state.matches("awaiting_verdict")) {
-      runnerState = "coasting";
-    } else if (state.matches("word_error") || state.matches("pause_timeout_fail")) {
-      runnerState = "stumble";
-    } else if (state.matches("phrase_success") || state.matches("level_complete")) {
-      runnerState = "success";
+    let timer: any = null;
+    if (state.matches("awaiting_verdict")) {
+      setIsStillChecking(false);
+      timer = setTimeout(() => {
+        setIsStillChecking(true);
+      }, 5000);
+    } else {
+      setIsStillChecking(false);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [state.value]);
 
-    sceneRef.current.setState(runnerState);
-  }, [state]);
+  // 7. Map XState Machine State -> Phaser RunnerState
+  const runnerState: RunnerState = React.useMemo(() => {
+    if (state.matches("idle") || state.matches("listening")) return "idle";
+    if (state.matches("speaking") || state.matches("pause_warning")) return "running";
+    if (state.matches("awaiting_verdict")) return "coasting";
+    if (state.matches("word_error") || state.matches("pause_timeout_fail")) return "stumble";
+    if (state.matches("phrase_success") || state.matches("level_complete")) return "success";
+    return "idle";
+  }, [state.value]);
 
   // Mark session complete when level finishes
   useEffect(() => {
@@ -339,6 +474,13 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
   const handleRetryPhrase = () => {
     send({ type: "RETRY_PHRASE" });
   };
+
+  const handleSceneReady = useCallback((scene: SpeechRunnerScene) => {
+    sceneRef.current = scene;
+  }, []);
+
+  const progressRatio =
+    (state.context.currentPhraseIndex + 1) / (bucketPhrases.length || 1);
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
@@ -528,49 +670,15 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
             </div>
           </div>
 
-          {/* Progress Bar */}
-          <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-indigo-500 via-sky-400 to-emerald-400"
-              initial={{ width: 0 }}
-              animate={{
-                width: `${
-                  ((state.context.currentPhraseIndex + 1) /
-                    bucketPhrases.length) *
-                  100
-                }%`,
-              }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
+          {/* Progress Bar (Memoized, transform scaleX) */}
+          <ProgressBar progressRatio={progressRatio} />
 
-          {/* Phaser 2D Runner Game Viewport */}
-          <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-slate-950">
-            <div
-              ref={phaserContainerRef}
-              className="w-full flex justify-center items-center"
-              style={{ minHeight: 200 }}
-            />
-
-            {/* Hidden unified video stream for MediaPipe face tracking */}
-            <video
-              ref={videoRef}
-              playsInline
-              muted
-              style={{
-                position: "absolute",
-                bottom: 8,
-                right: 8,
-                width: 90,
-                height: 68,
-                borderRadius: 8,
-                opacity: 0.25,
-                pointerEvents: "none",
-                objectFit: "cover",
-                border: "1px solid rgba(255,255,255,0.2)",
-              }}
-            />
-          </div>
+          {/* Phaser 2D Runner Game Viewport (Memoized Host) */}
+          <PhaserHost
+            runnerState={runnerState}
+            onSceneReady={handleSceneReady}
+            videoRef={videoRef}
+          />
 
           {/* Target Phrase Typography Banner */}
           <div className="p-6 md:p-8 bg-white/[0.03] rounded-3xl border border-white/10 text-center space-y-3">
@@ -587,7 +695,7 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
             </p>
           </div>
 
-          {/* Dynamic State Overlay Cards (Framer Motion) */}
+          {/* Dynamic State Overlay Cards (Framer Motion - Opacity / Transform Animations) */}
           <AnimatePresence mode="wait">
             {/* Coasting / Awaiting Verdict */}
             {state.matches("awaiting_verdict") && (
@@ -596,10 +704,15 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
                 className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center gap-3 text-amber-200 text-sm font-medium"
               >
                 <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                <span>Coasting & analyzing pronunciation with Whisper...</span>
+                <span>
+                  {isStillChecking
+                    ? "Still checking... processing speech verdict with Whisper..."
+                    : "Coasting & analyzing pronunciation with Whisper..."}
+                </span>
               </motion.div>
             )}
 
@@ -610,6 +723,7 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.2 }}
                 className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-3"
               >
                 <div className="flex items-center justify-center gap-2 font-black text-lg text-emerald-300">
@@ -642,6 +756,7 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.2 }}
                 className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center space-y-3"
               >
                 <div className="flex items-center justify-center gap-2 font-black text-lg text-amber-300">
@@ -674,6 +789,7 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.2 }}
                 className="p-6 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-center space-y-3"
               >
                 <div className="flex items-center justify-center gap-2 font-black text-lg text-rose-300">
@@ -695,20 +811,13 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
             )}
           </AnimatePresence>
 
-          {/* Sensing HUD status */}
-          <div className="flex items-center justify-between text-[11px] text-white/40 px-2 pt-2 border-t border-white/5 font-mono">
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1.5">
-                <Mic className="w-3.5 h-3.5 text-indigo-400" />
-                VAD: {speechSensing.status === "active" ? "Active" : speechSensing.status} (Prob: {(speechSensing.speechProb * 100).toFixed(0)}%)
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Video className="w-3.5 h-3.5 text-sky-400" />
-                Face Tracker: {faceSensing.status === "active" ? `${faceSensing.fps} fps` : faceSensing.status}
-              </span>
-            </div>
-            <span>Speak clearly into your microphone to run</span>
-          </div>
+          {/* Sensing HUD status (Memoized Component) */}
+          <SpeechGameHUD
+            speechSensingStatus={speechSensing.status}
+            speechProbRef={speechSensing.speechProbRef}
+            faceSensingStatus={faceSensing.status}
+            faceFps={faceSensing.fps}
+          />
         </EnhancedCard>
       )}
     </div>

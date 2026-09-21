@@ -1,0 +1,39 @@
+{
+  "num_files_evaluated": 4,
+  "num_files_with_gt": 3,
+  "mean_wer": 0.1202,
+  "wordbank_coverage_note": "Percentage of the total servable word_bank entries (active and verified_by_slp='yes' or source='llm_research') that were triggered at least once across the full sample set. This measures SAMPLE REPRESENTATIVENESS (coverage), not accuracy.",
+  "total_wordbank_entries": 177,
+  "wordbank_entries_triggered": 9,
+  "wordbank_coverage_pct": 5.08,
+  "latency_upload": {
+    "mean_ms": 0.1,
+    "median_ms": 0.11,
+    "max_ms": 0.13
+  },
+  "latency_preprocess": {
+    "mean_ms": 135.72,
+    "median_ms": 104.06,
+    "max_ms": 255.44
+  },
+  "latency_transcription": {
+    "mean_ms": 2232.15,
+    "median_ms": 1869.8,
+    "max_ms": 4186.55
+  },
+  "latency_matching": {
+    "mean_ms": 3.06,
+    "median_ms": 1.88,
+    "max_ms": 7.73
+  },
+  "latency_llm": {
+    "mean_ms": 4740.79,
+    "median_ms": 4712.17,
+    "max_ms": 5710.71
+  },
+  "latency_total": {
+    "mean_ms": 7111.82,
+    "median_ms": 6960.22,
+    "max_ms": 9597.45
+  }
+}

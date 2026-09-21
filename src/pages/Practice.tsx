@@ -75,6 +75,10 @@ export function PracticePage({ username = "Alex" }: { username?: string }) {
             setShowUpgradeModal(true);
             return;
         }
+        if (modeId === 'quick') {
+            navigate('/practice/speech-runner?bucket=th_sound');
+            return;
+        }
         setSelectedMode(modeId);
     };
 
@@ -156,7 +160,10 @@ export function PracticePage({ username = "Alex" }: { username?: string }) {
                         ))}
                     </div>
 
-                    {/* Speech Runner Game — Quick Practice */}
+                    {/* Speech Runner Game — Quick Practice (Dedicated Route Migration)
+                        See DECISIONS.md D19 route isolation pass.
+                        Quick Practice is now routed to dedicated /practice/speech-runner page.
+                        Inline render path commented out below per D7/D10 convention:
                     {selectedMode === 'quick' && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -167,6 +174,7 @@ export function PracticePage({ username = "Alex" }: { username?: string }) {
                             <SpeechGameShell onClose={() => setSelectedMode(null)} />
                         </motion.div>
                     )}
+                    */}
 
                     {/* Upgrade Modal Overlay */}
                     <AnimatePresence>

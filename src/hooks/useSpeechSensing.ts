@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { MicVAD } from "@ricky0123/vad-web";
+import { perfProbe } from "../lib/perfProbe";
 
 export type SpeechEventType =
   | "SPEECH_START"
@@ -49,9 +50,13 @@ export interface UseSpeechSensingReturn {
   speechState: SpeechState;
   speechProb: number;
   rms: number;
+  speechProbRef: React.MutableRefObject<number>;
+  rmsRef: React.MutableRefObject<number>;
   minRmsThreshold: number;
   lastVADLatencyMs: number;
   avgVADLatencyMs: number;
+  lastVADLatencyMsRef: React.MutableRefObject<number>;
+  avgVADLatencyMsRef: React.MutableRefObject<number>;
   error: Error | null;
   start: () => Promise<void>;
   stop: () => Promise<void>;
@@ -89,6 +94,11 @@ export function useSpeechSensing(options: UseSpeechSensingOptions = {}): UseSpee
   const [lastVADLatencyMs, setLastVADLatencyMs] = useState<number>(0);
   const [avgVADLatencyMs, setAvgVADLatencyMs] = useState<number>(0);
   const [error, setError] = useState<Error | null>(null);
+
+  const speechProbRef = useRef<number>(0);
+  const rmsRef = useRef<number>(0);
+  const lastVADLatencyMsRef = useRef<number>(0);
+  const avgVADLatencyMsRef = useRef<number>(0);
 
   const vadRef = useRef<MicVAD | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -276,6 +286,7 @@ export function useSpeechSensing(options: UseSpeechSensingOptions = {}): UseSpee
           ort.env.wasm.numThreads = 1;
           ort.env.wasm.proxy = false;
           ort.env.wasm.wasmPaths = ONNX_WASM_BASE_PATH;
+          perfProbe.logInitMetadataOnce("useSpeechSensing", { ortWasmProxy: Boolean(ort?.env?.wasm?.proxy) });
         },
         onSpeechStart: () => {
           handleSpeechStart();
@@ -286,18 +297,21 @@ export function useSpeechSensing(options: UseSpeechSensingOptions = {}): UseSpee
         onFrameProcessed: (probs: any) => {
           const t0 = performance.now();
           const p = probs.isSpeech;
-          setSpeechProb(p);
+          speechProbRef.current = p;
 
           const liveRms = measureCurrentRms();
-          setRms(Number(liveRms.toFixed(4)));
+          rmsRef.current = Number(liveRms.toFixed(4));
 
           const latency = performance.now() - t0;
+          if (perfProbe.isEnabled()) {
+            perfProbe.recordVadFrame(latency);
+          }
           latencySumRef.current += latency;
           latencyCountRef.current += 1;
           const avg = latencySumRef.current / latencyCountRef.current;
 
-          setLastVADLatencyMs(Number(latency.toFixed(2)));
-          setAvgVADLatencyMs(Number(avg.toFixed(2)));
+          lastVADLatencyMsRef.current = Number(latency.toFixed(2));
+          avgVADLatencyMsRef.current = Number(avg.toFixed(2));
 
           if (debug && latencyCountRef.current % 100 === 0) {
             console.debug(
@@ -309,6 +323,8 @@ export function useSpeechSensing(options: UseSpeechSensingOptions = {}): UseSpee
           if (debug) console.log(`[useSpeechSensing] VAD misfire at ${performance.now().toFixed(1)}ms`);
         },
       });
+
+      perfProbe.logInitMetadataOnce("useSpeechSensing", { ortWasmProxy: false });
 
       vad.start();
       vadRef.current = vad;
@@ -389,11 +405,15 @@ export function useSpeechSensing(options: UseSpeechSensingOptions = {}): UseSpee
   return {
     status,
     speechState,
-    speechProb,
-    rms,
+    speechProb: speechProbRef.current,
+    rms: rmsRef.current,
+    speechProbRef,
+    rmsRef,
     minRmsThreshold,
-    lastVADLatencyMs,
-    avgVADLatencyMs,
+    lastVADLatencyMs: lastVADLatencyMsRef.current,
+    avgVADLatencyMs: avgVADLatencyMsRef.current,
+    lastVADLatencyMsRef,
+    avgVADLatencyMsRef,
     error,
     start,
     stop,

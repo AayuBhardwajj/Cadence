@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { perfProbe } from "../lib/perfProbe";
 
 export type RunnerState = "idle" | "running" | "coasting" | "stumble" | "success";
 
@@ -13,7 +14,8 @@ export class SpeechRunnerScene extends Phaser.Scene {
   private auraRing!: Phaser.GameObjects.Arc;
 
   private currentState: RunnerState = "idle";
-  private jawOpenVal: number = 0;
+  private targetJawOpenVal: number = 0;
+  private currentJawOpenVal: number = 0;
 
   // Background elements for parallax
   private bgStars: Phaser.GameObjects.Arc[] = [];
@@ -32,6 +34,10 @@ export class SpeechRunnerScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.scale;
+
+    // Log active renderer type once
+    const rendererType = this.game.renderer?.type === Phaser.WEBGL ? "WEBGL" : "CANVAS";
+    perfProbe.logInitMetadataOnce("SpeechRunnerScene", { phaserRenderer: rendererType });
 
     // 1. Background Gradient / Sky
     const bg = this.add.graphics();
@@ -234,11 +240,16 @@ export class SpeechRunnerScene extends Phaser.Scene {
   }
 
   public setJawOpen(jawOpen: number) {
-    this.jawOpenVal = Phaser.Math.Clamp(jawOpen, 0, 1);
+    this.targetJawOpenVal = Phaser.Math.Clamp(jawOpen, 0, 1);
   }
 
   update(time: number, delta: number) {
+    const tStart = perfProbe.isEnabled() ? performance.now() : 0;
     this.animTimer += delta;
+
+    // Smooth lerp for jawOpen
+    const lerpFactor = Math.min(1, (delta / 1000) * 12);
+    this.currentJawOpenVal += (this.targetJawOpenVal - this.currentJawOpenVal) * lerpFactor;
 
     // Parallax Star & Speed Line Movement
     const speed =
@@ -263,11 +274,11 @@ export class SpeechRunnerScene extends Phaser.Scene {
 
     // Cosmetic jawOpen mouth scaling & aura pulse
     if (this.characterMouth) {
-      const mouthScale = 1 + this.jawOpenVal * 3.5;
+      const mouthScale = 1 + this.currentJawOpenVal * 3.5;
       this.characterMouth.setScale(mouthScale);
     }
     if (this.auraRing) {
-      const auraScale = 1 + (this.currentState === "running" ? 0.2 : 0) + this.jawOpenVal * 0.3;
+      const auraScale = 1 + (this.currentState === "running" ? 0.2 : 0) + this.currentJawOpenVal * 0.3;
       this.auraRing.setScale(auraScale);
     }
 
@@ -294,6 +305,10 @@ export class SpeechRunnerScene extends Phaser.Scene {
           },
         });
       }
+    }
+
+    if (perfProbe.isEnabled()) {
+      perfProbe.recordPhaserUpdate(performance.now() - tStart);
     }
   }
 }
