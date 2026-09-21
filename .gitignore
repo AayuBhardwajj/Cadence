@@ -30,3 +30,5 @@ backend/test_recordings/
 scratch/
 
 scripts/
+
+evaluation_results/
