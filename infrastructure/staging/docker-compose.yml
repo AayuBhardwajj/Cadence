@@ -1,0 +1,32 @@
+# Cadence staging database — plain PostgreSQL 17 (migration rehearsal only).
+# No application services run against this container.
+# Start: docker compose up -d
+# Stop:  docker compose down
+# Wipe:  docker compose down -v   (removes the named volume — full reset)
+#
+# Requires: infrastructure/staging/.env (git-ignored; see .env.example for names).
+
+services:
+  cadence-staging-postgres:
+    image: postgres:17
+    container_name: cadence-staging-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: cadence_staging
+      POSTGRES_DB: cadence_staging
+      POSTGRES_PASSWORD: ${STAGING_DB_PASSWORD:?set STAGING_DB_PASSWORD in infrastructure/staging/.env}
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=en-US"
+    volumes:
+      - cadence_staging_pg_data:/var/lib/postgresql/data
+      - ./bootstrap/00_supabase_compat.sql:/docker-entrypoint-initdb.d/00_supabase_compat.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cadence_staging -d cadence_staging"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  cadence_staging_pg_data:
+    name: cadence_staging_pg_data
