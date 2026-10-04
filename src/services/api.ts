@@ -61,6 +61,12 @@ export interface AnalysisResult {
             score: number;    // 0 to 100 (frequency/severity)
             behaviors: string[];
         }>;
+        region_candidates?: Array<{
+            region: string;
+            confidence: number;
+        }>;
+        unreviewed_mapping?: boolean;
+        insufficient_signal?: boolean;
     };
     amcat_transcript?: {
         reference_text: string;

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- Standalone module — no parent. No Java code; SQL only. -->
+  <groupId>com.cadence</groupId>
+  <artifactId>cadence-migrations</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <description>Flyway migration module for Cadence. Pinned to Flyway 11.8.2 (latest 11.x as of 2026-10-03).</description>
+
+  <properties>
+    <flyway.version>11.8.2</flyway.version>
+    <postgresql.version>42.7.4</postgresql.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!--
+      Connection properties come ONLY from environment variables.
+      These properties reference env vars; they are NOT given default values
+      here so that Maven fails fast if the vars are unset.
+
+      Set before invoking Maven:
+        export FLYWAY_URL=...
+        export FLYWAY_USER=...
+        export FLYWAY_PASSWORD=...
+
+      Or pass on command line:
+        mvn -DFLYWAY_URL=... -DFLYWAY_USER=... -DFLYWAY_PASSWORD=... -P staging flyway:migrate
+    -->
+    <flyway.url>${env.FLYWAY_URL}</flyway.url>
+    <flyway.user>${env.FLYWAY_USER}</flyway.user>
+    <flyway.password>${env.FLYWAY_PASSWORD}</flyway.password>
+
+    <!-- History table lives in schema 'flyway', NOT in 'public' (PostgREST exposes public). -->
+    <flyway.table>flyway_schema_history</flyway.table>
+    <flyway.defaultSchema>flyway</flyway.defaultSchema>
+    <flyway.schemas>public,flyway</flyway.schemas>
+
+    <flyway.validateOnMigrate>true</flyway.validateOnMigrate>
+    <flyway.outOfOrder>false</flyway.outOfOrder>
+    <flyway.locations>filesystem:${project.basedir}/src/main/resources/db/migration</flyway.locations>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-maven-plugin</artifactId>
+        <version>${flyway.version}</version>
+        <dependencies>
+          <!-- Flyway database-specific module for PostgreSQL -->
+          <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+            <version>${flyway.version}</version>
+          </dependency>
+          <!-- PostgreSQL JDBC driver -->
+          <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <url>${flyway.url}</url>
+          <user>${flyway.user}</user>
+          <password>${flyway.password}</password>
+          <table>${flyway.table}</table>
+          <defaultSchema>${flyway.defaultSchema}</defaultSchema>
+          <schemas>
+            <schema>public</schema>
+            <schema>flyway</schema>
+          </schemas>
+          <validateOnMigrate>${flyway.validateOnMigrate}</validateOnMigrate>
+          <outOfOrder>${flyway.outOfOrder}</outOfOrder>
+          <locations>
+            <location>${flyway.locations}</location>
+          </locations>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!--
+      dev profile: local Supabase CLI stack (port 54322 by default).
+      clean allowed (local only — never run clean against prod or staging).
+    -->
+    <profile>
+      <id>dev</id>
+      <properties>
+        <flyway.cleanDisabled>false</flyway.cleanDisabled>
+      </properties>
+    </profile>
+
+    <!--
+      staging profile: plain PostgreSQL 17 in Docker (infrastructure/staging/).
+      Host port 5433. clean disabled — staging rehearses prod; clean would defeat the purpose.
+    -->
+    <profile>
+      <id>staging</id>
+      <properties>
+        <flyway.cleanDisabled>true</flyway.cleanDisabled>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-maven-plugin</artifactId>
+            <version>${flyway.version}</version>
+            <configuration>
+              <cleanDisabled>true</cleanDisabled>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!--
+      prod profile: existing Supabase project.
+      clean PERMANENTLY disabled.
+      baselineOnMigrate=true + baselineVersion=3: Flyway treats the live schema as
+      already at V3; V1-V3 are never re-applied. Future migrations start at V4.
+    -->
+    <profile>
+      <id>prod</id>
+      <properties>
+        <flyway.cleanDisabled>true</flyway.cleanDisabled>
+        <flyway.baselineOnMigrate>true</flyway.baselineOnMigrate>
+        <flyway.baselineVersion>3</flyway.baselineVersion>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-maven-plugin</artifactId>
+            <version>${flyway.version}</version>
+            <configuration>
+              <cleanDisabled>true</cleanDisabled>
+              <baselineOnMigrate>true</baselineOnMigrate>
+              <baselineVersion>3</baselineVersion>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+</project>

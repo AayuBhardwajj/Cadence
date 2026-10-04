@@ -28,6 +28,22 @@ const PageBreak = () => (
     <div className="page-break my-8 border-b-2 border-dashed border-neutral-300 dark:border-neutral-700" />
 );
 
+const REGION_CLUSTER_NAMES: Record<string, string> = {
+    hindi_belt: "Hindi-belt (Bhojpuri/Rajasthani/Haryanvi cluster) influence patterns detected",
+    bengali_odia_belt: "Bengali/Odia/Assamese cluster influence patterns detected",
+    dravidian_belt: "Dravidian (Tamil/Telugu/Kannada/Malayalam cluster) influence patterns detected",
+    punjabi: "North-Western (Punjabi/Haryanvi cluster) influence patterns detected",
+    generic_indian_english: "Pan-Indian English influence patterns detected",
+};
+
+const formatRegionLabel = (region: string): string => {
+    if (REGION_CLUSTER_NAMES[region]) {
+        return REGION_CLUSTER_NAMES[region];
+    }
+    const clean = region.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    return `${clean} cluster influence patterns detected`;
+};
+
 export const AssessmentReport: React.FC<AssessmentReportProps> = ({
     userName,
     sessionId,
@@ -318,9 +334,16 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                         MTI Deep Dive
                     </h2>
                     <div className="bg-red-50 dark:bg-red-950/30 border-l-4 border-red-500 p-4 mb-8 rounded-r-xl">
-                        <span className="font-bold text-red-900 dark:text-red-200 text-base sm:text-lg">
-                            Detected L1 Influence: {mti_deep_dive.detected_accent || "No obvious accent detected"}
-                        </span>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <span className="font-bold text-red-900 dark:text-red-200 text-base sm:text-lg">
+                                Detected L1 Influence: {mti_deep_dive.detected_accent || "No obvious accent detected"}
+                            </span>
+                            {mti_deep_dive.unreviewed_mapping && (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800 self-start sm:self-auto">
+                                    Regional pattern mapping is pending clinical review.
+                                </span>
+                            )}
+                        </div>
                     </div>
                     <div className="flex flex-col gap-8">
                         {mti_deep_dive.patterns.filter((p: any) => p.pattern && p.pattern.trim() !== '').length > 0
@@ -356,6 +379,45 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                             </div>
                         )) : <p className="text-neutral-500 italic">No specific MTI patterns detected.</p>}
                     </div>
+
+                    {/* Regional Influence Candidates */}
+                    {mti_deep_dive.patterns.filter((p: any) => p.pattern && p.pattern.trim() !== '').length > 0 &&
+                     mti_deep_dive.region_candidates && mti_deep_dive.region_candidates.length > 0 && (
+                        <div className="mt-8 pt-6 border-t border-neutral-200 dark:border-neutral-800">
+                            <h3 className="text-sm sm:text-base font-bold text-neutral-900 dark:text-neutral-100 mb-4">
+                                Regional Influence Candidates
+                            </h3>
+                            <div className="space-y-3">
+                                {mti_deep_dive.region_candidates.map((cand: any, idx: number) => {
+                                    const confPercent = Math.round((cand.confidence || 0) * 100);
+                                    return (
+                                        <div key={idx} className="bg-neutral-50 dark:bg-neutral-900/50 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800">
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <span className="text-xs sm:text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                                                    {formatRegionLabel(cand.region)}
+                                                </span>
+                                                <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">
+                                                    {confPercent}%
+                                                </span>
+                                            </div>
+                                            <div className="w-full bg-neutral-200 dark:bg-neutral-700 h-1.5 rounded-full overflow-hidden">
+                                                <div
+                                                    className="bg-brand h-full rounded-full transition-all duration-300"
+                                                    style={{ width: `${confPercent}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {mti_deep_dive.unreviewed_mapping && (
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-6 italic">
+                            * Regional pattern mapping is pending clinical review.
+                        </p>
+                    )}
                 </div>
 
                 <PageBreak />

@@ -181,9 +181,32 @@ const s = StyleSheet.create({
         marginBottom: 14,
     },
     mtiAccentText: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#742A2A' },
+    mtiCaveatText: {
+        fontSize: 7.5,
+        fontFamily: 'Helvetica-Oblique',
+        color: '#975A16',
+        marginTop: 4,
+    },
     mtiPattern: { borderBottomWidth: 1, borderBottomColor: '#EDF2F7', paddingBottom: 10, marginBottom: 10 },
     mtiPatternHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
     mtiPatternName: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#2D3748' },
+    mtiCandidateRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 3,
+    },
+    mtiCandidateName: {
+        fontSize: 7.5,
+        color: '#2D3748',
+        flex: 1,
+    },
+    mtiCandidateScore: {
+        fontSize: 7.5,
+        fontFamily: 'Helvetica-Bold',
+        color: '#4A5568',
+        marginLeft: 6,
+    },
     badge: { fontSize: 7, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 3 },
     bulletText: { fontSize: 7.5, color: '#4A5568', marginBottom: 2, paddingLeft: 8 },
 
@@ -475,6 +498,22 @@ const DimBlock = ({ label, score, subs }: { label: string; score: number; subs: 
     </View>
 );
 
+const REGION_CLUSTER_NAMES: Record<string, string> = {
+    hindi_belt: "Hindi-belt (Bhojpuri/Rajasthani/Haryanvi cluster) influence patterns detected",
+    bengali_odia_belt: "Bengali/Odia/Assamese cluster influence patterns detected",
+    dravidian_belt: "Dravidian (Tamil/Telugu/Kannada/Malayalam cluster) influence patterns detected",
+    punjabi: "North-Western (Punjabi/Haryanvi cluster) influence patterns detected",
+    generic_indian_english: "Pan-Indian English influence patterns detected",
+};
+
+const formatRegionLabel = (region: string): string => {
+    if (REGION_CLUSTER_NAMES[region]) {
+        return REGION_CLUSTER_NAMES[region];
+    }
+    const clean = region.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    return `${clean} cluster influence patterns detected`;
+};
+
 // ─── Main PDF Document ───────────────────────────────────────────────────────
 
 export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userName, sessionId, result }) => {
@@ -681,6 +720,11 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                         <Text style={s.mtiAccentText}>
                             Detected L1 Influence: {mti_deep_dive.detected_accent || 'No obvious accent detected'}
                         </Text>
+                        {mti_deep_dive.unreviewed_mapping && (
+                            <Text style={s.mtiCaveatText}>
+                                Regional pattern mapping is pending clinical review.
+                            </Text>
+                        )}
                     </View>
 
                     {mti_deep_dive.patterns.length > 0 ? mti_deep_dive.patterns.map((item: any, idx: number) => (
@@ -707,6 +751,35 @@ export const AssessmentReportPDF: React.FC<AssessmentReportPDFProps> = ({ userNa
                     )) : (
                         <Text style={{ fontSize: 8, color: '#A0AEC0', fontStyle: 'italic' }}>
                             No specific MTI patterns detected.
+                        </Text>
+                    )}
+
+                    {/* Regional Influence Candidates */}
+                    {mti_deep_dive.region_candidates && mti_deep_dive.region_candidates.length > 0 && (
+                        <View style={{ marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#EDF2F7' }}>
+                            <Text style={{ fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: '#1A202C', marginBottom: 6 }}>
+                                Regional Influence Candidates
+                            </Text>
+                            {mti_deep_dive.region_candidates.map((cand: any, idx: number) => {
+                                const confPercent = Math.round((cand.confidence || 0) * 100);
+                                return (
+                                    <View key={idx} style={{ marginBottom: 4 }}>
+                                        <View style={s.mtiCandidateRow}>
+                                            <Text style={s.mtiCandidateName}>{formatRegionLabel(cand.region)}</Text>
+                                            <Text style={s.mtiCandidateScore}>{confPercent}%</Text>
+                                        </View>
+                                        <View style={[s.barBg, { height: 3, marginBottom: 2 }]}>
+                                            <View style={[s.barFill, { width: `${confPercent}%`, backgroundColor: '#4299E1', height: 3 }]} />
+                                        </View>
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    )}
+
+                    {mti_deep_dive.unreviewed_mapping && (
+                        <Text style={{ fontSize: 7, color: '#718096', fontStyle: 'italic', marginTop: 8 }}>
+                            * Regional pattern mapping is pending clinical review.
                         </Text>
                     )}
 

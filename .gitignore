@@ -32,3 +32,6 @@ scratch/
 scripts/
 
 evaluation_results/
+
+supabase/.temp/
+supabase/.branches/
