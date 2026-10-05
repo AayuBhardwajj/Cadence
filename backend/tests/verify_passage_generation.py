@@ -7,6 +7,13 @@ from datetime import datetime
 # Add backend to path
 sys.path.append(os.path.join(os.getcwd(), "backend"))
 
+# D26: Load ONLY env/<CADENCE_ENV>.env via ml_shared; refuse to run in prod.
+from ml_shared.env import load_env
+from ml_shared.env_guard import require_dev_only
+
+require_dev_only("verify_passage_generation.py")
+load_env()
+
 from utils.supabase_client import supabase
 from services.passage_generation_service import generate_passage, get_or_generate_passage, refill_passages
 

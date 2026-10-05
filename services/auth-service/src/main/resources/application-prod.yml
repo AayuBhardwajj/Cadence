@@ -1,0 +1,13 @@
+# auth-service prod profile — loaded when SPRING_PROFILES_ACTIVE=prod (set by with-env.sh prod)
+# All values come from env/prod.env. No defaults anywhere — missing var = startup failure (D26).
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 30000
+      pool-name: AuthServiceHikariCP-prod

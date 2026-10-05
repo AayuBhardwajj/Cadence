@@ -10,17 +10,20 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
-from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
-BACKEND_DIR = Path(__file__).resolve().parents[2] / "backend"
-BACKEND_ENV = BACKEND_DIR / ".env"
-load_dotenv(BACKEND_ENV, override=True)
+# D26: Load ONLY env/<CADENCE_ENV>.env via ml_shared (override=False so shell wins).
+# Old backend/.env fallback and service-local .env loads removed — D26.
+from ml_shared.env import load_env
+load_env()
 
-# Also load service-local .env if present
-LOCAL_ENV = Path(__file__).resolve().parent / ".env"
-if LOCAL_ENV.exists():
-    load_dotenv(LOCAL_ENV, override=True)
+# D26 dead-code: previous backend/.env load removed
+# BACKEND_DIR = Path(__file__).resolve().parents[2] / "backend"  # D26
+# BACKEND_ENV = BACKEND_DIR / ".env"  # D26
+# load_dotenv(BACKEND_ENV, override=True)  # D26
+# LOCAL_ENV = Path(__file__).resolve().parent / ".env"  # D26
+# if LOCAL_ENV.exists():  # D26
+#     load_dotenv(LOCAL_ENV, override=True)  # D26
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("ml-analysis")

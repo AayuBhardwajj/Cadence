@@ -34,9 +34,26 @@ import asyncio
 from pathlib import Path
 from datetime import datetime
 
+# D26: Initialize environment and dev-only guard
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "services" / "ml-shared"))
+from ml_shared.env import load_env  # noqa: E402
+from ml_shared.env_guard import require_dev_only  # noqa: E402
+
+load_env()
+require_dev_only("pipeline_e2e_test.py")
+
 # ── Configuration ────────────────────────────────────────────────────────────
 SESSION_SERVICE_URL = "http://localhost:8082"
-RABBITMQ_URL = "amqp://cadence:cadence_dev_pw@localhost:5672/"
+# D26 dead-code: hardcoded cadence_dev_pw default removed
+# RABBITMQ_URL = "amqp://cadence:cadence_dev_pw@localhost:5672/"  # D26
+rmq_user = os.getenv("RABBITMQ_USERNAME", "cadence")
+rmq_pass = os.getenv("RABBITMQ_PASSWORD")
+if not rmq_pass:
+    raise RuntimeError("RABBITMQ_PASSWORD must be set in environment (D26).")
+rmq_host = os.getenv("RABBITMQ_HOST", "localhost")
+rmq_port = os.getenv("RABBITMQ_PORT", "5672")
+RABBITMQ_URL = f"amqp://{rmq_user}:{rmq_pass}@{rmq_host}:{rmq_port}/"
 ML_REC_QUEUE = "ml-recommendation.analysis.completed"
 USER_ID = "fcee8cf2-f9ba-4da8-b745-8cc7de110679"
 TOPIC_ID = "interview"

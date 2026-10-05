@@ -10,18 +10,22 @@ logging.basicConfig(level=logging.INFO)
 # Add backend directory to sys.path
 sys.path.append(os.path.join(os.getcwd(), "backend"))
 
-from supabase import create_client
+# D26: Load ONLY env/<CADENCE_ENV>.env via ml_shared (override=False so shell wins).
+from ml_shared.env import load_env
+load_env()
+from ml_shared.supabase_client import supabase
 from utils.transcript_alignment import align_transcript, _normalize_for_alignment
 from services.analysis_service import deep_analyze_speech, _map_consolidated_to_amcat, _get_fallback_analysis
-
-def load_env():
-    env_path = os.path.join(os.getcwd(), "backend", ".env")
-    if os.path.exists(env_path):
-        with open(env_path) as f:
-            for line in f:
-                if "=" in line and not line.startswith("#"):
-                    k, v = line.strip().split("=", 1)
-                    os.environ[k] = v
+# D26 dead-code: manual backend/.env reader removed
+# def load_env():  # D26
+#     env_path = os.path.join(os.getcwd(), "backend", ".env")  # D26
+#     if os.path.exists(env_path):  # D26
+#         with open(env_path) as f:  # D26
+#             for line in f:  # D26
+#                 if "=" in line and not line.startswith("#"):  # D26
+#                     k, v = line.strip().split("=", 1)  # D26
+#                     os.environ[k] = v  # D26
+# from supabase import create_client  # D26
 
 async def test_1_alignment_function():
     print("\n--- Test 1: Unit Alignment Function ---")

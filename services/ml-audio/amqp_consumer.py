@@ -38,7 +38,8 @@ import urllib.request
 import uuid
 
 import aio_pika
-from dotenv import load_dotenv
+# D26 dead-code: load_dotenv removed — env loaded via ml_shared.env.load_env()
+# from dotenv import load_dotenv  # D26
 
 logger = logging.getLogger("ml-audio.amqp")
 
@@ -249,16 +250,35 @@ async def start_amqp_consumer(app) -> None:
     Starts the RabbitMQ consumer. Called from main.py lifespan after Whisper model is loaded.
     Stores the connection on app.state.amqp_connection for clean shutdown.
     """
-    load_dotenv()
+    # D26: env already loaded by main.py via ml_shared.env.load_env().
+    # Assert SUPABASE_URL is safe before any network call.
+    from ml_shared.env_guard import assert_env_safe
+    supabase_url = os.environ.get("SUPABASE_URL", "")
+    service_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    if supabase_url:
+        assert_env_safe(supabase_url)
+
+    # RABBITMQ_PASSWORD must come from environment — no default allowed (D26).
+    rabbitmq_password = os.environ.get("RABBITMQ_PASSWORD")
+    if not rabbitmq_password:
+        raise RuntimeError(
+            "RABBITMQ_PASSWORD is not set. "
+            "Run infrastructure/dev/make-env.sh to generate env/dev.env, then use "
+            "infrastructure/dev/with-env.sh dev -- <command>."
+        )
     rabbitmq_url = os.environ.get(
         "RABBITMQ_URL",
         f"amqp://{os.environ.get('RABBITMQ_USERNAME', 'cadence')}:"
-        f"{os.environ.get('RABBITMQ_PASSWORD', 'cadence_dev_pw')}@"
+        f"{rabbitmq_password}@"
         f"{os.environ.get('RABBITMQ_HOST', 'localhost')}:"
         f"{os.environ.get('RABBITMQ_PORT', '5672')}/"
     )
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    service_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    # D26 dead-code: old load_dotenv() + cadence_dev_pw default removed
+    # load_dotenv()  # D26
+    # rabbitmq_url = os.environ.get(
+    #     "RABBITMQ_URL",
+    #     f"amqp://...{os.environ.get('RABBITMQ_PASSWORD', 'cadence_dev_pw')}..."  # D26
+    # )  # D26
 
     if not supabase_url or not service_key:
         logger.error(

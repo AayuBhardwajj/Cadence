@@ -11,8 +11,13 @@ __pycache__/
 # Environment variables
 .env
 .env.local
+.env.*.local
 .env.production
 backend/.env
+env/*.env
+!env/*.example
+infrastructure/.env
+!infrastructure/.env.example
 
 # System
 .DS_Store

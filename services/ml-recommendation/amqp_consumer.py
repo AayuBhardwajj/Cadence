@@ -25,6 +25,7 @@ lexical_gaps: explicitly deferred per DECISIONS.md D15 Q1. Always [].
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any
 
@@ -36,7 +37,22 @@ from services.recommendation_service import RecommendationService
 logger = logging.getLogger("ml-recommendation.amqp")
 
 # ── Topology constants ────────────────────────────────────────────────────────
-RABBITMQ_URL = "amqp://cadence:cadence_dev_pw@localhost:5672/"
+# D26 dead-code: hardcoded cadence_dev_pw default removed
+# RABBITMQ_URL = "amqp://cadence:cadence_dev_pw@localhost:5672/"  # D26
+
+
+def get_rabbitmq_url() -> str:
+    host = os.getenv("RABBITMQ_HOST", "localhost")
+    port = os.getenv("RABBITMQ_PORT", "5672")
+    user = os.getenv("RABBITMQ_USERNAME", "cadence")
+    password = os.getenv("RABBITMQ_PASSWORD")
+    if not password:
+        raise RuntimeError(
+            "RABBITMQ_PASSWORD is not set. "
+            "Run infrastructure/dev/make-env.sh to generate env/dev.env, then use "
+            "infrastructure/dev/with-env.sh dev -- <command>."
+        )
+    return f"amqp://{user}:{password}@{host}:{port}/"
 
 # Inbound — declared by ml-analysis Stage 2; consumed passively here (passive=False
 # ensures idempotent re-declaration with the same durable/exclusive=False settings).
@@ -168,7 +184,8 @@ async def start_amqp_consumer(app: Any) -> None:
     Called from the FastAPI lifespan startup phase.
     Stores connection/channel on app.state for clean shutdown.
     """
-    amqp_url = RABBITMQ_URL
+    # D26 dead-code: amqp_url = RABBITMQ_URL
+    amqp_url = get_rabbitmq_url()
     try:
         connection = await aio_pika.connect_robust(amqp_url)
         channel = await connection.channel()

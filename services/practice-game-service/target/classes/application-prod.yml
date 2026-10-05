@@ -1,0 +1,13 @@
+# practice-game-service prod profile — loaded when SPRING_PROFILES_ACTIVE=prod
+# All values from env/prod.env via with-env.sh prod. No defaults anywhere (D26).
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 15
+      minimum-idle: 2
+      idle-timeout: 30000
+      pool-name: PracticeGameServiceHikariCP-prod

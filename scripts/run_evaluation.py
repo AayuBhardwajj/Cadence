@@ -32,18 +32,26 @@ import traceback
 from pathlib import Path
 from typing import Optional
 
-# ── Path Setup ────────────────────────────────────────────────────────────────
-# Insert backend/ into sys.path so we can import production modules directly.
+# Insert backend/ and services/ml-shared into sys.path
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT   = SCRIPT_DIR.parent
 BACKEND_DIR = REPO_ROOT / "backend"
+ML_SHARED_DIR = REPO_ROOT / "services" / "ml-shared"
 
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
+if str(ML_SHARED_DIR) not in sys.path:
+    sys.path.insert(0, str(ML_SHARED_DIR))
 
-# Load backend/.env so all API keys and DB credentials are available.
-from dotenv import load_dotenv
-load_dotenv(BACKEND_DIR / ".env")
+# D26: Load centralized env and assert dev environment
+# D26 dead-code: old backend/.env loading removed
+# from dotenv import load_dotenv  # D26
+# load_dotenv(BACKEND_DIR / ".env")  # D26
+from ml_shared.env import load_env
+from ml_shared.env_guard import require_dev_only
+
+load_env()
+require_dev_only("run_evaluation.py")
 
 # ── Logging Setup ─────────────────────────────────────────────────────────────
 logging.basicConfig(

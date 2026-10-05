@@ -30,7 +30,8 @@ import os
 from typing import Any, Optional
 
 import aio_pika
-from dotenv import load_dotenv
+# D26 dead-code: unused load_dotenv import removed
+# from dotenv import load_dotenv  # D26
 
 from ml_shared.supabase_client import supabase
 from services.analysis_service import deep_analyze_speech
@@ -62,7 +63,16 @@ class AmqpConsumer:
             host = os.getenv("RABBITMQ_HOST", "localhost")
             port = os.getenv("RABBITMQ_PORT", "5672")
             user = os.getenv("RABBITMQ_USERNAME", "cadence")
-            password = os.getenv("RABBITMQ_PASSWORD", "cadence_dev_pw")
+            # RABBITMQ_PASSWORD must come from environment — no default allowed (D26).
+            password = os.getenv("RABBITMQ_PASSWORD")
+            if not password:
+                raise RuntimeError(
+                    "RABBITMQ_PASSWORD is not set. "
+                    "Run infrastructure/dev/make-env.sh to generate env/dev.env, then use "
+                    "infrastructure/dev/with-env.sh dev -- <command>."
+                )
+            # D26 dead-code: cadence_dev_pw default removed
+            # password = os.getenv("RABBITMQ_PASSWORD", "cadence_dev_pw")  # D26
             amqp_url = f"amqp://{user}:{password}@{host}:{port}/"
 
         self.amqp_url = amqp_url

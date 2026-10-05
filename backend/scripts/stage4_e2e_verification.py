@@ -6,14 +6,23 @@ import uuid
 import threading
 import requests
 import websocket
-from dotenv import dotenv_values
-from supabase import create_client
+# D26: Load ONLY env/<CADENCE_ENV>.env via ml_shared; refuse to run in prod.
+from ml_shared.env import load_env
+from ml_shared.env_guard import require_dev_only
+from ml_shared.supabase_client import supabase as sp
+load_env()
+require_dev_only()
+# D26 dead-code: old dotenv_values + create_client removed
+# from dotenv import dotenv_values  # D26
+# from supabase import create_client  # D26
 
 def main():
-    backend_env = dotenv_values("backend/.env")
-    supabase_url = backend_env.get("SUPABASE_URL")
-    service_role_key = backend_env.get("SUPABASE_SERVICE_ROLE_KEY")
-    sp = create_client(supabase_url, service_role_key)
+    # D26 dead-code: old backend/.env load + create_client removed
+    # backend_env = dotenv_values("backend/.env")  # D26
+    # supabase_url = backend_env.get("SUPABASE_URL")  # D26
+    # service_role_key = backend_env.get("SUPABASE_SERVICE_ROLE_KEY")  # D26
+    # sp = create_client(supabase_url, service_role_key)  # D26
+    # supabase client is now the module-level sp from ml_shared.supabase_client
 
     user_id = "fcee8cf2-f9ba-4da8-b745-8cc7de110679"
     recordings_dir = "backend/test_recordings"

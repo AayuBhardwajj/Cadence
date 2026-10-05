@@ -2,11 +2,8 @@ server:
   port: 8081
 
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/cadence?currentSchema=auth,public
-    username: ${DB_USER:cadence}
-    password: ${DB_PASSWORD:cadence_dev}
-    driver-class-name: org.postgresql.Driver
+  application:
+    name: auth-service
   jpa:
     hibernate:
       ddl-auto: validate
@@ -15,10 +12,10 @@ spring:
       hibernate:
         format_sql: true
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: cadence
-    password: cadence_dev_pw
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
 
 jwt:
   secret: ${SUPABASE_JWT_SECRET}

@@ -16,8 +16,15 @@ import asyncio
 import json
 import uuid
 import sys
-import logging
-from datetime import datetime, timezone
+from pathlib import Path
+
+# D26: Refuse immediately if not running in dev
+REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO_ROOT / "services" / "ml-shared"))
+sys.path.insert(0, str(REPO_ROOT / "services" / "ml-analysis"))
+
+from ml_shared.env_guard import require_dev_only
+require_dev_only("verify_mti_pipeline.py")
 
 from ml_shared.supabase_client import supabase
 from services.analysis_service import deep_analyze_speech, _map_consolidated_to_amcat

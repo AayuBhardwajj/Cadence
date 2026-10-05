@@ -8,8 +8,12 @@ import urllib.request
 import urllib.error
 import urllib.parse
 from typing import List
-from dotenv import load_dotenv
-load_dotenv()
+# D26: Load ONLY env/<CADENCE_ENV>.env via ml_shared (override=False so shell wins).
+from ml_shared.env import load_env
+load_env()
+# D26 dead-code: bare load_dotenv() removed
+# from dotenv import load_dotenv  # D26
+# load_dotenv()  # D26
 
 REPORT_SERVICE_URL = os.environ.get("REPORT_SERVICE_URL", "http://localhost:8083")
 

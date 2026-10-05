@@ -4,16 +4,6 @@ server:
 spring:
   application:
     name: content-service
-  datasource:
-    url: jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:5432/postgres
-    username: postgres.kvubxhrfipcvlephrxam
-    password: ${DB_PASSWORD:cadence_dev}
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      idle-timeout: 30000
-      pool-name: ContentServiceHikariCP
   jpa:
     hibernate:
       ddl-auto: validate
@@ -30,7 +20,7 @@ management:
 
 cadence:
   cors:
-    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174}
+    allowed-origins: ${ALLOWED_ORIGINS}
   llm:
     groq-api-key: ${GROQ_API_KEY:}
     gemini-api-key: ${GEMINI_API_KEY:}

@@ -50,14 +50,18 @@ export default function App() {
 
   useEffect(() => {
     // 1. Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log("🔐 INITIAL SESSION:", session);
+      console.log("🔐 INITIAL SESSION ERROR:", error);
       setSession(session);
     });
 
     // 2. Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("🔐 AUTH EVENT:", event);
+      console.log("🔐 AUTH SESSION:", session);
       setSession(session);
     });
 

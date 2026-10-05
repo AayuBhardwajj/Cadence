@@ -9,16 +9,6 @@ spring:
       enabled: true
       max-file-size: 50MB
       max-request-size: 50MB
-  datasource:
-    url: jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:5432/postgres
-    username: postgres.kvubxhrfipcvlephrxam
-    password: ${DB_PASSWORD:cadence_dev}
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      idle-timeout: 30000
-      pool-name: SessionServiceHikariCP
   jpa:
     hibernate:
       ddl-auto: validate
@@ -27,16 +17,15 @@ spring:
       hibernate:
         format_sql: true
   # RabbitMQ connection — consumed by Spring Boot AMQP autoconfigure (RabbitProperties).
-  # Phase 3 Stage 1 (D-impl-1, 2026-08-21). Credentials default to infrastructure/docker-compose.yml values.
+  # Phase 3 Stage 1 (D-impl-1, 2026-08-21). Credentials come from env/<CADENCE_ENV>.env (D26).
   rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:cadence}
-    password: ${RABBITMQ_PASSWORD:cadence_dev_pw}
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
 
 supabase:
-  url: ${SUPABASE_URL:https://kvubxhrfipcvlephrxam.supabase.co}
-  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY}
   storage:
     bucket-name: ${STORAGE_BUCKET_NAME:assessment-recordings}
     signed-url-expiry-seconds: ${SIGNED_URL_EXPIRY_SECONDS:3600}
@@ -51,7 +40,7 @@ cadence:
   ml-audio:
     url: ${ML_AUDIO_URL:http://localhost:9001}
   cors:
-    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174}
+    allowed-origins: ${ALLOWED_ORIGINS}
 
 # Application-specific queue name constants (NOT the spring.rabbitmq.* autoconfigure namespace).
 # Values MUST match ml-audio/amqp_consumer.py QUEUE_* constants exactly — see D-impl-1 sign-off.
@@ -60,4 +49,3 @@ rabbitmq:
   queues:
     analysis-requested: analysis.requested
     analysis-audio-completed: analysis.audio.completed
-

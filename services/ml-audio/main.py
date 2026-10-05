@@ -14,6 +14,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from amqp_consumer import start_amqp_consumer, stop_amqp_consumer
 
+# D26: Load ONLY env/<CADENCE_ENV>.env via ml_shared (override=False so shell wins).
+from ml_shared.env import load_env
+load_env()
+
 # Fix for SSL Certificate Error on macOS
 try:
     _create_unverified_https_context = ssl._create_unverified_context

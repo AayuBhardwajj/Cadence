@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # flyway-dev.sh — Run Flyway commands against local Supabase CLI dev stack
 #
-# Reads connection parameters directly into memory from `supabase status -o env`.
+# Reads connection parameters directly into memory from `supabase status -o env`
+# or active environment variables (e.g. from env/dev.env).
 # Secrets (passwords, JWTs) are never written to disk or echoed.
 #
 # Usage:
@@ -19,26 +20,34 @@ MIGRATIONS_DIR="${REPO_ROOT}/infrastructure/migrations"
 
 GOAL="${1:-info}"
 
-# Verify Supabase CLI is on PATH
+# Verify prerequisites
+if ! command -v mvn >/dev/null 2>&1; then
+  echo "ERROR: 'mvn' (Maven) is not found on PATH." >&2
+  exit 1
+fi
+
 if ! command -v supabase >/dev/null 2>&1; then
   echo "ERROR: 'supabase' CLI is not found on PATH." >&2
   exit 1
 fi
 
-# Verify local Supabase stack is running (suppress noise from stopped services)
+# Verify local Supabase stack is running
 if ! (cd "${REPO_ROOT}" && supabase status >/dev/null 2>&1); then
   echo "ERROR: Supabase local dev stack is not running." >&2
   echo "Start the stack from the repository root: supabase start" >&2
   exit 1
 fi
 
-# Extract raw DB_URL in memory without printing or persisting credentials
-RAW_DB_URL="$((cd "${REPO_ROOT}" && supabase status -o env 2>/dev/null) \
-  | grep '^DB_URL=' \
-  | sed -E 's/^DB_URL="?([^"]*)"?$/\1/')"
+# Extract raw DB_URL: prefer environment DB_URL if set, else read from `supabase status -o env`
+RAW_DB_URL="${DB_URL:-}"
+if [ -z "${RAW_DB_URL}" ]; then
+  RAW_DB_URL="$((cd "${REPO_ROOT}" && supabase status -o env 2>/dev/null) \
+    | grep '^DB_URL=' \
+    | sed -E 's/^DB_URL="?([^"]*)"?$/\1/')"
+fi
 
 if [ -z "${RAW_DB_URL}" ]; then
-  echo "ERROR: Could not obtain DB_URL from 'supabase status -o env'." >&2
+  echo "ERROR: Could not obtain DB_URL from environment or 'supabase status -o env'." >&2
   exit 1
 fi
 
@@ -63,11 +72,16 @@ FLYWAY_PASSWORD="$(echo "${_parsed}" | grep '^FLYWAY_PASSWORD=' | cut -d= -f2-)"
 FLYWAY_URL="$(echo "${_parsed}" | grep '^FLYWAY_URL=' | cut -d= -f2-)"
 unset _parsed RAW_DB_URL
 
+if [ -z "${FLYWAY_URL}" ] || [ -z "${FLYWAY_USER}" ]; then
+  echo "ERROR: Failed to parse Flyway connection parameters." >&2
+  exit 1
+fi
+
 export FLYWAY_URL FLYWAY_USER FLYWAY_PASSWORD
 
 # If goal is migrate, apply bootstrap default privileges before running migrations
 if [ "${GOAL}" = "migrate" ]; then
-  PROJECT_ID="$(grep -E '^[[:space:]]*project_id[[:space:]]*=' "${REPO_ROOT}/supabase/config.toml" | sed -E 's/.*=[[:space:]]*"([^"]+)".*/\1/')"
+  PROJECT_ID="$(grep -E '^[[:space:]]*project_id[[:space:]]*=' "${REPO_ROOT}/supabase/config.toml" 2>/dev/null | sed -E 's/.*=[[:space:]]*"([^"]+)".*/\1/' || true)"
   if [ -z "${PROJECT_ID}" ]; then
     PROJECT_ID="cadence-dev"
   fi
@@ -76,10 +90,21 @@ if [ "${GOAL}" = "migrate" ]; then
 
   if [ -f "${BOOTSTRAP_SQL}" ]; then
     echo "Applying bootstrap default privileges via ${DB_CONTAINER}..."
-    docker exec -i "${DB_CONTAINER}" psql -U postgres -d postgres < "${BOOTSTRAP_SQL}" >/dev/null
+    if ! docker exec -i "${DB_CONTAINER}" psql -U postgres -d postgres < "${BOOTSTRAP_SQL}" >/dev/null; then
+      echo "ERROR: Failed to apply bootstrap default privileges via ${DB_CONTAINER}." >&2
+      exit 1
+    fi
   fi
 fi
 
 echo "Running Flyway ${GOAL} against local Supabase dev stack..."
 cd "${MIGRATIONS_DIR}"
-mvn -B -P dev "flyway:${GOAL}"
+if ! mvn -B -P dev "flyway:${GOAL}"; then
+  echo "ERROR: Flyway ${GOAL} failed." >&2
+  exit 1
+fi
+
+if [ "${GOAL}" = "migrate" ]; then
+  echo "Flyway migrate completed successfully."
+  echo "Note: The schema history table is located at 'flyway.flyway_schema_history'."
+fi

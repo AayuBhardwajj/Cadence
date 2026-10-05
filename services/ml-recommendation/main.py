@@ -15,14 +15,17 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Dict, Any, List, Optional
 from pathlib import Path
-from dotenv import load_dotenv
 
-# Explicitly load backend/.env if SUPABASE_URL / GROQ_API_KEY is not in environment
-SERVICE_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SERVICE_DIR.parent.parent
-BACKEND_ENV = PROJECT_ROOT / "backend" / ".env"
-if BACKEND_ENV.exists():
-    load_dotenv(BACKEND_ENV, override=True)
+# D26: Load ONLY env/<CADENCE_ENV>.env via ml_shared (override=False so shell wins).
+from ml_shared.env import load_env
+load_env()
+
+# D26 dead-code: previous backend/.env fallback removed
+# SERVICE_DIR = Path(__file__).resolve().parent  # D26
+# PROJECT_ROOT = SERVICE_DIR.parent.parent  # D26
+# BACKEND_ENV = PROJECT_ROOT / "backend" / ".env"  # D26
+# if BACKEND_ENV.exists():  # D26
+#     load_dotenv(BACKEND_ENV, override=True)  # D26
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
