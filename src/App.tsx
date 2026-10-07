@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Box } from "@chakra-ui/react";
 import { LoginPage } from "./pages/Login";
 import { SignupPage } from "./pages/Signup";
@@ -6,7 +6,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Welcome } from "./pages/Welcome";
 import { Assessment } from "./pages/Assessment";
 import { PreRecording } from "./pages/PreRecording";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "./lib/supabase";
 
 // Layouts
@@ -44,6 +44,32 @@ import { LanguageProvider } from "./lib/LanguageContext"; // Assuming this is al
 
 // ...
 
+/**
+ * AuthGate: mounted inside <Router> so it has access to useNavigate.
+ * Imperatively navigates to /dashboard when session transitions null→non-null
+ * on a non-dashboard URL (e.g. /login). This avoids the v7_startTransition
+ * deferred-render delay that can make Playwright's waitForURL time out.
+ */
+function AuthGate({ session }: { session: any }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const prevSessionRef = useRef<any>(undefined);
+
+  useEffect(() => {
+    const wasNull = prevSessionRef.current === null || prevSessionRef.current === undefined;
+    const isNowSet = Boolean(session);
+    if (wasNull && isNowSet) {
+      // Session just became active — push to dashboard if not already there.
+      if (!location.pathname.startsWith('/dashboard')) {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+    prevSessionRef.current = session;
+  }, [session, navigate, location.pathname]);
+
+  return null;
+}
+
 export default function App() {
   const [isLogin, setIsLogin] = useState(true);
   const [session, setSession] = useState<any>(null);
@@ -77,6 +103,8 @@ export default function App() {
           <LanguageProvider>
             <AccessibilityProvider>
               <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                {/* AuthGate must be inside Router to access useNavigate */}
+                <AuthGate session={session} />
                 {session ? (
                   <Routes>
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -114,7 +142,7 @@ export default function App() {
                     {/* Add Login/Signup as accessible routes too for testing */}
                     <Route path="/test-report" element={<TestReportPage />} />
                     <Route path="/sensing-test" element={<SensingTestPage />} />
-                    <Route path="/login" element={<LoginPage onSwitchToSignup={() => { }} onLoginSuccess={() => { }} />} />
+                    <Route path="/login" element={<Navigate to="/dashboard" replace />} />
 
                     {/* Default redirect */}
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
