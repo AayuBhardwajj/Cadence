@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { restGet } from '../db-helper';
+import { getRabbitMQQueueStats, QueueStats } from '../preflight';
 
 test.describe('Cadence DEV E2E Assessment Flow', () => {
   test('AUTH -> ASSESSMENT-START -> RECORDING/UPLOAD -> PROCESSING -> STOMP -> REPORT -> RECOMMENDATIONS', async ({
@@ -160,7 +162,7 @@ test.describe('Cadence DEV E2E Assessment Flow', () => {
       const stream = video.srcObject instanceof MediaStream ? video.srcObject : null;
       const tracks = stream?.getVideoTracks() ?? [];
       const firstTrack = tracks[0] ?? null;
-      let trackSettings: Record<string, unknown> = {};
+      let trackSettings: any = {};
       try { trackSettings = firstTrack?.getSettings() ?? {}; } catch {}
 
       const t0 = video.currentTime;
@@ -266,13 +268,121 @@ test.describe('Cadence DEV E2E Assessment Flow', () => {
     await expect(page.locator('text=AI Analysis in Progress')).toBeVisible({ timeout: 15_000 });
     console.log('[STAGE: PROCESSING + STOMP] Processing screen active. Waiting for STOMP events...');
 
-    // Wait for UI transition to Results stage (up to 180s for ML pipeline)
+    // Watchdog helpers for queue depths and database session status
+    function formatQueueDepths(qMap: Record<string, QueueStats>): string {
+      const keys = [
+        'analysis.requested',
+        'analysis.audio.completed',
+        'report-service.analysis.completed',
+        'ml-recommendation.analysis.completed',
+        'recommendations.updated',
+      ];
+      return keys
+        .map((k) => {
+          const q = qMap[k];
+          if (!q) return `${k}: (not declared)`;
+          return `${k}: [ready=${q.messages_ready}, unack=${q.messages_unacknowledged}, consumers=${q.consumers}]`;
+        })
+        .join(' | ');
+    }
+
+    async function fetchSessionStatus(sId: string): Promise<string> {
+      try {
+        const rows = await restGet('assessment_sessions', `id=eq.${encodeURIComponent(sId)}&select=status`);
+        return rows[0]?.status ?? 'not_found';
+      } catch (err: any) {
+        return `query_failed (${err.message})`;
+      }
+    }
+
+    // Wait for UI transition to Results stage (watchdog loop: poll every 5s, total budget 180s)
     // ResultsDashboard renders "Assessment Snapshot" and "OVERALL"
     const resultsSnapshotHeading = page.getByRole('heading', { name: 'Assessment Snapshot' });
-    await expect(resultsSnapshotHeading).toBeVisible({ timeout: 180_000 });
+
+    const watchdogStartTime = Date.now();
+    const watchdogTimeoutMs = 180_000;
+    const pollIntervalMs = 5_000;
+    let headingVisible = false;
+
+    console.log('[STAGE: PROCESSING + STOMP] Starting watchdog loop (poll every 5s, 180s max)...');
+
+    while (Date.now() - watchdogStartTime < watchdogTimeoutMs) {
+      headingVisible = await resultsSnapshotHeading.isVisible().catch(() => false);
+      if (headingVisible) {
+        console.log(`[STAGE: PROCESSING + STOMP] ✓ Assessment Snapshot heading visible after ${Math.round((Date.now() - watchdogStartTime) / 1000)}s.`);
+        break;
+      }
+
+      const elapsedMs = Date.now() - watchdogStartTime;
+      const elapsedSec = Math.round(elapsedMs / 1000);
+
+      // Check for explicit STOMP error frame
+      const failedFrame = wsFrames.find((f) => f.body.includes('ASSESSMENT_FAILED'));
+      if (failedFrame) {
+        const qStats = await getRabbitMQQueueStats();
+        const currentSessionStatus = await fetchSessionStatus(sessionId);
+        throw new Error(
+          `[PIPELINE STALL / ERROR] Received STOMP ASSESSMENT_FAILED frame after ${elapsedSec}s:\n` +
+          `  - Last-known stage: STAGE 4 (PROCESSING + STOMP)\n` +
+          `  - Session status: ${currentSessionStatus}\n` +
+          `  - Queue depths: ${formatQueueDepths(qStats)}\n` +
+          `  - Frame body: ${failedFrame.body}`
+        );
+      }
+
+      // Query RabbitMQ queue metrics
+      const qStats = await getRabbitMQQueueStats();
+      const hasStompEvent = wsFrames.some((f) => f.body.includes('REPORT_READY') || f.body.includes('RECOMMENDATIONS_READY'));
+      const reqQueue = qStats['analysis.requested'];
+
+      // Watchdog rule 1: if no STOMP event and queue analysis.requested shows ready > 0 with consumers == 0: fail immediately
+      if (!hasStompEvent && reqQueue && reqQueue.messages_ready > 0 && reqQueue.consumers === 0) {
+        const currentSessionStatus = await fetchSessionStatus(sessionId);
+        throw new Error(
+          `[PIPELINE STALL DETECTED] No STOMP event received and queue 'analysis.requested' has ${reqQueue.messages_ready} ready message(s) with 0 consumers (ml-audio AMQP consumer is offline/in HTTP-only mode).\n` +
+          `  - Last-known stage: STAGE 4 (PROCESSING + STOMP)\n` +
+          `  - Elapsed time: ${elapsedSec}s\n` +
+          `  - Session status: ${currentSessionStatus}\n` +
+          `  - Queue depths: ${formatQueueDepths(qStats)}\n` +
+          `  - Diagnosis: ml-audio was likely started before RabbitMQ finished booting and degraded to HTTP-only mode.`
+        );
+      }
+
+      // Watchdog rule 2: if session status is still 'uploading' after 45 s: fail with queue depths and status
+      if (elapsedMs >= 45_000) {
+        const currentSessionStatus = await fetchSessionStatus(sessionId);
+        if (currentSessionStatus === 'uploading') {
+          throw new Error(
+            `[PIPELINE STALL DETECTED] Session status is still 'uploading' after ${elapsedSec}s (expected transition downstream).\n` +
+            `  - Last-known stage: STAGE 4 (PROCESSING + STOMP)\n` +
+            `  - Session status: ${currentSessionStatus}\n` +
+            `  - Queue depths: ${formatQueueDepths(qStats)}\n` +
+            `  - Diagnosis: Upload completed but downstream pipeline failed to pick up or advance session.`
+          );
+        }
+      }
+
+      await page.waitForTimeout(pollIntervalMs);
+    }
+
+    if (!headingVisible) {
+      const qStats = await getRabbitMQQueueStats();
+      const currentSessionStatus = await fetchSessionStatus(sessionId);
+      throw new Error(
+        `[PIPELINE TIMEOUT] Heading 'Assessment Snapshot' did not become visible within 180s budget.\n` +
+        `  - Last-known stage: STAGE 4 (PROCESSING + STOMP)\n` +
+        `  - Elapsed time: ${Math.round((Date.now() - watchdogStartTime) / 1000)}s\n` +
+        `  - Session status: ${currentSessionStatus}\n` +
+        `  - Queue depths: ${formatQueueDepths(qStats)}`
+      );
+    }
+
+    // Keep final assertion unchanged
+    await expect(resultsSnapshotHeading).toBeVisible();
 
     console.log('[STAGE: PROCESSING + STOMP] ✓ Transitioned to Results dashboard without manual polling.');
     console.log('[STAGE: PROCESSING + STOMP] Captured WS events count:', wsFrames.length);
+
 
     // Verify STOMP frame arrival
     const reportReadyFrame = wsFrames.find((f) => f.body.includes('REPORT_READY'));

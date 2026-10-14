@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": [
+    "db-helper.ts",
+    "global-setup.ts",
+    "global-teardown.ts",
+    "cleanup-orphans.ts",
+    "cleanup-selftest.ts",
+    "preflight.ts",
+    "tests/**/*.ts"
+  ]
+}

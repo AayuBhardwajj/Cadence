@@ -1,10 +1,144 @@
 import http from 'http';
 import net from 'net';
+import { execSync } from 'child_process';
 
 export interface PreflightOptions {
   supabaseUrl?: string;
   frontendUrl?: string;
   cadenceEnv?: string;
+}
+
+export interface QueueStats {
+  messages: number;
+  messages_ready: number;
+  messages_unacknowledged: number;
+  consumers: number;
+}
+
+export interface QueueConsumerRequirement {
+  queue: string;
+  expectedService: string;
+  remedy: string;
+}
+
+export const REQUIRED_QUEUES: QueueConsumerRequirement[] = [
+  {
+    queue: 'analysis.requested',
+    expectedService: 'ml-audio',
+    remedy: 'ml-audio is likely running in HTTP-only mode. Ensure RabbitMQ is up and restart ml-audio: npm run dev:ml-audio',
+  },
+  {
+    queue: 'analysis.audio.completed',
+    expectedService: 'ml-analysis',
+    remedy: 'ml-analysis is likely running in HTTP-only mode. Ensure RabbitMQ is up and restart ml-analysis: npm run dev:ml-analysis',
+  },
+  {
+    queue: 'report-service.analysis.completed',
+    expectedService: 'report-service',
+    remedy: 'report-service has not connected to RabbitMQ. Restart report-service: npm run dev:report-service',
+  },
+  {
+    queue: 'ml-recommendation.analysis.completed',
+    expectedService: 'ml-recommendation',
+    remedy: 'ml-recommendation is likely running in HTTP-only mode. Ensure RabbitMQ is up and restart ml-recommendation: npm run dev:ml-recommendation',
+  },
+  {
+    queue: 'recommendations.updated',
+    expectedService: 'report-service',
+    remedy: 'report-service has not bound to recommendations.updated. Restart report-service: npm run dev:report-service',
+  },
+];
+
+export async function getRabbitMQQueueStats(): Promise<Record<string, QueueStats>> {
+  const host = process.env.RABBITMQ_HOST || '127.0.0.1';
+  const port = parseInt(process.env.RABBITMQ_MGMT_PORT || '15672', 10);
+  const user = process.env.RABBITMQ_USERNAME || process.env.RABBITMQ_DEFAULT_USER || 'cadence';
+  const pass = process.env.RABBITMQ_PASSWORD || process.env.RABBITMQ_DEFAULT_PASS || '';
+
+  // 1. Try RabbitMQ Management API with credentials from env vars only (no literals)
+  if (pass) {
+    try {
+      const stats = await new Promise<Record<string, QueueStats>>((resolve, reject) => {
+        const auth = Buffer.from(`${user}:${pass}`).toString('base64');
+        const req = http.request(
+          {
+            hostname: host,
+            port: port,
+            path: '/api/queues/%2F',
+            method: 'GET',
+            headers: {
+              Authorization: `Basic ${auth}`,
+            },
+            timeout: 3000,
+          },
+          (res) => {
+            let body = '';
+            res.on('data', (chunk) => (body += chunk));
+            res.on('end', () => {
+              if (res.statusCode === 200) {
+                try {
+                  const parsed = JSON.parse(body);
+                  if (Array.isArray(parsed)) {
+                    const map: Record<string, QueueStats> = {};
+                    for (const q of parsed) {
+                      if (q && q.name) {
+                        map[q.name] = {
+                          messages: q.messages ?? 0,
+                          messages_ready: q.messages_ready ?? 0,
+                          messages_unacknowledged: q.messages_unacknowledged ?? 0,
+                          consumers: q.consumers ?? 0,
+                        };
+                      }
+                    }
+                    resolve(map);
+                    return;
+                  }
+                } catch {}
+              }
+              reject(new Error(`Management API responded with status ${res.statusCode}`));
+            });
+          }
+        );
+        req.on('error', (err) => reject(err));
+        req.on('timeout', () => {
+          req.destroy();
+          reject(new Error('Management API request timed out'));
+        });
+        req.end();
+      });
+      return stats;
+    } catch {
+      // Fallback to docker exec below
+    }
+  }
+
+  // 2. Fallback: docker exec <container> rabbitmqctl list_queues
+  try {
+    const container = process.env.RABBITMQ_CONTAINER || 'cadence-rabbitmq';
+    const raw = execSync(
+      `docker exec ${container} rabbitmqctl list_queues name messages consumers messages_ready messages_unacknowledged --formatter json`,
+      { encoding: 'utf-8', timeout: 5000, stdio: ['pipe', 'pipe', 'ignore'] }
+    );
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      const map: Record<string, QueueStats> = {};
+      for (const q of parsed) {
+        if (q && q.name) {
+          map[q.name] = {
+            messages: q.messages ?? 0,
+            messages_ready: q.messages_ready ?? 0,
+            messages_unacknowledged: q.messages_unacknowledged ?? 0,
+            consumers: q.consumers ?? 0,
+          };
+        }
+      }
+      return map;
+    }
+  } catch {
+    // If fallback fails as well, return empty map
+  }
+
+  return {};
 }
 
 export async function checkHttpEndpoint(urlStr: string, timeoutMs = 3000): Promise<{ ok: boolean; status?: number; error?: string }> {
@@ -111,8 +245,9 @@ export async function runPreflight(options: PreflightOptions = {}) {
     if (res.ok) {
       console.log(`[PREFLIGHT] ✓ ${item.name} is healthy`);
     } else {
-      console.error(`[PREFLIGHT] ✗ ${item.name} unreachable (${res.error ?? `status ${res.status}`})`);
-      failed.push(`${item.name}: ${res.error ?? `status ${res.status}`}`);
+      const statusDetail = res.error ?? ('status' in res ? `status ${(res as any).status}` : 'failed');
+      console.error(`[PREFLIGHT] ✗ ${item.name} unreachable (${statusDetail})`);
+      failed.push(`${item.name}: ${statusDetail}`);
     }
   }
 
@@ -122,7 +257,40 @@ export async function runPreflight(options: PreflightOptions = {}) {
     );
   }
 
-  console.log('[PREFLIGHT] All safety guards and service health checks passed.');
+  // 5. Verify RabbitMQ consumer counts for required queues
+  console.log('[PREFLIGHT] Checking RabbitMQ consumer counts for required pipeline queues...');
+  const queueStats = await getRabbitMQQueueStats();
+  const queueFailures: string[] = [];
+
+  for (const req of REQUIRED_QUEUES) {
+    const stat = queueStats[req.queue];
+    const consumerCount = stat ? stat.consumers : 0;
+    if (consumerCount >= 1) {
+      console.log(`[PREFLIGHT] ✓ Queue '${req.queue}' has active consumer (${consumerCount})`);
+    } else {
+      const detail = stat
+        ? `has 0 consumers (messages ready: ${stat.messages_ready}, total: ${stat.messages})`
+        : 'queue was not found or broker returned no data';
+      console.error(
+        `[PREFLIGHT] ✗ Queue '${req.queue}' ${detail}.\n` +
+        `  -> Missing service: ${req.expectedService}\n` +
+        `  -> Cause: ${req.expectedService} is likely running in HTTP-only mode.\n` +
+        `  -> Remedy: ${req.remedy}`
+      );
+      queueFailures.push(
+        `Queue '${req.queue}' (expected: ${req.expectedService}, consumers: ${consumerCount}): ${req.remedy}`
+      );
+    }
+  }
+
+  if (queueFailures.length > 0) {
+    throw new Error(
+      `[PREFLIGHT FAILED] Missing RabbitMQ consumers detected:\n  - ${queueFailures.join('\n  - ')}\n` +
+      `Ensure RabbitMQ is running and listening on port 5672 BEFORE starting the ML services so they connect to AMQP instead of degrading to HTTP-only mode.`
+    );
+  }
+
+  console.log('[PREFLIGHT] All safety guards, service health checks, and queue consumer checks passed.');
 }
 
 if (require.main === module) {
@@ -133,3 +301,4 @@ if (require.main === module) {
       process.exit(1);
     });
 }
+

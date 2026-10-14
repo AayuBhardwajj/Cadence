@@ -8,6 +8,7 @@ import {
   insertDeterministicPassage,
   E2EState,
 } from './db-helper';
+import { cleanupAllOrphanE2EUsers } from './cleanup-orphans';
 
 const STATE_FILE = path.resolve(__dirname, '.state.json');
 
@@ -34,23 +35,36 @@ export default async function globalSetup() {
   // 3. Run Preflight Safety Checks
   await runPreflight();
 
-  // 4. Pre-run Leak Check
+  // 4. Automatic Orphan Recovery: sweep orphaned E2E test users older than 5 minutes BEFORE baseline
+  console.log('[GLOBAL SETUP] Running automatic orphan recovery (e2e-*@example.invalid older than 5 minutes)...');
+  try {
+    const cleanedOrphans = await cleanupAllOrphanE2EUsers({ maxAgeMinutes: 5, dryRun: false });
+    if (cleanedOrphans.length > 0) {
+      console.log(`[GLOBAL SETUP] Cleaned ${cleanedOrphans.length} orphan E2E user(s) prior to baseline snapshot:`, cleanedOrphans);
+    } else {
+      console.log('[GLOBAL SETUP] No orphan E2E users found.');
+    }
+  } catch (err: any) {
+    throw new Error(`[GLOBAL SETUP FATAL] Failed to clean orphaned E2E users prior to run: ${err.message}`);
+  }
+
+  // 5. Pre-run Leak Check (captured strictly AFTER the orphan sweep)
   console.log('[GLOBAL SETUP] Capturing baseline database & storage counts...');
   const beforeCounts = await captureLeakCounts();
   console.log('[GLOBAL SETUP] Baseline counts:');
   console.table(beforeCounts);
 
-  // 5. Create Fresh E2E Test User
+  // 6. Create Fresh E2E Test User
   console.log('[GLOBAL SETUP] Creating isolated test user via GoTrue Admin API...');
   const testUser = await createTestUser();
   console.log(`[GLOBAL SETUP] User created: ${testUser.email} (ID: ${testUser.id})`);
 
-  // 6. Seed Deterministic Assessment Passage
+  // 7. Seed Deterministic Assessment Passage
   console.log('[GLOBAL SETUP] Seeding deterministic passage into passage_pool...');
   const seededPassage = await insertDeterministicPassage('workplace_communication', 'medium');
   console.log(`[GLOBAL SETUP] Seeded passage ID: ${seededPassage.passageId}, pool ID: ${seededPassage.poolId}`);
 
-  // 7. Persist state for test runner and global teardown
+  // 8. Persist state for test runner and global teardown
   const state: E2EState = {
     runId,
     createdAt: new Date().toISOString(),
