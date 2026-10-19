@@ -17,11 +17,22 @@ spring:
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
 
-jwt:
-  secret: ${SUPABASE_JWT_SECRET}
-
 management:
   endpoints:
     web:
       exposure:
         include: health
+
+cadence:
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174}
+  security:
+    jwt:
+      issuer: ${SUPABASE_JWT_ISSUER}
+      audience: ${SUPABASE_JWT_AUDIENCE:authenticated}
+      algorithm: ${SUPABASE_JWT_ALGORITHM:HS256}
+      secret: ${SUPABASE_JWT_SECRET:}
+      public-key-pem: ${SUPABASE_JWT_PUBLIC_KEY_PEM:}
+    internal:
+      enabled: true
+      secret: ${CADENCE_INTERNAL_SERVICE_KEY}

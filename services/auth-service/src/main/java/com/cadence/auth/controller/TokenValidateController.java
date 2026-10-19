@@ -1,7 +1,8 @@
 package com.cadence.auth.controller;
 
-import com.cadence.auth.exception.InvalidTokenException;
-import com.cadence.auth.service.JwtService;
+import com.cadence.security.exception.InvalidTokenException;
+import com.cadence.security.jwt.JwtClaims;
+import com.cadence.security.jwt.JwtValidator;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,26 +14,25 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Internal endpoint used by the gateway / other services to validate
- * a Supabase JWT and extract its claims without involving Spring Security.
+ * Internal endpoint used by internal services to validate
+ * a Supabase JWT and extract its claims using the shared security starter validator.
  *
  * POST /auth/validate
+ *   Header:  X-Internal-Service-Key: <key>
  *   Header:  Authorization: Bearer <token>
  *   200 → { valid: true,  userId: "...", email: "..." }
  *   401 → { valid: false, error: "..." }
  *
- * This endpoint is intentionally permitted without authentication
- * (configured in SecurityConfig) so that the gateway can call it
- * before it has a validated principal to pass downstream.
+ * Secured with ROLE_INTERNAL_SERVICE via CadenceInternalAuthFilter.
  */
 @RestController
 @RequestMapping("/auth")
 public class TokenValidateController {
 
-    private final JwtService jwtService;
+    private final JwtValidator jwtValidator;
 
-    public TokenValidateController(JwtService jwtService) {
-        this.jwtService = jwtService;
+    public TokenValidateController(JwtValidator jwtValidator) {
+        this.jwtValidator = jwtValidator;
     }
 
     @PostMapping("/validate")
@@ -44,18 +44,23 @@ public class TokenValidateController {
         }
 
         String token = authHeader.substring(7).trim();
+        if (token.isEmpty()) {
+            return buildError("Empty bearer token");
+        }
+
         try {
-            String userId = jwtService.validateAndExtractUserId(token);
-            String email  = jwtService.validateAndExtractEmail(token).orElse(null);
+            JwtClaims claims = jwtValidator.validate(token);
 
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("valid", true);
-            body.put("userId", userId);
-            body.put("email", email);
+            body.put("userId", claims.subject());
+            body.put("email", claims.email());
             return ResponseEntity.ok(body);
 
         } catch (InvalidTokenException e) {
             return buildError(e.getMessage());
+        } catch (Exception e) {
+            return buildError("Token validation failed");
         }
     }
 

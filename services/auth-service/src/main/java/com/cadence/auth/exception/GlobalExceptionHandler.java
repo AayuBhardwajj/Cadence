@@ -11,8 +11,8 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(InvalidTokenException.class)
-    public ResponseEntity<Map<String, String>> handleInvalidTokenException(InvalidTokenException ex) {
+    @ExceptionHandler({InvalidTokenException.class, com.cadence.security.exception.InvalidTokenException.class})
+    public ResponseEntity<Map<String, String>> handleInvalidTokenException(Exception ex) {
         Map<String, String> response = new HashMap<>();
         response.put("error", "Unauthorized");
         response.put("message", ex.getMessage());

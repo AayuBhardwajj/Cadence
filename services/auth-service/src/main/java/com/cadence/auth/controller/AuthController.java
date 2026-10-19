@@ -2,8 +2,8 @@ package com.cadence.auth.controller;
 
 import com.cadence.auth.model.AppUser;
 import com.cadence.auth.repository.AppUserRepository;
+import com.cadence.security.annotation.CurrentLearnerId;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,8 +14,8 @@ import java.util.UUID;
 
 /**
  * Handles identity-related endpoints for the authenticated user.
- * The JWT is validated upstream by JwtAuthFilter; by the time a request
- * reaches this controller the SecurityContext already holds the userId.
+ * The JWT is validated upstream by CadenceJwtAuthenticationFilter;
+ * by the time a request reaches this controller, the learner identity is resolved.
  */
 @RestController
 @RequestMapping("/auth")
@@ -29,18 +29,17 @@ public class AuthController {
 
     /**
      * GET /auth/me
-     * Returns the userId and email for the currently authenticated user.
-     * Requires a valid Supabase JWT in the Authorization header.
+     * Returns the userId and email for the currently authenticated learner.
+     * Requires a valid Supabase JWT with ROLE_LEARNER.
      *
-     * @param userId the UUID string injected from the SecurityContext principal
+     * @param userId the validated UUID injected via @CurrentLearnerId
      * @return 200 with { userId, email } or 404 if the user row does not exist
      */
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> getMe(
-            @AuthenticationPrincipal String userId) {
+            @CurrentLearnerId UUID userId) {
 
-        UUID uuid = UUID.fromString(userId);
-        AppUser user = userRepository.findById(uuid)
+        AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new com.cadence.auth.exception.UserNotFoundException(
                         "User not found for id: " + userId));
 

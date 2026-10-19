@@ -14,5 +14,6 @@
     <modules>
         <module>cadence-security-starter</module>
         <module>report-service</module>
+        <module>auth-service</module>
     </modules>
 </project>
