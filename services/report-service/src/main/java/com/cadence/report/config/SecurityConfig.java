@@ -1,15 +1,21 @@
 package com.cadence.report.config;
 
-import com.cadence.report.filter.PassthroughAuthFilter;
+import com.cadence.security.filter.CadenceInternalAuthFilter;
+import com.cadence.security.filter.CadenceJwtAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -20,10 +26,15 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     @Value("${cadence.cors.allowed-origins:http://localhost:5173,http://localhost:5174}")
     private String allowedOriginsStr;
+
+    private final CadenceJwtAuthenticationFilter cadenceJwtAuthenticationFilter;
+    private final CadenceInternalAuthFilter cadenceInternalAuthFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -31,11 +42,16 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/health", "/actuator/health").permitAll()
-                .anyRequest().permitAll()
+                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/assessment/results/**").hasRole("LEARNER")
+                .requestMatchers(HttpMethod.POST, "/api/assessment/reports").hasRole("INTERNAL_SERVICE")
+                .anyRequest().denyAll()
             )
-            .addFilterBefore(new PassthroughAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(cadenceJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(cadenceInternalAuthFilter, CadenceJwtAuthenticationFilter.class);
 
         return http.build();
     }
@@ -57,4 +73,3 @@ public class SecurityConfig {
         return source;
     }
 }
-

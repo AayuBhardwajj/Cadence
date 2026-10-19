@@ -13,19 +13,16 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Intentionally minimal mapping of public.assessment_sessions for report-service.
+ * Read-only projection of public.assessment_sessions for report-service ownership checks.
  *
  * ARCHITECTURAL NOTICE (DECISIONS.md D6, D17 point 4):
- * session-service (com.cadence.session.entity.AssessmentSession) remains the EXCLUSIVE
- * canonical full model owner for assessment_sessions.
+ * session-service remains the EXCLUSIVE canonical owner of assessment_sessions.
+ * report-service adds user_id as a read-only (insertable=false, updatable=false) field
+ * solely for security ownership verification during report retrieval.
  *
- * report-service only defines write access to the three lifecycle transition columns
- * needed upon report generation: status, completed_at, and failure_reason.
- *
- * DO NOT add other columns (user_id, topic_id, duration_seconds, audio_storage_path, etc.)
- * to this entity. This strict boundary avoids duplicate-entity schema drift across service
- * boundaries (precedent: the transcript_alignment.py duplication bug documented in
- * BUGS_AND_ISSUES.md).
+ * DO NOT add other columns (topic_id, duration_seconds, audio_storage_path, etc.)
+ * to this entity. Only the minimum fields needed for security and lifecycle transitions
+ * are permitted here.
  */
 @Entity
 @Table(name = "assessment_sessions", schema = "public")
@@ -39,6 +36,12 @@ public class AssessmentSession {
     @Column(name = "id", nullable = false)
     private UUID id;
 
+    /**
+     * Read-only: written exclusively by session-service.
+     * Required by report-service only to verify that a session belongs to the requesting learner.
+     */
+    @Column(name = "user_id", nullable = false, insertable = false, updatable = false)
+    private UUID userId;
     @Column(name = "status", nullable = false)
     private String status;
 

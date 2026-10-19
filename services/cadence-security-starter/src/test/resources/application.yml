@@ -1,0 +1,12 @@
+cadence:
+  security:
+    jwt:
+      algorithm: HS256
+      secret: "01234567890123456789012345678901"
+      issuer: "https://test.supabase.co/auth/v1"
+      audience: "authenticated"
+      clock-skew-seconds: 10
+    internal:
+      enabled: true
+      secret: "internal-service-test-secret-12345"
+      header-name: "X-Internal-Service-Key"

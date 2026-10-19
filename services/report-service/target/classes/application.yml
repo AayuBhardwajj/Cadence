@@ -24,3 +24,14 @@ management:
     web:
       exposure:
         include: health
+
+cadence:
+  security:
+    jwt:
+      issuer: ${SUPABASE_JWT_ISSUER}
+      audience: ${SUPABASE_JWT_AUDIENCE:authenticated}
+      algorithm: ${SUPABASE_JWT_ALGORITHM:HS256}
+      secret: ${SUPABASE_JWT_SECRET}
+    internal:
+      enabled: true
+      secret: ${CADENCE_INTERNAL_SERVICE_KEY}

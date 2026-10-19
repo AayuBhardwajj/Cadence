@@ -3,6 +3,7 @@ package com.cadence.report.controller;
 import com.cadence.report.dto.AssessmentReportResponse;
 import com.cadence.report.dto.CreateAssessmentReportRequest;
 import com.cadence.report.service.ReportService;
+import com.cadence.security.annotation.CurrentLearnerId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,7 +23,10 @@ public class ReportController {
     private final ReportService reportService;
 
     @GetMapping("/api/assessment/results/{sessionId}")
-    public ResponseEntity<AssessmentReportResponse> getReportBySessionId(@PathVariable("sessionId") String sessionIdStr) {
+    public ResponseEntity<AssessmentReportResponse> getReportBySessionId(
+            @PathVariable("sessionId") String sessionIdStr,
+            @CurrentLearnerId UUID currentLearnerId
+    ) {
         UUID sessionId;
         try {
             sessionId = UUID.fromString(sessionIdStr.trim());
@@ -30,7 +34,7 @@ public class ReportController {
             return ResponseEntity.notFound().build();
         }
 
-        return reportService.getReportBySessionId(sessionId)
+        return reportService.getReportBySessionIdAndLearnerId(sessionId, currentLearnerId)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -41,4 +45,3 @@ public class ReportController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
-

@@ -3,15 +3,24 @@ package com.cadence.report.controller;
 import com.cadence.report.config.SecurityConfig;
 import com.cadence.report.dto.AssessmentReportResponse;
 import com.cadence.report.service.ReportService;
+import com.cadence.security.config.CadenceSecurityAutoConfiguration;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,8 +34,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = ReportController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, CadenceSecurityAutoConfiguration.class})
+@ActiveProfiles("test")
 class ReportControllerTest {
+
+    private static final String TEST_SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    private static final String TEST_INTERNAL_KEY = "internal-secret-for-tests-must-be-at-least-32-bytes-long";
 
     @Autowired
     private MockMvc mockMvc;
@@ -34,10 +47,27 @@ class ReportControllerTest {
     @MockBean
     private ReportService reportService;
 
+    private String generateLearnerJwt(UUID userId) {
+        SecretKey key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8));
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .subject(userId.toString())
+                .claim("email", "learner@cadence.ai")
+                .claim("role", "authenticated")
+                .issuer("https://auth.test.cadence.ai/auth/v1")
+                .audience().add("authenticated").and()
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plusSeconds(3600)))
+                .signWith(key, Jwts.SIG.HS256)
+                .compact();
+    }
+
     @Test
     void whenReportExists_returns200AndReportJson() throws Exception {
+        UUID learnerId = UUID.randomUUID();
         UUID reportId = UUID.randomUUID();
         UUID sessionId = UUID.randomUUID();
+        String token = generateLearnerJwt(learnerId);
 
         AssessmentReportResponse response = new AssessmentReportResponse(
                 reportId,
@@ -72,10 +102,11 @@ class ReportControllerTest {
                 OffsetDateTime.now()
         );
 
-        when(reportService.getReportBySessionId(eq(sessionId)))
+        when(reportService.getReportBySessionIdAndLearnerId(eq(sessionId), eq(learnerId)))
                 .thenReturn(Optional.of(response));
 
-        mockMvc.perform(get("/api/assessment/results/{sessionId}", sessionId.toString()))
+        mockMvc.perform(get("/api/assessment/results/{sessionId}", sessionId.toString())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(reportId.toString()))
                 .andExpect(jsonPath("$.assessment_session_id").value(sessionId.toString()))
@@ -87,12 +118,15 @@ class ReportControllerTest {
 
     @Test
     void whenReportMissing_returns404() throws Exception {
+        UUID learnerId = UUID.randomUUID();
         UUID missingSessionId = UUID.randomUUID();
+        String token = generateLearnerJwt(learnerId);
 
-        when(reportService.getReportBySessionId(eq(missingSessionId)))
+        when(reportService.getReportBySessionIdAndLearnerId(eq(missingSessionId), eq(learnerId)))
                 .thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/assessment/results/{sessionId}", missingSessionId.toString()))
+        mockMvc.perform(get("/api/assessment/results/{sessionId}", missingSessionId.toString())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isNotFound());
     }
 
@@ -137,6 +171,7 @@ class ReportControllerTest {
                 """.formatted(sessionId);
 
         mockMvc.perform(post("/api/assessment/reports")
+                        .header("X-Internal-Service-Key", TEST_INTERNAL_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonPayload))
                 .andExpect(status().isCreated())
@@ -156,9 +191,9 @@ class ReportControllerTest {
                 """;
 
         mockMvc.perform(post("/api/assessment/reports")
+                        .header("X-Internal-Service-Key", TEST_INTERNAL_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidJsonPayload))
                 .andExpect(status().isBadRequest());
     }
 }
-

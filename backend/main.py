@@ -16,6 +16,38 @@ load_env()
 # load_dotenv()  # D26
 
 REPORT_SERVICE_URL = os.environ.get("REPORT_SERVICE_URL", "http://localhost:8083")
+CADENCE_INTERNAL_SERVICE_KEY = os.environ.get("CADENCE_INTERNAL_SERVICE_KEY")
+
+
+def post_assessment_report(report_payload: dict, session_id: str) -> None:
+    """
+    Dispatches assessment report creation to report-service via POST /api/assessment/reports.
+    Authenticates using the internal service key header (X-Internal-Service-Key).
+    Fails safely when the key is unconfigured, preventing unauthenticated network requests.
+    """
+    internal_key = os.environ.get("CADENCE_INTERNAL_SERVICE_KEY", CADENCE_INTERNAL_SERVICE_KEY)
+    if not internal_key or not internal_key.strip():
+        logger.error(
+            "report-service: CADENCE_INTERNAL_SERVICE_KEY is missing or empty; "
+            "skipping assessment_reports insert for session %s to fail safely",
+            session_id,
+        )
+        raise RuntimeError("CADENCE_INTERNAL_SERVICE_KEY is not configured")
+
+    req_data = json.dumps(report_payload).encode("utf-8")
+    req = urllib.request.Request(
+        f"{REPORT_SERVICE_URL}/api/assessment/reports",
+        data=req_data,
+        headers={
+            "Content-Type": "application/json",
+            "X-Internal-Service-Key": internal_key.strip(),
+            "X-Service-Name": "fastapi-backend",
+        },
+        method="POST"
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        if resp.status not in (200, 201):
+            raise RuntimeError(f"HTTP_{resp.status}")
 
 # ml-analysis service — Phase 1 ML split (DECISIONS.md D11).
 ML_ANALYSIS_SERVICE_URL = os.environ.get("ML_ANALYSIS_SERVICE_URL", "http://localhost:9002")
@@ -597,16 +629,7 @@ async def upload_assessment(
                 "focusAreas": score_data.get("focus_areas"),
                 "feedback": score_data.get("feedback"),
             }
-            req_data = json.dumps(report_payload).encode("utf-8")
-            req = urllib.request.Request(
-                f"{REPORT_SERVICE_URL}/api/assessment/reports",
-                data=req_data,
-                headers={"Content-Type": "application/json"},
-                method="POST"
-            )
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                if resp.status not in (200, 201):
-                    raise RuntimeError(f"HTTP_{resp.status}")
+            post_assessment_report(report_payload, sessionId)
         except Exception as err:
             logger.exception(
                 "report-service: assessment_reports insert failed for session %s — continuing",

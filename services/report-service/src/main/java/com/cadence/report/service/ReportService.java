@@ -24,6 +24,12 @@ public class ReportService {
                 .map(AssessmentReportResponse::fromEntity);
     }
 
+    @Transactional(readOnly = true)
+    public Optional<AssessmentReportResponse> getReportBySessionIdAndLearnerId(UUID sessionId, UUID learnerId) {
+        return reportRepository.findBySessionIdAndUserId(sessionId, learnerId)
+                .map(AssessmentReportResponse::fromEntity);
+    }
+
     @Transactional
     public AssessmentReportResponse createReport(CreateAssessmentReportRequest request) {
         AssessmentReport report = AssessmentReport.builder()

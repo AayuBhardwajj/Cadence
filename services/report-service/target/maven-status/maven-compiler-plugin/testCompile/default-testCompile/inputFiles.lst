@@ -1,5 +1,7 @@
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/report-service/src/test/java/com/cadence/report/ReportApplicationTests.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/report-service/src/test/java/com/cadence/report/controller/ReportControllerTest.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/report-service/src/test/java/com/cadence/report/security/ReportSecurityIntegrationTest.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/report-service/src/test/java/com/cadence/report/security/ReportWebSocketSecurityIntegrationTest.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/report-service/src/test/java/com/cadence/report/service/AssessmentNotificationServiceTest.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/report-service/src/test/java/com/cadence/report/service/ReportAmqpConsumerTest.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/report-service/src/test/java/com/cadence/report/service/ReportServiceTest.java

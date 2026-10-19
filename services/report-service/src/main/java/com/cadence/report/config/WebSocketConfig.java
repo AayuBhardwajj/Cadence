@@ -1,22 +1,23 @@
 package com.cadence.report.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
 /**
- * WebSocket STOMP message broker configuration for report-service (Phase 3 Stage 4).
- *
- * Destination contract (DECISIONS.md D17 point 2, ARCHITECTURE.md:385):
- *   - STOMP endpoint: /ws (with SockJS fallback and raw WebSocket support)
- *   - Topic destination: /topic/assessment/{sessionId} (strictly singular)
- *   - Application prefix: /app
+ * WebSocket STOMP message broker configuration for report-service.
+ * Enforces authenticated CONNECT frames and per-session ownership authorization on SUBSCRIBE via StompSecurityInterceptor.
  */
 @Configuration
 @EnableWebSocketMessageBroker
+@RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    private final StompSecurityInterceptor stompSecurityInterceptor;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -32,5 +33,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*");
+    }
+
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(stompSecurityInterceptor);
     }
 }

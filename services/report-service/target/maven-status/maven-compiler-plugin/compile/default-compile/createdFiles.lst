@@ -3,6 +3,7 @@ com/cadence/report/repository/AssessmentSessionRepository.class
 com/cadence/report/config/RabbitMQConfig.class
 com/cadence/report/entity/AssessmentReport.class
 com/cadence/report/controller/ReportController.class
+com/cadence/report/config/StompSecurityInterceptor.class
 com/cadence/report/service/ReportAmqpConsumer.class
 com/cadence/report/ReportApplication.class
 com/cadence/report/entity/AssessmentReport$AssessmentReportBuilder.class
@@ -16,4 +17,3 @@ com/cadence/report/config/WebSocketConfig.class
 com/cadence/report/config/SecurityConfig.class
 com/cadence/report/entity/AssessmentSession$AssessmentSessionBuilder.class
 com/cadence/report/controller/HealthController.class
-com/cadence/report/filter/PassthroughAuthFilter.class

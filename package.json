@@ -19,6 +19,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test:websocket": "NODE_OPTIONS=\"--experimental-websocket\" VITE_SUPABASE_URL=http://localhost:54321 VITE_SUPABASE_ANON_KEY=mock-key tsx --test src/services/__tests__/websocket.test.ts",
     "test:e2e": "infrastructure/dev/with-env.sh dev -- npx playwright test -c e2e/playwright.config.ts"
   },
   "dependencies": {

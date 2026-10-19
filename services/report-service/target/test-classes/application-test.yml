@@ -12,6 +12,19 @@ spring:
       ddl-auto: none
     show-sql: false
   rabbitmq:
+    host: localhost
+    port: 5672
     listener:
       simple:
         auto-startup: false
+
+cadence:
+  security:
+    jwt:
+      issuer: "https://auth.test.cadence.ai/auth/v1"
+      audience: "authenticated"
+      algorithm: "HS256"
+      secret: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    internal:
+      enabled: true
+      secret: "internal-secret-for-tests-must-be-at-least-32-bytes-long"

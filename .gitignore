@@ -46,3 +46,29 @@ e2e/.state.json
 e2e-report/
 test-results/
 e2e/fixtures/
+
+# Java / Maven build artifacts
+**/target/
+
+# Java compiled artifacts
+*.class
+*.jar
+*.war
+
+# Maven generated reports and metadata (inside target directories)
+surefire-reports/
+failsafe-reports/
+
+# IDE files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# Logs
+*.log
+
+# macOS
+.AppleDouble
+.LSOverride
