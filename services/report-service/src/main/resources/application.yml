@@ -28,10 +28,11 @@ management:
 cadence:
   security:
     jwt:
-      issuer: ${SUPABASE_JWT_ISSUER}
+      issuer: ${SUPABASE_JWT_ISSUER:http://127.0.0.1:54321/auth/v1}
       audience: ${SUPABASE_JWT_AUDIENCE:authenticated}
       algorithm: ${SUPABASE_JWT_ALGORITHM:HS256}
-      secret: ${SUPABASE_JWT_SECRET}
+      secret: ${SUPABASE_JWT_SECRET:}
+      public-key-pem: ${SUPABASE_JWT_PUBLIC_KEY_PEM:}
     internal:
       enabled: true
       secret: ${CADENCE_INTERNAL_SERVICE_KEY}

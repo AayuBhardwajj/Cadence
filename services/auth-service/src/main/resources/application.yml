@@ -28,7 +28,7 @@ cadence:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174}
   security:
     jwt:
-      issuer: ${SUPABASE_JWT_ISSUER}
+      issuer: ${SUPABASE_JWT_ISSUER:http://127.0.0.1:54321/auth/v1}
       audience: ${SUPABASE_JWT_AUDIENCE:authenticated}
       algorithm: ${SUPABASE_JWT_ALGORITHM:HS256}
       secret: ${SUPABASE_JWT_SECRET:}

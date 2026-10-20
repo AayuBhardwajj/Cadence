@@ -118,7 +118,28 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({
             }
         );
 
+        let isCompleted = false;
+        const pollInterval = setInterval(async () => {
+            if (isCompleted) return;
+            try {
+                const result = await fetchAssessmentReport(sessionId);
+                if (result && (result.overall_score !== undefined || result.breakdown)) {
+                    isCompleted = true;
+                    clearInterval(pollInterval);
+                    if (fallbackTimerRef.current) {
+                        clearTimeout(fallbackTimerRef.current);
+                        fallbackTimerRef.current = null;
+                    }
+                    onReportReadyRef.current(result);
+                }
+            } catch {
+                // Not ready yet (404/waiting), keep waiting for WebSocket or next poll
+            }
+        }, 3000);
+
         return () => {
+            isCompleted = true;
+            clearInterval(pollInterval);
             if (fallbackTimerRef.current) {
                 clearTimeout(fallbackTimerRef.current);
                 fallbackTimerRef.current = null;

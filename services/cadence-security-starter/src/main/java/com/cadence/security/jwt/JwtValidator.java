@@ -241,22 +241,26 @@ public class JwtValidator {
             byte[] rawBytes = secret.getBytes(StandardCharsets.UTF_8);
             return Keys.hmacShaKeyFor(rawBytes);
         } else if (alg.isRsa()) {
-            return parseRsaPublicKey(pem);
+            return parsePublicKeyPem(pem, "RSA");
+        } else if (alg.isEc()) {
+            return parsePublicKeyPem(pem, "EC");
         }
         throw new SecurityConfigurationException("Unsupported algorithm family: " + alg.getKeyFamily());
     }
 
-    private static PublicKey parseRsaPublicKey(String pem) {
+    private static PublicKey parsePublicKeyPem(String pem, String keyAlgorithm) {
         try {
-            String sanitized = pem.replace("-----BEGIN PUBLIC KEY-----", "")
+            // Handle literal \n escapes from environment variables
+            String normalized = pem.replace("\\n", "\n");
+            String sanitized = normalized.replace("-----BEGIN PUBLIC KEY-----", "")
                     .replace("-----END PUBLIC KEY-----", "")
                     .replaceAll("\\s+", "");
             byte[] keyBytes = Base64.getDecoder().decode(sanitized);
             X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
-            KeyFactory kf = KeyFactory.getInstance("RSA");
+            KeyFactory kf = KeyFactory.getInstance(keyAlgorithm);
             return kf.generatePublic(spec);
         } catch (Exception e) {
-            throw new SecurityConfigurationException("Failed to parse RSA public key PEM", e);
+            throw new SecurityConfigurationException("Failed to parse " + keyAlgorithm + " public key PEM", e);
         }
     }
 

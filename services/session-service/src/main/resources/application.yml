@@ -40,7 +40,7 @@ cadence:
   ml-audio:
     url: ${ML_AUDIO_URL:http://localhost:9001}
   cors:
-    allowed-origins: ${ALLOWED_ORIGINS}
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174}
 
 # Application-specific queue name constants (NOT the spring.rabbitmq.* autoconfigure namespace).
 # Values MUST match ml-audio/amqp_consumer.py QUEUE_* constants exactly — see D-impl-1 sign-off.

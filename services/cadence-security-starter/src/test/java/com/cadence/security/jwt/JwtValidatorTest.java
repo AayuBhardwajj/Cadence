@@ -312,4 +312,140 @@ class JwtValidatorTest {
         InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> rotatingValidator.validate(token3));
         assertEquals(Reason.BAD_SIGNATURE, ex.getReason());
     }
+
+    // ---- ES256 (EC P-256) Tests ----
+
+    private java.security.KeyPair generateEcKeyPair() {
+        try {
+            java.security.KeyPairGenerator kpg = java.security.KeyPairGenerator.getInstance("EC");
+            kpg.initialize(new java.security.spec.ECGenParameterSpec("secp256r1"));
+            return kpg.generateKeyPair();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String createEcToken(
+            java.security.PrivateKey privateKey,
+            String sub,
+            String iss,
+            String aud,
+            Instant issuedAt,
+            Instant expiresAt,
+            Map<String, Object> extraClaims
+    ) {
+        var builder = Jwts.builder()
+                .issuer(iss)
+                .audience().add(aud).and()
+                .issuedAt(Date.from(issuedAt))
+                .expiration(Date.from(expiresAt))
+                .signWith(privateKey, Jwts.SIG.ES256);
+
+        if (sub != null) {
+            builder.subject(sub);
+        }
+
+        if (extraClaims != null) {
+            extraClaims.forEach(builder::claim);
+        }
+
+        return builder.compact();
+    }
+
+    @Test
+    @DisplayName("ES256: Valid EC-signed JWT verifies successfully")
+    void testEs256ValidToken() {
+        java.security.KeyPair kp = generateEcKeyPair();
+
+        JwtValidator ecValidator = new JwtValidator(
+                JwtAlgorithm.ES256,
+                kp.getPublic(),
+                null,
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                5,
+                true
+        );
+
+        UUID userId = UUID.randomUUID();
+        Instant now = Instant.now();
+        String token = createEcToken(
+                kp.getPrivate(),
+                userId.toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                Map.of("email", "learner@cadence.ai", "role", "authenticated")
+        );
+
+        JwtClaims claims = ecValidator.validate(token);
+        assertNotNull(claims);
+        assertEquals(userId, claims.userId());
+        assertEquals("learner@cadence.ai", claims.email());
+        assertEquals("authenticated", claims.role());
+    }
+
+    @Test
+    @DisplayName("ES256: Token signed with wrong EC key fails signature validation")
+    void testEs256WrongKeyFails() {
+        java.security.KeyPair kp1 = generateEcKeyPair();
+        java.security.KeyPair kp2 = generateEcKeyPair();
+
+        JwtValidator ecValidator = new JwtValidator(
+                JwtAlgorithm.ES256,
+                kp1.getPublic(),
+                null,
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                5,
+                true
+        );
+
+        UUID userId = UUID.randomUUID();
+        Instant now = Instant.now();
+        String token = createEcToken(
+                kp2.getPrivate(), // signed with different key
+                userId.toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                null
+        );
+
+        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> ecValidator.validate(token));
+        assertEquals(Reason.BAD_SIGNATURE, ex.getReason());
+    }
+
+    @Test
+    @DisplayName("ES256: HS256 token is rejected when ES256 is configured")
+    void testEs256RejectsHmacToken() {
+        java.security.KeyPair kp = generateEcKeyPair();
+
+        JwtValidator ecValidator = new JwtValidator(
+                JwtAlgorithm.ES256,
+                kp.getPublic(),
+                null,
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                5,
+                true
+        );
+
+        // Create an HS256 token
+        Instant now = Instant.now();
+        String hmacToken = createToken(
+                primaryKey,
+                UUID.randomUUID().toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                null
+        );
+
+        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> ecValidator.validate(hmacToken));
+        assertEquals(Reason.UNSUPPORTED_ALGORITHM, ex.getReason());
+    }
 }

@@ -19,6 +19,8 @@ spring:
         format_sql: true
 
 cadence:
+  cors:
+    allowed-origins: "http://localhost:5173,http://localhost:5174"
   llm:
     groq-api-key: test-groq-key
     gemini-api-key: test-gemini-key

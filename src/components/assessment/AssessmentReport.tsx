@@ -4,6 +4,7 @@ import { PDFDownloadLink } from '@react-pdf/renderer';
 import { AnalysisResult } from '../../services/api';
 import { AssessmentReportPDF } from './AssessmentReportPDF';
 import { CadenceButton } from '../ui/CadenceButton';
+import { LearningPathSection } from '../learning/LearningPathSection';
 
 interface AssessmentReportProps {
     userName: string;
@@ -790,6 +791,10 @@ export const AssessmentReport: React.FC<AssessmentReportProps> = ({
                             <span className="text-base sm:text-lg italic font-semibold text-white">"{(result as any).next_topic_suggestion || "Public Speaking Basics"}"</span>
                         </div>
                     </div>
+                </div>
+
+                <div className="no-print my-8">
+                    <LearningPathSection sessionId={sessionId} />
                 </div>
 
                 <div className="flex items-center justify-center mt-12 border-t border-neutral-200 dark:border-neutral-700 pt-8 no-print">

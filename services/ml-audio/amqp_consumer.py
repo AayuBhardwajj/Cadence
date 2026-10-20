@@ -158,6 +158,15 @@ async def _handle_analysis_requested(
                 "Unrecoverable error processing analysis.requested session=%s: %s",
                 session_id, exc, exc_info=True,
             )
+            if session_id and session_id != "(unknown)":
+                try:
+                    from ml_shared.supabase_client import supabase
+                    supabase.table("assessment_sessions").update({
+                        "status": "failed",
+                        "failure_reason": f"Audio processing error: {str(exc)[:200]}"
+                    }).eq("id", session_id).execute()
+                except Exception as db_err:
+                    logger.warning("Failed to persist session failure state: %s", db_err)
             # message.process(requeue=False) will nack-without-requeue on exception.
             # Future: route to DLQ via x-dead-letter-exchange binding (D15, Stage 2).
             raise
@@ -288,7 +297,22 @@ async def start_amqp_consumer(app) -> None:
         return
 
     logger.info("Connecting to RabbitMQ at %s...", rabbitmq_url.split("@")[-1])
-    connection = await aio_pika.connect_robust(rabbitmq_url, heartbeat=60)
+    connection = None
+    max_retries = 10
+    retry_delay = 2
+    for attempt in range(1, max_retries + 1):
+        try:
+            connection = await aio_pika.connect_robust(rabbitmq_url, heartbeat=60)
+            break
+        except Exception as conn_err:
+            if attempt == max_retries:
+                logger.error("Failed to connect to RabbitMQ after %d attempts: %s", max_retries, conn_err)
+                raise
+            logger.warning(
+                "RabbitMQ not ready yet (attempt %d/%d): %s. Retrying in %ds...",
+                attempt, max_retries, conn_err, retry_delay
+            )
+            await asyncio.sleep(retry_delay)
     app.state.amqp_connection = connection
 
     channel = await connection.channel()

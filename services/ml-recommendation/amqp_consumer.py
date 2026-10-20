@@ -187,7 +187,25 @@ async def start_amqp_consumer(app: Any) -> None:
     # D26 dead-code: amqp_url = RABBITMQ_URL
     amqp_url = get_rabbitmq_url()
     try:
-        connection = await aio_pika.connect_robust(amqp_url)
+        max_retries = 10
+        retry_delay = 2
+        connection = None
+        for attempt in range(1, max_retries + 1):
+            try:
+                connection = await aio_pika.connect_robust(
+                    amqp_url,
+                    client_properties={"connection_name": "cadence:ml-recommendation"},
+                )
+                break
+            except Exception as conn_err:
+                if attempt == max_retries:
+                    logger.error("Failed to connect to RabbitMQ after %d attempts: %s", max_retries, conn_err)
+                    raise
+                logger.warning(
+                    "RabbitMQ not ready yet (attempt %d/%d): %s. Retrying in %ds...",
+                    attempt, max_retries, conn_err, retry_delay
+                )
+                await asyncio.sleep(retry_delay)
         channel = await connection.channel()
         await channel.set_qos(prefetch_count=PREFETCH_COUNT)
 

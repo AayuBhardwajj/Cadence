@@ -1,9 +1,24 @@
 
+import { supabase } from '../lib/supabase';
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const CONTENT_SERVICE_URL = import.meta.env.VITE_CONTENT_SERVICE_URL || "http://localhost:8084";
 const SESSION_SERVICE_URL = import.meta.env.VITE_SESSION_SERVICE_URL || "http://localhost:8082";
 const REPORT_SERVICE_URL = import.meta.env.VITE_REPORT_SERVICE_URL || "http://localhost:8083";
 const PRACTICE_GAME_SERVICE_URL = import.meta.env.VITE_PRACTICE_GAME_SERVICE_URL || "http://localhost:8085";
+
+async function getAuthHeaders(): Promise<HeadersInit> {
+    const headers: Record<string, string> = {};
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+            headers['Authorization'] = `Bearer ${session.access_token.trim()}`;
+        }
+    } catch {
+        // ignore
+    }
+    return headers;
+}
 
 export interface AnalysisResult {
     overall_score: number;
@@ -204,7 +219,10 @@ export const uploadFullAssessment = async (
 };
 
 export const fetchAssessmentReport = async (sessionId: string): Promise<AnalysisResult> => {
-    const response = await fetch(`${REPORT_SERVICE_URL}/api/assessment/results/${sessionId}`);
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${REPORT_SERVICE_URL}/api/assessment/results/${sessionId}`, {
+        headers,
+    });
     if (!response.ok) {
         throw new Error(`Failed to fetch report: ${response.status}`);
     }

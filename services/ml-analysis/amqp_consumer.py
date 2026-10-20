@@ -86,10 +86,24 @@ class AmqpConsumer:
     async def start(self) -> None:
         """Connect to RabbitMQ, declare topology idempotently, and begin consuming."""
         logger.info("Connecting to RabbitMQ at %s...", self.amqp_url.split("@")[-1])
-        self.connection = await aio_pika.connect_robust(
-            self.amqp_url,
-            client_properties={"connection_name": "cadence:ml-analysis"},
-        )
+        max_retries = 10
+        retry_delay = 2
+        for attempt in range(1, max_retries + 1):
+            try:
+                self.connection = await aio_pika.connect_robust(
+                    self.amqp_url,
+                    client_properties={"connection_name": "cadence:ml-analysis"},
+                )
+                break
+            except Exception as conn_err:
+                if attempt == max_retries:
+                    logger.error("Failed to connect to RabbitMQ after %d attempts: %s", max_retries, conn_err)
+                    raise
+                logger.warning(
+                    "RabbitMQ not ready yet (attempt %d/%d): %s. Retrying in %ds...",
+                    attempt, max_retries, conn_err, retry_delay
+                )
+                await asyncio.sleep(retry_delay)
         self.channel = await self.connection.channel()
         await self.channel.set_qos(prefetch_count=1)
 

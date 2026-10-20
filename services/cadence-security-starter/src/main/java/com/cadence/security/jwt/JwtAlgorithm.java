@@ -14,11 +14,15 @@ public enum JwtAlgorithm {
     HS512("HS512", KeyFamily.HMAC, "HmacSHA512"),
     RS256("RS256", KeyFamily.RSA, "SHA256withRSA"),
     RS384("RS384", KeyFamily.RSA, "SHA384withRSA"),
-    RS512("RS512", KeyFamily.RSA, "SHA512withRSA");
+    RS512("RS512", KeyFamily.RSA, "SHA512withRSA"),
+    ES256("ES256", KeyFamily.EC, "SHA256withECDSA"),
+    ES384("ES384", KeyFamily.EC, "SHA384withECDSA"),
+    ES512("ES512", KeyFamily.EC, "SHA512withECDSA");
 
     public enum KeyFamily {
         HMAC,
-        RSA
+        RSA,
+        EC
     }
 
     private final String standardName;
@@ -49,6 +53,14 @@ public enum JwtAlgorithm {
 
     public boolean isRsa() {
         return keyFamily == KeyFamily.RSA;
+    }
+
+    public boolean isEc() {
+        return keyFamily == KeyFamily.EC;
+    }
+
+    public boolean isAsymmetric() {
+        return keyFamily == KeyFamily.RSA || keyFamily == KeyFamily.EC;
     }
 
     public static JwtAlgorithm fromString(String name) {

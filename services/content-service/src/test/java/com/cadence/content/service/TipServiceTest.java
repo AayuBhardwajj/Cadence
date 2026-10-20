@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -69,8 +70,16 @@ class TipServiceTest {
     @Test
     void testFreeUserGeneratesGenericTip() {
         UUID userId = UUID.randomUUID();
+        DailyTip mockTip = DailyTip.builder()
+                .userId(userId)
+                .tipDate(LocalDate.now(ZoneOffset.UTC))
+                .tipText("Practice pausing for emphasis.")
+                .isPersonalized(false)
+                .generatedAt(OffsetDateTime.now(ZoneOffset.UTC))
+                .build();
+
         when(dailyTipRepository.findByUserIdAndTipDate(any(), any()))
-                .thenReturn(Optional.empty());
+                .thenReturn(Optional.empty(), Optional.of(mockTip));
         when(profileRepository.findById(userId))
                 .thenReturn(Optional.of(Profile.builder().id(userId).tier("FREE").build()));
 
@@ -83,14 +92,22 @@ class TipServiceTest {
         assertFalse(response.isCached());
         assertFalse(response.isPersonalized());
         assertEquals("Practice pausing for emphasis.", response.getTip());
-        verify(dailyTipRepository, times(1)).save(any(DailyTip.class));
+        verify(dailyTipRepository, times(1)).insertIgnoreConflict(eq(userId), any(), eq("Practice pausing for emphasis."), eq(false), any());
     }
 
     @Test
     void testProUserReadsFocusAreasForPersonalizedTip() {
         UUID userId = UUID.randomUUID();
+        DailyTip mockTip = DailyTip.builder()
+                .userId(userId)
+                .tipDate(LocalDate.now(ZoneOffset.UTC))
+                .tipText("Focus on pausing instead of saying um.")
+                .isPersonalized(true)
+                .generatedAt(OffsetDateTime.now(ZoneOffset.UTC))
+                .build();
+
         when(dailyTipRepository.findByUserIdAndTipDate(any(), any()))
-                .thenReturn(Optional.empty());
+                .thenReturn(Optional.empty(), Optional.of(mockTip));
         when(profileRepository.findById(userId))
                 .thenReturn(Optional.of(Profile.builder().id(userId).tier("PRO").build()));
 
@@ -119,8 +136,16 @@ class TipServiceTest {
     @Test
     void testLlmFailureFallsBackToTopicTip() {
         UUID userId = UUID.randomUUID();
+        DailyTip mockTip = DailyTip.builder()
+                .userId(userId)
+                .tipDate(LocalDate.now(ZoneOffset.UTC))
+                .tipText("Today's focus: topic. Record yourself speaking for 60 seconds and listen back — you'll catch patterns you can't hear in the moment.")
+                .isPersonalized(false)
+                .generatedAt(OffsetDateTime.now(ZoneOffset.UTC))
+                .build();
+
         when(dailyTipRepository.findByUserIdAndTipDate(any(), any()))
-                .thenReturn(Optional.empty());
+                .thenReturn(Optional.empty(), Optional.of(mockTip));
         when(profileRepository.findById(userId))
                 .thenReturn(Optional.of(Profile.builder().id(userId).tier("FREE").build()));
 

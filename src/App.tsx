@@ -115,6 +115,9 @@ export default function App() {
                     <Route path="/practice/speech-runner" element={<SpeechRunnerPage />} />
                     <Route path="/progress" element={<ProgressPage />} />
                     <Route path="/exercises" element={<ExercisesPage />} />
+                    <Route path="/courses" element={<ExercisesPage />} />
+                    <Route path="/courses/:courseId" element={<ExercisesPage />} />
+                    <Route path="/lessons/:lessonId" element={<ExercisesPage />} />
                     <Route path="/community" element={<CommunityPage />} />
                     <Route path="/dashboard" element={<Dashboard />} />
 

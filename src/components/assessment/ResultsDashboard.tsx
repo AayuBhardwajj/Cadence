@@ -7,6 +7,7 @@ import {
 import { AnalysisResult } from '../../services/api';
 import { AssessmentReport } from './AssessmentReport';
 import { CadenceButton } from '../ui/CadenceButton';
+import { LearningPathSection } from '../learning/LearningPathSection';
 
 interface ResultsDashboardProps {
     result: AnalysisResult;
@@ -161,6 +162,9 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result, onRe
                         </div>
                     </div>
                 </div>
+
+                {/* Course & Learning Pipeline Section */}
+                <LearningPathSection sessionId={sessionId} />
 
                 {/* Footer Actions */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-4">

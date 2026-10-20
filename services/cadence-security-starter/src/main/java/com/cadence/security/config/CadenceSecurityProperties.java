@@ -204,17 +204,17 @@ public class CadenceSecurityProperties {
                         );
                     }
                 }
-            } else if (parsedAlg.isRsa()) {
+            } else if (parsedAlg.isAsymmetric()) {
                 // Reject conflicting HMAC configuration
                 if (hasText(secret) || hasText(secondarySecret)) {
                     throw new SecurityConfigurationException(
-                            "Conflicting JWT configuration: HMAC secret configured for RSA algorithm " + parsedAlg
+                            "Conflicting JWT configuration: HMAC secret configured for asymmetric algorithm " + parsedAlg
                     );
                 }
 
                 if (!hasText(publicKeyPem) && !hasText(jwksUrl)) {
                     throw new SecurityConfigurationException(
-                            "Either publicKeyPem or jwksUrl must be provided for RSA algorithm " + parsedAlg
+                            "Either publicKeyPem or jwksUrl must be provided for asymmetric algorithm " + parsedAlg
                     );
                 }
             }

@@ -1,123 +1,295 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    Dumbbell, 
+    BookOpen, 
     Sparkles, 
-    ArrowRight, 
-    Timer, 
-    Zap,
-    Layout
+    Clock, 
+    Play, 
+    Search, 
+    Filter, 
+    CheckCircle2, 
+    GraduationCap, 
+    RefreshCw, 
+    AlertCircle,
+    ArrowRight
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import { DashboardBackground } from "../components/dashboard/DashboardBackground";
 import { Navbar } from "../components/navigation/Navbar";
 import { EnhancedCard } from "../components/dashboard/EnhancedCard";
+import { courseApi, CourseSummaryDto } from "../services/courseApi";
+import { CourseCurriculumView } from "../components/learning/CourseCurriculumView";
+import { LessonPlayerView } from "../components/learning/LessonPlayerView";
 
 export function ExercisesPage({ username = "Alex" }: { username?: string }) {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { courseId: routeCourseId, lessonId: routeLessonId } = useParams();
     const navigate = useNavigate();
+    const activeCourseId = searchParams.get('courseId') || routeCourseId;
+    const activeLessonId = searchParams.get('lessonId') || routeLessonId;
+
+    const [courses, setCourses] = useState<CourseSummaryDto[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedLevel, setSelectedLevel] = useState<string>('ALL');
+
+    const loadCourses = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await courseApi.getCourses();
+            setCourses(data);
+        } catch (err: any) {
+            console.error('Failed to load courses:', err);
+            setError(err?.message || 'Failed to load courses.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadCourses();
+    }, []);
+
+    const handleSelectCourse = (courseId: string) => {
+        setSearchParams({ courseId });
+    };
+
+    const handleSelectLesson = (lessonId: string) => {
+        if (activeCourseId) {
+            setSearchParams({ courseId: activeCourseId, lessonId });
+        } else {
+            setSearchParams({ lessonId });
+        }
+    };
+
+    const handleBackToCatalogue = () => {
+        setSearchParams({});
+    };
+
+    const handleBackToCourse = () => {
+        if (activeCourseId) {
+            setSearchParams({ courseId: activeCourseId });
+        } else {
+            setSearchParams({});
+        }
+    };
+
+    const filteredCourses = courses.filter(course => {
+        const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            course.category.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesLevel = selectedLevel === 'ALL' || course.level.toUpperCase() === selectedLevel.toUpperCase();
+        return matchesSearch && matchesLevel;
+    });
+
+    const activeEnrolledCourse = courses.find(c => c.enrolled && c.progressPercent < 100);
 
     return (
         <DashboardBackground>
             <div className="flex flex-col min-h-screen">
                 <Navbar username={username} />
-                
-                <main className="flex-1 flex items-center justify-center p-6 relative overflow-hidden">
-                    {/* Background Decorative Elements */}
-                    <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
-                    <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
 
-                    <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="max-w-3xl w-full"
-                    >
-                        <EnhancedCard className="relative overflow-hidden border-white/10 bg-white/[0.02] backdrop-blur-3xl p-12 md:p-20 text-center">
-                            {/* Subtle Grid Pattern */}
-                            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none" />
-                            
-                            <div className="space-y-12 relative z-10">
-                                {/* Icon Badge */}
-                                <div className="flex justify-center">
-                                    <motion.div 
-                                        animate={{ 
-                                            scale: [1, 1.05, 1],
-                                            rotate: [0, 5, -5, 0]
-                                        }}
-                                        transition={{ 
-                                            duration: 4, 
-                                            repeat: Infinity,
-                                            ease: "easeInOut" 
-                                        }}
-                                        className="p-5 bg-gradient-to-br from-blue-600 to-purple-600 rounded-3xl shadow-[0_0_40px_rgba(37,99,235,0.3)]"
-                                    >
-                                        <Dumbbell className="w-12 h-12 text-white" />
-                                    </motion.div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ delay: 0.3 }}
-                                        className="flex items-center justify-center gap-2 text-blue-400 font-black tracking-[0.2em] uppercase text-sm"
-                                    >
-                                        <Sparkles className="w-4 h-4" />
-                                        <span>New Feature</span>
-                                        <Sparkles className="w-4 h-4" />
-                                    </motion.div>
-                                    
-                                    <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase leading-[0.9]">
-                                        Exercises <br />
-                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 bg-300% animate-gradient">
-                                            Coming Soon
-                                        </span>
+                <main className="flex-1 p-4 sm:p-8 max-w-[1400px] w-full mx-auto relative z-10">
+                    <AnimatePresence mode="wait">
+                        {activeLessonId ? (
+                            <motion.div
+                                key="lesson-view"
+                                initial={{ opacity: 0, y: 15 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -15 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <LessonPlayerView
+                                    lessonId={activeLessonId}
+                                    onBackToCourse={handleBackToCourse}
+                                    onSelectLesson={handleSelectLesson}
+                                />
+                            </motion.div>
+                        ) : activeCourseId ? (
+                            <motion.div
+                                key="course-view"
+                                initial={{ opacity: 0, y: 15 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -15 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <CourseCurriculumView
+                                    courseId={activeCourseId}
+                                    onBackToCatalogue={handleBackToCatalogue}
+                                    onSelectLesson={handleSelectLesson}
+                                />
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="catalogue-view"
+                                initial={{ opacity: 0, y: 15 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -15 }}
+                                transition={{ duration: 0.3 }}
+                                className="space-y-8"
+                            >
+                                {/* Header Banner */}
+                                <div className="space-y-3">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-wider">
+                                        <GraduationCap size={16} />
+                                        <span>Guided Speech Mastery Curriculums</span>
+                                    </div>
+                                    <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+                                        Course & Learning Pipeline
                                     </h1>
-                                    
-                                    <p className="text-white/40 text-lg md:text-xl font-medium max-w-xl mx-auto leading-relaxed">
-                                        We're crafting personalized training modules designed to refine your speech patterns and master professional communication.
+                                    <p className="text-white/60 text-sm sm:text-base max-w-2xl leading-relaxed">
+                                        Structured step-by-step vocal modules, cadence workouts, and real-time interactive exercises to transform your English speech.
                                     </p>
                                 </div>
 
-                                {/* Features Preview */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-                                    {[
-                                        { icon: Zap, label: "AI Feedback", color: "text-amber-400" },
-                                        { icon: Timer, label: "Guided Drills", color: "text-emerald-400" },
-                                        { icon: Layout, label: "Curated Paths", color: "text-blue-400" }
-                                    ].map((feat, i) => (
-                                        <motion.div
-                                            key={feat.label}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.5 + (i * 0.1) }}
-                                            className="flex items-center gap-3 px-4 py-3 bg-white/5 rounded-2xl border border-white/5"
+                                {/* Resume Banner if enrolled */}
+                                {activeEnrolledCourse && (
+                                    <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-900/40 via-purple-900/30 to-blue-900/40 border border-blue-500/30 backdrop-blur-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div className="space-y-1">
+                                            <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400">
+                                                Resume In-Progress Course
+                                            </span>
+                                            <h3 className="text-lg font-bold text-white">
+                                                {activeEnrolledCourse.title}
+                                            </h3>
+                                            <p className="text-xs text-white/60">
+                                                {activeEnrolledCourse.completedLessons} of {activeEnrolledCourse.totalLessons} lessons completed ({activeEnrolledCourse.progressPercent}%)
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSelectCourse(activeEnrolledCourse.id)}
+                                            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white font-bold text-xs uppercase tracking-wider shadow-lg transition self-start sm:self-auto shrink-0"
                                         >
-                                            <feat.icon className={`w-4 h-4 ${feat.color}`} />
-                                            <span className="text-xs font-bold text-white/60 uppercase tracking-wider">{feat.label}</span>
-                                        </motion.div>
-                                    ))}
+                                            <Play size={14} className="fill-current" />
+                                            <span>Continue Learning</span>
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Search and Filter Toolbar */}
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl">
+                                    <div className="relative flex-1 max-w-md">
+                                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                                        <input
+                                            type="text"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            placeholder="Search by topic, skill, or keyword..."
+                                            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-white/40"
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+                                        <Filter size={16} className="text-white/40 shrink-0 ml-1 mr-1" />
+                                        {['ALL', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'].map((level) => (
+                                            <button
+                                                key={level}
+                                                type="button"
+                                                onClick={() => setSelectedLevel(level)}
+                                                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition shrink-0 ${
+                                                    selectedLevel === level
+                                                        ? 'bg-blue-600 text-white shadow-md'
+                                                        : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
+                                                }`}
+                                            >
+                                                {level}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
 
-                                <motion.div 
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: 0.8 }}
-                                    className="pt-8"
-                                >
-                                    <button 
-                                        onClick={() => navigate('/dashboard')}
-                                        className="group relative px-8 py-4 bg-white text-black font-black uppercase tracking-widest rounded-2xl overflow-hidden transition-all hover:scale-105 active:scale-95"
-                                    >
-                                        <span className="relative z-10 flex items-center gap-2">
-                                            Return to Dashboard
-                                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                        </span>
-                                    </button>
-                                </motion.div>
-                            </div>
-                        </EnhancedCard>
-                    </motion.div>
+                                {/* Course Grid */}
+                                {loading ? (
+                                    <div className="flex flex-col items-center justify-center py-20">
+                                        <RefreshCw className="animate-spin text-blue-400 mb-3" size={36} />
+                                        <p className="text-sm font-medium text-white/50">Loading speech mastery courses...</p>
+                                    </div>
+                                ) : error ? (
+                                    <div className="p-8 text-center rounded-2xl bg-red-950/30 border border-red-900/50">
+                                        <AlertCircle className="mx-auto text-red-400 mb-2" size={32} />
+                                        <p className="text-sm text-red-300 font-medium mb-4">{error}</p>
+                                        <button
+                                            type="button"
+                                            onClick={loadCourses}
+                                            className="px-4 py-2 text-xs font-bold rounded-xl bg-red-600 text-white hover:bg-red-700 transition"
+                                        >
+                                            Retry
+                                        </button>
+                                    </div>
+                                ) : filteredCourses.length === 0 ? (
+                                    <div className="p-12 text-center rounded-2xl bg-white/[0.02] border border-white/10">
+                                        <BookOpen className="mx-auto text-white/30 mb-3" size={40} />
+                                        <h3 className="text-base font-bold text-white mb-1">No courses match your criteria</h3>
+                                        <p className="text-xs text-white/50 max-w-sm mx-auto">
+                                            Try adjusting your search terms or filter selection.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {filteredCourses.map((course) => (
+                                            <EnhancedCard
+                                                key={course.id}
+                                                className="flex flex-col justify-between p-6 rounded-2xl border-white/10 bg-white/[0.02] hover:border-blue-500/40 hover:-translate-y-1 transition-all duration-200 group"
+                                            >
+                                                <div>
+                                                    <div className="flex items-center justify-between gap-2 mb-3">
+                                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                                            {course.level}
+                                                        </span>
+                                                        <div className="flex items-center gap-1.5 text-xs text-white/50">
+                                                            <Clock size={14} />
+                                                            <span>{course.estimatedMinutes}m</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition mb-2">
+                                                        {course.title}
+                                                    </h3>
+
+                                                    <p className="text-xs text-white/60 line-clamp-3 leading-relaxed mb-6">
+                                                        {course.shortDescription || course.description}
+                                                    </p>
+                                                </div>
+
+                                                <div className="pt-4 border-t border-white/10 mt-auto">
+                                                    <div className="flex items-center justify-between text-xs text-white/50 mb-2">
+                                                        <span>{course.totalLessons} Lessons</span>
+                                                        {course.enrolled && (
+                                                            <span className="text-blue-400 font-semibold">
+                                                                {course.progressPercent}% complete
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {course.enrolled && (
+                                                        <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mb-4">
+                                                            <div
+                                                                className="bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full transition-all duration-500"
+                                                                style={{ width: `${course.progressPercent}%` }}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSelectCourse(course.id)}
+                                                        className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/10 group-hover:bg-blue-600 text-white font-bold text-xs uppercase tracking-wider transition-all"
+                                                    >
+                                                        <span>{course.enrolled ? (course.progressPercent > 0 ? 'Resume Course' : 'Start Course') : 'Explore Curriculum'}</span>
+                                                        <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                                                    </button>
+                                                </div>
+                                            </EnhancedCard>
+                                        ))}
+                                    </div>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </main>
             </div>
         </DashboardBackground>
