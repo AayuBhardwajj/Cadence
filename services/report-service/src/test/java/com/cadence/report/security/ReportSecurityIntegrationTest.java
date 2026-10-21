@@ -150,6 +150,20 @@ public class ReportSecurityIntegrationTest {
     }
 
     @Test
+    @DisplayName("Learner A can retrieve their own report with ES256 token (200 OK)")
+    void testLearnerCanRetrieveOwnReportWithEs256Token() throws Exception {
+        String tokenA = com.cadence.security.test.JwtTestTokenHelper.createDefaultEcToken(learnerAId, "learnerA@cadence.ai", "authenticated");
+
+        mockMvc.perform(get("/api/assessment/results/{sessionId}", sessionAId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(reportAId.toString()))
+                .andExpect(jsonPath("$.assessment_session_id").value(sessionAId.toString()))
+                .andExpect(jsonPath("$.overall_score").value(85))
+                .andExpect(jsonPath("$.cefr_level").value("B2"));
+    }
+
+    @Test
     @DisplayName("Learner A CANNOT retrieve Learner B's report (strict ownership: returns 404, not 403, preventing enumeration)")
     void testLearnerCannotRetrieveOtherLearnerReport() throws Exception {
         String tokenA = createToken(learnerAId, "learnerA@cadence.ai", "authenticated", 3600);

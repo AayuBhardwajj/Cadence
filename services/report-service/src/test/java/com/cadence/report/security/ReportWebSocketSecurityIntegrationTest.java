@@ -134,6 +134,26 @@ public class ReportWebSocketSecurityIntegrationTest {
     }
 
     @Test
+    @DisplayName("STOMP CONNECT with valid ES256 learner token sets authenticated principal")
+    void testConnectWithValidEs256TokenAccepted() {
+        String tokenA = com.cadence.security.test.JwtTestTokenHelper.createDefaultEcToken(learnerAId, "learnerA@cadence.ai", "authenticated");
+
+        StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        accessor.addNativeHeader("Authorization", "Bearer " + tokenA);
+        Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+
+        Message<?> result = interceptor.preSend(message, mockChannel);
+        assertNotNull(result);
+
+        StompHeaderAccessor resultAccessor = StompHeaderAccessor.wrap(result);
+        assertNotNull(resultAccessor.getUser());
+        assertTrue(resultAccessor.getUser() instanceof CadenceLearnerAuthenticationToken);
+
+        CadenceLearnerAuthenticationToken authToken = (CadenceLearnerAuthenticationToken) resultAccessor.getUser();
+        assertEquals(learnerAId, authToken.getPrincipal().userId());
+    }
+
+    @Test
     @DisplayName("STOMP SUBSCRIBE to own session topic is authorized")
     void testSubscribeToOwnSessionAuthorized() {
         String tokenA = createToken(learnerAId, "learnerA@cadence.ai", "authenticated", 3600);

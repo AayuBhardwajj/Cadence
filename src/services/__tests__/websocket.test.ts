@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { toBrokerUrl, buildStompConnectHeaders } from '../websocket';
+import { toBrokerUrl, buildStompConnectHeaders, isAuthError } from '../websocket';
 
 describe('Frontend WebSocket Authentication & URL Derivation', () => {
     it('converts http and https base URLs to ws:// and wss:// broker URLs', () => {
@@ -55,5 +55,18 @@ describe('Frontend WebSocket Authentication & URL Derivation', () => {
         assert.ok(authHeader.startsWith('Bearer '));
         const extracted = authHeader.substring('Bearer '.length).trim();
         assert.equal(extracted, testToken);
+    });
+
+    it('correctly classifies auth errors vs network errors', () => {
+        assert.equal(isAuthError('Invalid or expired authentication token for WebSocket connection'), true);
+        assert.equal(isAuthError('Missing authorization credentials for WebSocket connection'), true);
+        assert.equal(isAuthError('AccessDeniedException: Access denied'), true);
+        assert.equal(isAuthError('Unauthorized destination'), true);
+
+        // Network or broker infrastructure errors must NOT be classified as auth errors
+        assert.equal(isAuthError('Connection reset by peer'), false);
+        assert.equal(isAuthError('Broken pipe'), false);
+        assert.equal(isAuthError('WebSocket connection to ws://localhost:8083/ws failed'), false);
+        assert.equal(isAuthError(undefined, undefined), false);
     });
 });

@@ -34,26 +34,58 @@ export function buildStompConnectHeaders(accessToken?: string | null): Record<st
     };
 }
 
+/**
+ * Checks if a STOMP broker error indicates an authentication/authorization rejection.
+ */
+export function isAuthError(message?: string, body?: string): boolean {
+    const combined = `${message || ''} ${body || ''}`.toLowerCase();
+    return (
+        combined.includes('denied') ||
+        combined.includes('auth') ||
+        combined.includes('token') ||
+        combined.includes('credential') ||
+        combined.includes('forbidden') ||
+        combined.includes('unauthorized') ||
+        combined.includes('accessdenied')
+    );
+}
+
 export const subscribeToAssessment = (
     sessionId: string,
     onMessage: (notification: AssessmentNotification) => void,
     onError?: (error: any) => void
 ): (() => void) => {
+    let authFailureCount = 0;
+
     const client = new Client({
         brokerURL: BROKER_URL,
         reconnectDelay: 2000,
         beforeConnect: async () => {
             try {
-                // Obtain current Supabase access token using established session pattern
+                // If previous attempt failed for auth reasons, refresh the session once before retry
+                if (authFailureCount === 1) {
+                    console.log('[STOMP] Refreshing session after auth failure before retry');
+                    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+                    if (refreshError || !refreshData?.session?.access_token) {
+                        const err = refreshError || new Error('Failed to refresh Supabase session');
+                        console.warn('[STOMP] Session refresh failed:', err);
+                        client.deactivate();
+                        if (onError) onError(err);
+                        throw err;
+                    }
+                    client.connectHeaders = buildStompConnectHeaders(refreshData.session.access_token);
+                    return;
+                }
+
+                // Normal connection: get current session
                 const { data: { session }, error } = await supabase.auth.getSession();
                 if (error || !session?.access_token) {
                     const authError = new Error('No active Supabase session for WebSocket connection');
                     console.warn('[STOMP] Connection aborted: missing or expired authentication session');
-                    if (onError) onError(authError);
                     client.deactivate();
+                    if (onError) onError(authError);
                     throw authError;
                 }
-                // Dynamically update connectHeaders on initial connection and reconnects
                 client.connectHeaders = buildStompConnectHeaders(session.access_token);
             } catch (err) {
                 if (onError) onError(err);
@@ -69,6 +101,7 @@ export const subscribeToAssessment = (
             }
         },
         onConnect: () => {
+            authFailureCount = 0; // Reset consecutive auth failures upon successful connection
             console.log(`[STOMP] Connected to report-service. Subscribing to /topic/assessment/${sessionId}`);
             client.subscribe(`/topic/assessment/${sessionId}`, (message: IMessage) => {
                 try {
@@ -80,9 +113,33 @@ export const subscribeToAssessment = (
                 }
             });
         },
-        onStompError: (frame) => {
-            console.error('[STOMP] Broker error:', frame.headers['message'], frame.body);
-            if (onError) onError(frame);
+        onStompError: async (frame) => {
+            const message = frame.headers['message'] || '';
+            const body = frame.body || '';
+            console.error('[STOMP] Broker error:', message, body);
+
+            if (isAuthError(message, body)) {
+                authFailureCount++;
+                console.warn(`[STOMP] Auth failure detected (attempt ${authFailureCount}/2)`);
+                if (authFailureCount >= 2) {
+                    console.error('[STOMP] Consecutive auth failures reached limit. Deactivating client.');
+                    client.deactivate();
+                    if (onError) onError(new Error(`WebSocket authentication failed after retry: ${message}`));
+                    return;
+                }
+                // Proactively refresh session token for the retry
+                try {
+                    const { data } = await supabase.auth.refreshSession();
+                    if (data?.session?.access_token) {
+                        client.connectHeaders = buildStompConnectHeaders(data.session.access_token);
+                    }
+                } catch {
+                    // Ignored - beforeConnect will also attempt refresh
+                }
+            } else {
+                // Network or non-auth broker error: keep reconnectDelay active
+                if (onError) onError(frame);
+            }
         },
         onWebSocketError: (event) => {
             console.error('[STOMP] WebSocket error:', event);
@@ -97,4 +154,3 @@ export const subscribeToAssessment = (
         client.deactivate();
     };
 };
-

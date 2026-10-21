@@ -31,9 +31,9 @@ cadence:
     jwt:
       issuer: "https://auth.test.cadence.ai/auth/v1"
       audience: "authenticated"
-      algorithm: "HS256"
+      allowed-algorithms: "HS256,ES256"
       secret: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-      public-key-pem: ""
+      public-key-pem: "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEvXV2m2/6hqyGdfJwTbSKXTZpP3E8\n8l8mvTD6eMtGjVJzT7Qcf8zKvaWDFTPiS3ShCs4Rc4ShW7lsTaYpZdRaYQ==\n-----END PUBLIC KEY-----"
     internal:
       enabled: true
       secret: "internal-secret-for-tests-must-be-at-least-32-bytes-long"

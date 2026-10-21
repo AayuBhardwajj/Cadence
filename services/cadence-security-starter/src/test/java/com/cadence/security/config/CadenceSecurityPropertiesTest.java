@@ -74,31 +74,30 @@ class CadenceSecurityPropertiesTest {
     }
 
     @Test
-    @DisplayName("Conflicting configuration: HMAC secret alongside RSA public key fails closed")
-    void testConflictingAsymmetricForHmacFails() {
+    @DisplayName("Dual algorithm configuration: HMAC secret alongside asymmetric JWKS / public key is supported")
+    void testDualAlgorithmHmacAndAsymmetricPasses() {
         CadenceSecurityProperties props = new CadenceSecurityProperties();
-        props.getJwt().setAlgorithm("HS256");
+        props.getJwt().setAllowedAlgorithms(java.util.List.of("HS256", "ES256"));
         props.getJwt().setSecret(VALID_SECRET_32_BYTES);
-        props.getJwt().setPublicKeyPem("-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A...\n-----END PUBLIC KEY-----");
+        props.getJwt().setJwksUrl("http://127.0.0.1:54321/auth/v1/.well-known/jwks.json");
         props.getJwt().setIssuer("https://supabase.cadence.internal/auth/v1");
+        props.getJwt().setAudience("authenticated");
         props.getInternal().setSecret(VALID_INTERNAL_SECRET);
 
-        SecurityConfigurationException ex = assertThrows(SecurityConfigurationException.class, props::validate);
-        assertTrue(ex.getMessage().contains("Conflicting JWT configuration"));
+        assertDoesNotThrow(props::validate);
     }
 
     @Test
-    @DisplayName("Conflicting configuration: HMAC secret configured when RSA is chosen fails closed")
-    void testConflictingHmacSecretForRsaFails() {
+    @DisplayName("Asymmetric algorithm without JWKS or public key fails closed")
+    void testMissingKeySourceForAsymmetricFailsClosed() {
         CadenceSecurityProperties props = new CadenceSecurityProperties();
-        props.getJwt().setAlgorithm("RS256");
-        props.getJwt().setSecret(VALID_SECRET_32_BYTES);
-        props.getJwt().setPublicKeyPem("some-pem");
+        props.getJwt().setAllowedAlgorithms(java.util.List.of("ES256"));
         props.getJwt().setIssuer("https://supabase.cadence.internal/auth/v1");
+        props.getJwt().setAudience("authenticated");
         props.getInternal().setSecret(VALID_INTERNAL_SECRET);
 
         SecurityConfigurationException ex = assertThrows(SecurityConfigurationException.class, props::validate);
-        assertTrue(ex.getMessage().contains("Conflicting JWT configuration"));
+        assertTrue(ex.getMessage().contains("Either publicKeyPem or jwksUrl must be provided"));
     }
 
     @Test

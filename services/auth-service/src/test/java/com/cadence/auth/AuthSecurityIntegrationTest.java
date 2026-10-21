@@ -174,6 +174,17 @@ class AuthSecurityIntegrationTest {
     }
 
     @Test
+    @DisplayName("GET /auth/me -> 200 with user details for valid ES256 learner token")
+    void authMeValidEs256LearnerToken() throws Exception {
+        String token = com.cadence.security.test.JwtTestTokenHelper.createDefaultEcToken(existingUserId, existingUserEmail, "authenticated");
+        mockMvc.perform(get("/auth/me")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(existingUserId.toString()))
+                .andExpect(jsonPath("$.email").value(existingUserEmail));
+    }
+
+    @Test
     @DisplayName("GET /auth/me -> 404 when learner token is valid but user does not exist in DB")
     void authMeNonExistentDatabaseUser() throws Exception {
         UUID nonExistentId = UUID.randomUUID();

@@ -30,9 +30,12 @@ cadence:
     jwt:
       issuer: ${SUPABASE_JWT_ISSUER:http://127.0.0.1:54321/auth/v1}
       audience: ${SUPABASE_JWT_AUDIENCE:authenticated}
-      algorithm: ${SUPABASE_JWT_ALGORITHM:HS256}
+      allowed-algorithms: ${SUPABASE_JWT_ALLOWED_ALGORITHMS:HS256}
       secret: ${SUPABASE_JWT_SECRET:}
       public-key-pem: ${SUPABASE_JWT_PUBLIC_KEY_PEM:}
+      jwks-url: ${SUPABASE_JWT_JWKS_URL:}
+      jwks-cache-ttl-seconds: ${SUPABASE_JWT_JWKS_CACHE_TTL_SECONDS:600}
+      jwks-min-refresh-seconds: ${SUPABASE_JWT_JWKS_MIN_REFRESH_SECONDS:30}
     internal:
       enabled: true
       secret: ${CADENCE_INTERNAL_SERVICE_KEY}
