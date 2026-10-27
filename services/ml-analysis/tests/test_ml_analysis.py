@@ -30,10 +30,11 @@ def test_health_contract():
     }
 
 
-def test_service_loads_the_backend_env_file_explicitly():
-    assert ml_analysis_main.BACKEND_ENV.name == ".env"
-    assert ml_analysis_main.BACKEND_ENV.parent.name == "backend"
-    assert ml_analysis_main.BACKEND_ENV.is_file()
+# D26: Backend .env load removed in favor of ml_shared.env.load_env()
+# def test_service_loads_the_backend_env_file_explicitly():
+#     assert ml_analysis_main.BACKEND_ENV.name == ".env"
+#     assert ml_analysis_main.BACKEND_ENV.parent.name == "backend"
+#     assert ml_analysis_main.BACKEND_ENV.is_file()
 
 
 def test_deep_analysis_combines_deterministic_and_qualitative_results():
@@ -120,4 +121,62 @@ def test_amqp_consumer_topology_constants():
     assert EXCHANGE_ANALYSIS_COMPLETED == "analysis.completed"
     assert QUEUE_REPORT_SERVICE_COMPLETED == "report-service.analysis.completed"
     assert QUEUE_ML_RECOMMENDATION_COMPLETED == "ml-recommendation.analysis.completed"
+
+
+import pytest
+import asyncio
+
+@pytest.mark.asyncio
+async def test_amqp_consumer_reconnect_retry_loop_recovers():
+    from amqp_consumer import AmqpConsumer
+    consumer = AmqpConsumer(amqp_url="amqp://guest:guest@localhost:5672/")
+
+    mock_queue = AsyncMock()
+    mock_queue.consume = AsyncMock(return_value="ctag-test-123")
+    mock_channel = AsyncMock()
+    mock_channel.set_qos = AsyncMock()
+    mock_channel.declare_queue = AsyncMock(return_value=mock_queue)
+    mock_channel.declare_exchange = AsyncMock(return_value=AsyncMock())
+    mock_connection = AsyncMock()
+    mock_connection.channel = AsyncMock(return_value=mock_channel)
+
+    call_count = 0
+
+    async def mock_connect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count <= 2:
+            raise ConnectionError("Broker not ready")
+        return mock_connection
+
+    with patch("aio_pika.connect_robust", side_effect=mock_connect), \
+         patch("asyncio.sleep", new=AsyncMock()):
+        # Initial start fails, launches reconnect task
+        await consumer.start()
+        assert consumer._reconnect_task is not None
+        # Await the reconnect loop task
+        await consumer._reconnect_task
+        assert call_count == 3
+        assert consumer.connection == mock_connection
+        assert consumer.consumer_tag == "ctag-test-123"
+
+        await consumer.stop()
+
+
+@pytest.mark.asyncio
+async def test_amqp_consumer_stop_cancels_reconnect_task():
+    from amqp_consumer import AmqpConsumer
+    consumer = AmqpConsumer(amqp_url="amqp://guest:guest@localhost:5672/")
+
+    async def hanging_connect(*args, **kwargs):
+        raise ConnectionError("Broker unreachable")
+
+    with patch("aio_pika.connect_robust", side_effect=hanging_connect):
+        await consumer.start()
+        assert consumer._reconnect_task is not None
+        assert not consumer._reconnect_task.done()
+
+        await consumer.stop()
+        assert consumer._reconnect_task.done()
+
 

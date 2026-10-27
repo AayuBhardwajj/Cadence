@@ -82,39 +82,96 @@ class AmqpConsumer:
         self.fanout_exchange: Optional[aio_pika.RobustExchange] = None
         self.consumer_tag: Optional[str] = None
         self._closing = False
+        self._reconnect_task: Optional[asyncio.Task] = None
 
     async def start(self) -> None:
-        """Connect to RabbitMQ, declare topology idempotently, and begin consuming."""
+        """Connect to RabbitMQ and begin consuming. If unavailable, start background retry task."""
         logger.info("Connecting to RabbitMQ at %s...", self.amqp_url.split("@")[-1])
-        max_retries = 10
-        retry_delay = 2
-        for attempt in range(1, max_retries + 1):
+        try:
+            self.connection = await aio_pika.connect_robust(
+                self.amqp_url,
+                client_properties={"connection_name": "cadence:ml-analysis"},
+            )
+            self.channel = await self.connection.channel()
+            await self.channel.set_qos(prefetch_count=1)
+            await self._declare_topology()
+            self.consumer_tag = await self.incoming_queue.consume(self._on_message)
+            logger.info(
+                "ml-analysis AMQP consumer active — listening on '%s' (prefetch=1)",
+                QUEUE_ANALYSIS_AUDIO_COMPLETED,
+            )
+        except Exception as conn_err:
+            logger.warning(
+                "RabbitMQ not ready at startup: %s. Continuing in HTTP-only mode; launching background reconnection task.",
+                conn_err,
+            )
+            self._reconnect_task = asyncio.create_task(self._reconnect_loop())
+
+    # Replaced finite 10x2s retry loop with background reconnect task (D-stall-fix)
+    # async def start(self) -> None:
+    #     logger.info("Connecting to RabbitMQ at %s...", self.amqp_url.split("@")[-1])
+    #     max_retries = 10
+    #     retry_delay = 2
+    #     for attempt in range(1, max_retries + 1):
+    #         try:
+    #             self.connection = await aio_pika.connect_robust(
+    #                 self.amqp_url,
+    #                 client_properties={"connection_name": "cadence:ml-analysis"},
+    #             )
+    #             break
+    #         except Exception as conn_err:
+    #             if attempt == max_retries:
+    #                 logger.error("Failed to connect to RabbitMQ after %d attempts: %s", max_retries, conn_err)
+    #                 raise
+    #             logger.warning(
+    #                 "RabbitMQ not ready yet (attempt %d/%d): %s. Retrying in %ds...",
+    #                 attempt, max_retries, conn_err, retry_delay
+    #             )
+    #             await asyncio.sleep(retry_delay)
+    #     self.channel = await self.connection.channel()
+    #     await self.channel.set_qos(prefetch_count=1)
+    #     await self._declare_topology()
+    #     self.consumer_tag = await self.incoming_queue.consume(self._on_message)
+    #     logger.info(
+    #         "ml-analysis AMQP consumer active — listening on '%s' (prefetch=1)",
+    #         QUEUE_ANALYSIS_AUDIO_COMPLETED,
+    #     )
+
+    async def _reconnect_loop(self) -> None:
+        """Background retry loop with capped exponential backoff until RabbitMQ connects."""
+        delay = 2.0
+        max_delay = 30.0
+        attempt = 0
+        while not self._closing:
             try:
+                await asyncio.sleep(delay)
+                if self._closing:
+                    break
+                attempt += 1
                 self.connection = await aio_pika.connect_robust(
                     self.amqp_url,
                     client_properties={"connection_name": "cadence:ml-analysis"},
                 )
-                break
-            except Exception as conn_err:
-                if attempt == max_retries:
-                    logger.error("Failed to connect to RabbitMQ after %d attempts: %s", max_retries, conn_err)
-                    raise
-                logger.warning(
-                    "RabbitMQ not ready yet (attempt %d/%d): %s. Retrying in %ds...",
-                    attempt, max_retries, conn_err, retry_delay
+                self.channel = await self.connection.channel()
+                await self.channel.set_qos(prefetch_count=1)
+                await self._declare_topology()
+                self.consumer_tag = await self.incoming_queue.consume(self._on_message)
+                logger.info(
+                    "ml-analysis AMQP consumer successfully connected (late connect on attempt %d) — listening on '%s' (prefetch=1)",
+                    attempt,
+                    QUEUE_ANALYSIS_AUDIO_COMPLETED,
                 )
-                await asyncio.sleep(retry_delay)
-        self.channel = await self.connection.channel()
-        await self.channel.set_qos(prefetch_count=1)
-
-        await self._declare_topology()
-
-        # Start consuming
-        self.consumer_tag = await self.incoming_queue.consume(self._on_message)
-        logger.info(
-            "ml-analysis AMQP consumer active — listening on '%s' (prefetch=1)",
-            QUEUE_ANALYSIS_AUDIO_COMPLETED,
-        )
+                break
+            except asyncio.CancelledError:
+                break
+            except Exception as exc:
+                logger.warning(
+                    "RabbitMQ reconnect attempt %d failed: %s. Retrying in %.1fs...",
+                    attempt,
+                    exc,
+                    delay,
+                )
+                delay = min(delay * 2, max_delay)
 
     async def _declare_topology(self) -> None:
         """Idempotently declare incoming direct queue, fanout exchange, and downstream queues."""
@@ -160,8 +217,14 @@ class AmqpConsumer:
         )
 
     async def stop(self) -> None:
-        """Gracefully close channel and connection."""
+        """Gracefully close channel, connection, and cancel any pending reconnect task."""
         self._closing = True
+        if self._reconnect_task and not self._reconnect_task.done():
+            self._reconnect_task.cancel()
+            try:
+                await self._reconnect_task
+            except asyncio.CancelledError:
+                pass
         logger.info("Stopping ml-analysis AMQP consumer...")
         if self.channel and not self.channel.is_closed:
             if self.consumer_tag and self.incoming_queue:

@@ -277,4 +277,72 @@ def test_extract_diagnostic_issues():
     assert diag["lexical_gaps"] == []
 
 
+from unittest.mock import AsyncMock, patch
+
+@pytest.mark.asyncio
+async def test_ml_recommendation_amqp_reconnect_retry_loop_recovers():
+    from amqp_consumer import start_amqp_consumer, stop_amqp_consumer
+
+    class FakeState:
+        pass
+
+    class FakeApp:
+        state = FakeState()
+
+    fake_app = FakeApp()
+
+    mock_queue = AsyncMock()
+    mock_queue.consume = AsyncMock(return_value="ctag-rec-123")
+    mock_channel = AsyncMock()
+    mock_channel.set_qos = AsyncMock()
+    mock_channel.declare_queue = AsyncMock(return_value=mock_queue)
+    mock_connection = AsyncMock()
+    mock_connection.channel = AsyncMock(return_value=mock_channel)
+
+    call_count = 0
+
+    async def mock_connect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count <= 2:
+            raise ConnectionError("Broker not ready")
+        return mock_connection
+
+    with patch("aio_pika.connect_robust", side_effect=mock_connect), \
+         patch("asyncio.sleep", new=AsyncMock()):
+        await start_amqp_consumer(fake_app)
+        assert getattr(fake_app.state, "amqp_reconnect_task", None) is not None
+        await fake_app.state.amqp_reconnect_task
+        assert call_count == 3
+        assert fake_app.state.amqp_connection == mock_connection
+        assert fake_app.state.amqp_consumer_tag == "ctag-rec-123"
+
+        await stop_amqp_consumer(fake_app)
+
+
+@pytest.mark.asyncio
+async def test_ml_recommendation_stop_cancels_reconnect_task():
+    from amqp_consumer import start_amqp_consumer, stop_amqp_consumer
+
+    class FakeState:
+        pass
+
+    class FakeApp:
+        state = FakeState()
+
+    fake_app = FakeApp()
+
+    async def hanging_connect(*args, **kwargs):
+        raise ConnectionError("Broker unreachable")
+
+    with patch("aio_pika.connect_robust", side_effect=hanging_connect):
+        await start_amqp_consumer(fake_app)
+        task = getattr(fake_app.state, "amqp_reconnect_task", None)
+        assert task is not None
+        assert not task.done()
+
+        await stop_amqp_consumer(fake_app)
+        assert task.done()
+
+
 

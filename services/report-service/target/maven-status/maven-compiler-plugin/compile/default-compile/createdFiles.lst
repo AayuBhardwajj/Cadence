@@ -7,6 +7,7 @@ com/cadence/report/config/StompSecurityInterceptor.class
 com/cadence/report/service/ReportAmqpConsumer.class
 com/cadence/report/ReportApplication.class
 com/cadence/report/entity/AssessmentReport$AssessmentReportBuilder.class
+com/cadence/report/service/ReportAmqpConsumer$1.class
 com/cadence/report/dto/CreateAssessmentReportRequest.class
 com/cadence/report/repository/AssessmentReportRepository.class
 com/cadence/report/entity/AssessmentSession.class

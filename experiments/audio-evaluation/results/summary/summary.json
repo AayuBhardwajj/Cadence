@@ -1,0 +1,2425 @@
+{
+  "git_head": "cb8ea0624954314e6f1783e8b11d2056fa13a468-dirty",
+  "runs": {
+    "A": {
+      "label": "A",
+      "run_id": "20261024T075436Z",
+      "run_dir": "/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/experiments/audio-evaluation/results/runs/20261024T075436Z",
+      "config": {
+        "run_id": "20261024T075436Z",
+        "argv": [
+          "experiments/audio-evaluation/run_eval.py",
+          "--manifest",
+          "experiments/audio-evaluation/results/test_manifest.csv"
+        ],
+        "manifest_path": "/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/experiments/audio-evaluation/results/test_manifest.csv",
+        "manifest_sha256": "fc99218e5d914f2243971c3dd983707033bba44d1ddb58a6f1ffb66ff2a21048",
+        "manifest_rows_total": 30,
+        "manifest_rows_evaluated": 30,
+        "CADENCE_ENV": "dev",
+        "model_name": "base",
+        "device": "cpu",
+        "dtype_note": "cpu \u2192 fp32 (Whisper forces fp32 when device=cpu, see whisper/transcribe.py:127-136)",
+        "transcribe_call_literal": "model.transcribe(audio, word_timestamps=True)",
+        "default_temperature_from_signature": "(0.0, 0.2, 0.4, 0.6, 0.8, 1.0)",
+        "transcription_path_used": "_run_whisper_transcription from services/ml-audio/main.py",
+        "parity_check": {
+          "parity_string": "model.transcribe(audio, word_timestamps=True)",
+          "main_py_contains": true,
+          "amqp_consumer_py_contains": true,
+          "passed": true
+        },
+        "timeout_enforced": false,
+        "timeout_note": "No per-file timeout is enforced; transcription runs until Whisper completes.",
+        "torch_initial_seed": 2838821239856701230,
+        "torch_num_threads": 4,
+        "torch_seed_note": "torch not seeded; production-faithful. Non-determinism possible on temperature fallback.",
+        "normalizer_names": [
+          "primary: whisper.normalizers.EnglishTextNormalizer",
+          "simple: lowercase + strip punctuation (re.sub([^\\w\\s], '', text.lower()).strip())"
+        ],
+        "versions": {
+          "python": "3.12.4 (v3.12.4:8e8a4baf65, Jun  6 2024, 17:33:18) [Clang 13.0.0 (clang-1300.0.29.30)]",
+          "openai-whisper": "20250625",
+          "torch": "2.11.0",
+          "numpy": "2.4.4",
+          "jiwer": "4.0.0"
+        },
+        "ffmpeg": "ffmpeg version 8.0.1 Copyright (c) 2000-2025 the FFmpeg developers",
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "platform_machine": "arm64",
+        "ram_bytes": 8589934592,
+        "git": {
+          "HEAD": "cb8ea0624954314e6f1783e8b11d2056fa13a468",
+          "dirty": true
+        },
+        "peak_rss_bytes": 874020864,
+        "peak_rss_note": "resource.getrusage(RUSAGE_SELF).ru_maxrss \u2014 bytes on macOS, KB on Linux",
+        "warmup_utterance_id": "1089-134686-0000",
+        "warmup_status": "ok",
+        "repeatability": {
+          "reps": 1,
+          "repeat_subset_k": 0,
+          "rows_written": 0
+        }
+      },
+      "n_total": 30,
+      "n_ok": 30,
+      "n_error": 0,
+      "n_empty_hyp": 0,
+      "error_files": [],
+      "empty_hyp_files": [],
+      "wer_primary": {
+        "corpus_wer": 0.021705426356589147,
+        "mean_per_file_wer": 0.028702333333333333,
+        "S": 10,
+        "D": 1,
+        "I": 3,
+        "N": 645,
+        "hits": 634,
+        "bootstrap_95ci_lo": 0.008090614886731391,
+        "bootstrap_95ci_hi": 0.03902439024390244,
+        "bootstrap_note": "File-level bootstrap, seed=42, n_resamples=10000"
+      },
+      "wer_simple": {
+        "corpus_wer": 0.026397515527950312,
+        "mean_per_file_wer": 0.034395133333333335,
+        "S": 13,
+        "D": 2,
+        "I": 2,
+        "N": 644,
+        "hits": 629
+      },
+      "speaker_wer": {
+        "1089": {
+          "wer": 0.021705426356589147,
+          "S": 10,
+          "D": 1,
+          "I": 3,
+          "N": 645
+        }
+      },
+      "worst_5_speakers": [
+        [
+          "1089",
+          0.021705426356589147
+        ]
+      ],
+      "worst_5_files": [
+        {
+          "utterance_id": "1089-134686-0001",
+          "speaker_id": "1089",
+          "wer": 0.375,
+          "ref": "stuff it into you his belly counseled him",
+          "hyp": "stuffed into you his belly countled him"
+        },
+        {
+          "utterance_id": "1089-134686-0006",
+          "speaker_id": "1089",
+          "wer": 0.125,
+          "ref": "the dull light fell more faintly upon the page whereon another equation began to unfold itself slowly and to spread abroad its widening tail",
+          "hyp": "the dull light fell more faintly upon the page where on another equation began to unfold itself slowly and to spread abroad its widening tale"
+        },
+        {
+          "utterance_id": "1089-134686-0016",
+          "speaker_id": "1089",
+          "wer": 0.1,
+          "ref": "then you can ask him questions on the catechism dedalus",
+          "hyp": "then you can ask him questions on the catechism detallus"
+        },
+        {
+          "utterance_id": "1089-134686-0009",
+          "speaker_id": "1089",
+          "wer": 0.074074,
+          "ref": "at most by an alms given to a beggar whose blessing he fled from he might hope wearily to win for himself some measure of actual grace",
+          "hyp": "at most by an arm is given to a beggar whose blessing he fled from he might hope wearily to win for himself some measure of actual grace"
+        },
+        {
+          "utterance_id": "1089-134686-0008",
+          "speaker_id": "1089",
+          "wer": 0.066667,
+          "ref": "the chaos in which his ardor extinguished itself was a cold indifferent knowledge of himself",
+          "hyp": "the chaos in which his order extinguished itself was a cold indifferent knowledge of himself"
+        }
+      ],
+      "fallback_count": 0,
+      "fallback_file_ids": [],
+      "latency": {
+        "mean": 1.2543833333333334,
+        "median": 1.1608,
+        "p90": 1.5893,
+        "p95": 1.8045,
+        "max": 1.8644,
+        "min": 0.9943,
+        "n": 30
+      },
+      "decode": {
+        "mean": 0.06654,
+        "median": 0.0631,
+        "p90": 0.0794,
+        "p95": 0.0927,
+        "max": 0.0952,
+        "min": 0.0555,
+        "n": 30
+      },
+      "rtf": {
+        "mean": 0.20181000000000002,
+        "median": 0.1628
+      },
+      "total_wall_s": 37.6315,
+      "repeatability": null
+    },
+    "B": {
+      "label": "B",
+      "run_id": "20261026T030131Z",
+      "run_dir": "/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/experiments/audio-evaluation/results/runs/20261026T030131Z",
+      "config": {
+        "run_id": "20261026T030131Z",
+        "argv": [
+          "experiments/audio-evaluation/run_eval.py",
+          "--manifest",
+          "experiments/audio-evaluation/results/manifest_stratified_s42_n3.csv",
+          "--reps",
+          "5",
+          "--repeat-subset",
+          "10"
+        ],
+        "manifest_path": "/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/experiments/audio-evaluation/results/manifest_stratified_s42_n3.csv",
+        "manifest_sha256": "f1b058a7c1d7e0a77ca926773f608157343e03cde2457dba015f8650c674b3d5",
+        "manifest_rows_total": 120,
+        "manifest_rows_evaluated": 120,
+        "CADENCE_ENV": "dev",
+        "model_name": "base",
+        "device": "cpu",
+        "dtype_note": "cpu \u2192 fp32 (Whisper forces fp32 when device=cpu, see whisper/transcribe.py:127-136)",
+        "transcribe_call_literal": "model.transcribe(audio, word_timestamps=True)",
+        "default_temperature_from_signature": "(0.0, 0.2, 0.4, 0.6, 0.8, 1.0)",
+        "transcription_path_used": "_run_whisper_transcription from services/ml-audio/main.py",
+        "parity_check": {
+          "parity_string": "model.transcribe(audio, word_timestamps=True)",
+          "main_py_contains": true,
+          "amqp_consumer_py_contains": true,
+          "passed": true
+        },
+        "timeout_enforced": false,
+        "timeout_note": "No per-file timeout is enforced; transcription runs until Whisper completes.",
+        "torch_initial_seed": 16592017697133306855,
+        "torch_num_threads": 4,
+        "torch_seed_note": "torch not seeded; production-faithful. Non-determinism possible on temperature fallback.",
+        "normalizer_names": [
+          "primary: whisper.normalizers.EnglishTextNormalizer",
+          "simple: lowercase + strip punctuation (re.sub([^\\w\\s], '', text.lower()).strip())"
+        ],
+        "versions": {
+          "python": "3.12.4 (v3.12.4:8e8a4baf65, Jun  6 2024, 17:33:18) [Clang 13.0.0 (clang-1300.0.29.30)]",
+          "openai-whisper": "20250625",
+          "torch": "2.11.0",
+          "numpy": "2.4.4",
+          "jiwer": "4.0.0"
+        },
+        "ffmpeg": "ffmpeg version 8.0.1 Copyright (c) 2000-2025 the FFmpeg developers",
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "platform_machine": "arm64",
+        "ram_bytes": 8589934592,
+        "git": {
+          "HEAD": "cb8ea0624954314e6f1783e8b11d2056fa13a468",
+          "dirty": true
+        },
+        "peak_rss_bytes": 1062060032,
+        "peak_rss_note": "resource.getrusage(RUSAGE_SELF).ru_maxrss \u2014 bytes on macOS, KB on Linux",
+        "warmup_utterance_id": "1089-134686-0003",
+        "warmup_status": "ok",
+        "repeatability": {
+          "reps": 5,
+          "repeat_subset_k": 10,
+          "requested_k": 10,
+          "actual_k": 10,
+          "n_quantile_selected": 10,
+          "n_fallback_selected": 0,
+          "n_quantile_dropped": 0,
+          "n_fallback_dropped": 0,
+          "fallback_file_ids": [],
+          "selected_ids": [
+            "3575-170457-0002",
+            "4446-2273-0012",
+            "3570-5694-0022",
+            "672-122797-0034",
+            "5639-40744-0017",
+            "2961-960-0022",
+            "4992-41806-0001",
+            "1221-135767-0018",
+            "2961-960-0006",
+            "3575-170457-0046"
+          ],
+          "rows_written": 50
+        }
+      },
+      "n_total": 120,
+      "n_ok": 120,
+      "n_error": 0,
+      "n_empty_hyp": 0,
+      "error_files": [],
+      "empty_hyp_files": [],
+      "wer_primary": {
+        "corpus_wer": 0.04935370152761457,
+        "mean_per_file_wer": 0.04997653333333333,
+        "S": 98,
+        "D": 10,
+        "I": 18,
+        "N": 2553,
+        "hits": 2445,
+        "bootstrap_95ci_lo": 0.03815892997639654,
+        "bootstrap_95ci_hi": 0.0614630467571644,
+        "bootstrap_note": "File-level bootstrap, seed=42, n_resamples=10000"
+      },
+      "wer_simple": {
+        "corpus_wer": 0.05258995650454725,
+        "mean_per_file_wer": 0.05589171666666667,
+        "S": 109,
+        "D": 14,
+        "I": 10,
+        "N": 2529,
+        "hits": 2406
+      },
+      "speaker_wer": {
+        "1089": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 24
+        },
+        "1188": {
+          "wer": 0.03361344537815126,
+          "S": 3,
+          "D": 0,
+          "I": 1,
+          "N": 119
+        },
+        "121": {
+          "wer": 0.03125,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 32
+        },
+        "1221": {
+          "wer": 0.017094017094017096,
+          "S": 1,
+          "D": 0,
+          "I": 1,
+          "N": 117
+        },
+        "1284": {
+          "wer": 0.017241379310344827,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 58
+        },
+        "1320": {
+          "wer": 0.02,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 50
+        },
+        "1580": {
+          "wer": 0.05172413793103448,
+          "S": 2,
+          "D": 1,
+          "I": 0,
+          "N": 58
+        },
+        "1995": {
+          "wer": 0.14285714285714285,
+          "S": 4,
+          "D": 2,
+          "I": 0,
+          "N": 42
+        },
+        "2094": {
+          "wer": 0.08928571428571429,
+          "S": 5,
+          "D": 0,
+          "I": 0,
+          "N": 56
+        },
+        "2300": {
+          "wer": 0.0379746835443038,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 79
+        },
+        "237": {
+          "wer": 0.09090909090909091,
+          "S": 4,
+          "D": 0,
+          "I": 0,
+          "N": 44
+        },
+        "260": {
+          "wer": 0.06329113924050633,
+          "S": 3,
+          "D": 2,
+          "I": 0,
+          "N": 79
+        },
+        "2830": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 55
+        },
+        "2961": {
+          "wer": 0.023809523809523808,
+          "S": 1,
+          "D": 1,
+          "I": 0,
+          "N": 84
+        },
+        "3570": {
+          "wer": 0.06097560975609756,
+          "S": 3,
+          "D": 2,
+          "I": 0,
+          "N": 82
+        },
+        "3575": {
+          "wer": 0.09574468085106383,
+          "S": 8,
+          "D": 0,
+          "I": 1,
+          "N": 94
+        },
+        "3729": {
+          "wer": 0.0297029702970297,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 101
+        },
+        "4077": {
+          "wer": 0.05343511450381679,
+          "S": 6,
+          "D": 0,
+          "I": 1,
+          "N": 131
+        },
+        "4446": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 28
+        },
+        "4507": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 46
+        },
+        "4970": {
+          "wer": 0.03773584905660377,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 53
+        },
+        "4992": {
+          "wer": 0.0784313725490196,
+          "S": 2,
+          "D": 1,
+          "I": 1,
+          "N": 51
+        },
+        "5105": {
+          "wer": 0.06,
+          "S": 3,
+          "D": 0,
+          "I": 0,
+          "N": 50
+        },
+        "5142": {
+          "wer": 0.1,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 30
+        },
+        "5639": {
+          "wer": 0.05970149253731343,
+          "S": 3,
+          "D": 1,
+          "I": 0,
+          "N": 67
+        },
+        "5683": {
+          "wer": 0.06060606060606061,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 33
+        },
+        "61": {
+          "wer": 0.0425531914893617,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 47
+        },
+        "672": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 32
+        },
+        "6829": {
+          "wer": 0.06521739130434782,
+          "S": 3,
+          "D": 0,
+          "I": 0,
+          "N": 46
+        },
+        "6930": {
+          "wer": 0.14705882352941177,
+          "S": 7,
+          "D": 0,
+          "I": 3,
+          "N": 68
+        },
+        "7021": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 58
+        },
+        "7127": {
+          "wer": 0.017857142857142856,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 56
+        },
+        "7176": {
+          "wer": 0.0989010989010989,
+          "S": 7,
+          "D": 0,
+          "I": 2,
+          "N": 91
+        },
+        "7729": {
+          "wer": 0.03409090909090909,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 88
+        },
+        "8224": {
+          "wer": 0.01639344262295082,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 61
+        },
+        "8230": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 118
+        },
+        "8455": {
+          "wer": 0.03225806451612903,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 62
+        },
+        "8463": {
+          "wer": 0.11363636363636363,
+          "S": 3,
+          "D": 0,
+          "I": 2,
+          "N": 44
+        },
+        "8555": {
+          "wer": 0.0945945945945946,
+          "S": 6,
+          "D": 0,
+          "I": 1,
+          "N": 74
+        },
+        "908": {
+          "wer": 0.08888888888888889,
+          "S": 3,
+          "D": 0,
+          "I": 1,
+          "N": 45
+        }
+      },
+      "worst_5_speakers": [
+        [
+          "6930",
+          0.14705882352941177
+        ],
+        [
+          "1995",
+          0.14285714285714285
+        ],
+        [
+          "8463",
+          0.11363636363636363
+        ],
+        [
+          "5142",
+          0.1
+        ],
+        [
+          "7176",
+          0.0989010989010989
+        ]
+      ],
+      "worst_5_files": [
+        {
+          "utterance_id": "6930-76324-0027",
+          "speaker_id": "6930",
+          "wer": 0.304348,
+          "ref": "forgetting all their weariness they seized their candles and scurried through the house finding an occasional paper tucked away in some odd corner",
+          "hyp": "for getting all their weariness they seize their candles and scurry through the house finding on occasional paper it is tucked away in some odd corner"
+        },
+        {
+          "utterance_id": "1995-1826-0025",
+          "speaker_id": "1995",
+          "wer": 0.3,
+          "ref": "some time you will tell me please will not you",
+          "hyp": "sometimes you tell me please will not you"
+        },
+        {
+          "utterance_id": "5142-33396-0037",
+          "speaker_id": "5142",
+          "wer": 0.222222,
+          "ref": "hakon there shall be your constant companion friend farmer",
+          "hyp": "hawk in there shall be your constant companion friend farmer"
+        },
+        {
+          "utterance_id": "7729-102255-0025",
+          "speaker_id": "7729",
+          "wer": 0.2,
+          "ref": "their assumed character changed with their changing opportunities or necessities",
+          "hyp": "they are assumed character changed with their changing opportunities or necessities"
+        },
+        {
+          "utterance_id": "2094-142345-0028",
+          "speaker_id": "2094",
+          "wer": 0.1875,
+          "ref": "no no no totty ud get her feet wet said missus poyser carrying away her iron",
+          "hyp": "no no no toddy had get her feet wet said missus poison carrying away her iron"
+        }
+      ],
+      "fallback_count": 0,
+      "fallback_file_ids": [],
+      "latency": {
+        "mean": 4.176025,
+        "median": 2.4703,
+        "p90": 7.5224,
+        "p95": 11.3429,
+        "max": 40.0832,
+        "min": 0.9561,
+        "n": 120
+      },
+      "decode": {
+        "mean": 0.2100975,
+        "median": 0.0979,
+        "p90": 0.4138,
+        "p95": 0.7206,
+        "max": 3.129,
+        "min": 0.0542,
+        "n": 120
+      },
+      "rtf": {
+        "mean": 0.6925100000000001,
+        "median": 0.3572
+      },
+      "total_wall_s": 501.123,
+      "repeatability": {
+        "n_files": 10,
+        "n_identical": 10,
+        "pct_identical": 100.0,
+        "differing_files": {},
+        "file_rep_details": {
+          "1221-135767-0018": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.060606,
+            "wer_max": 0.060606,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 11.16,
+            "speaker_id": "1221"
+          },
+          "2961-960-0006": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.05,
+            "wer_max": 0.05,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 15.725,
+            "speaker_id": "2961"
+          },
+          "2961-960-0022": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.0,
+            "wer_max": 0.0,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 7.425,
+            "speaker_id": "2961"
+          },
+          "3570-5694-0022": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.076923,
+            "wer_max": 0.076923,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 4.295,
+            "speaker_id": "3570"
+          },
+          "3575-170457-0002": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.0,
+            "wer_max": 0.0,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 2.11,
+            "speaker_id": "3575"
+          },
+          "3575-170457-0046": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.115942,
+            "wer_max": 0.115942,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 25.64,
+            "speaker_id": "3575"
+          },
+          "4446-2273-0012": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.0,
+            "wer_max": 0.0,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 2.98,
+            "speaker_id": "4446"
+          },
+          "4992-41806-0001": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.166667,
+            "wer_max": 0.166667,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 8.31,
+            "speaker_id": "4992"
+          },
+          "5639-40744-0017": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.055556,
+            "wer_max": 0.055556,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 5.88,
+            "speaker_id": "5639"
+          },
+          "672-122797-0034": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.0,
+            "wer_max": 0.0,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 5.11,
+            "speaker_id": "672"
+          }
+        }
+      }
+    },
+    "C": {
+      "label": "C",
+      "run_id": "20261026T031331Z",
+      "run_dir": "/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/experiments/audio-evaluation/results/runs/20261026T031331Z",
+      "config": {
+        "run_id": "20261026T031331Z",
+        "argv": [
+          "experiments/audio-evaluation/run_eval.py",
+          "--manifest",
+          "experiments/audio-evaluation/results/manifest_stratified_s42_n3.csv",
+          "--reps",
+          "5",
+          "--repeat-subset",
+          "10"
+        ],
+        "manifest_path": "/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/experiments/audio-evaluation/results/manifest_stratified_s42_n3.csv",
+        "manifest_sha256": "f1b058a7c1d7e0a77ca926773f608157343e03cde2457dba015f8650c674b3d5",
+        "manifest_rows_total": 120,
+        "manifest_rows_evaluated": 120,
+        "CADENCE_ENV": "dev",
+        "model_name": "base",
+        "device": "cpu",
+        "dtype_note": "cpu \u2192 fp32 (Whisper forces fp32 when device=cpu, see whisper/transcribe.py:127-136)",
+        "transcribe_call_literal": "model.transcribe(audio, word_timestamps=True)",
+        "default_temperature_from_signature": "(0.0, 0.2, 0.4, 0.6, 0.8, 1.0)",
+        "transcription_path_used": "_run_whisper_transcription from services/ml-audio/main.py",
+        "parity_check": {
+          "parity_string": "model.transcribe(audio, word_timestamps=True)",
+          "main_py_contains": true,
+          "amqp_consumer_py_contains": true,
+          "passed": true
+        },
+        "timeout_enforced": false,
+        "timeout_note": "No per-file timeout is enforced; transcription runs until Whisper completes.",
+        "torch_initial_seed": 4939017330066209547,
+        "torch_num_threads": 4,
+        "torch_seed_note": "torch not seeded; production-faithful. Non-determinism possible on temperature fallback.",
+        "normalizer_names": [
+          "primary: whisper.normalizers.EnglishTextNormalizer",
+          "simple: lowercase + strip punctuation (re.sub([^\\w\\s], '', text.lower()).strip())"
+        ],
+        "versions": {
+          "python": "3.12.4 (v3.12.4:8e8a4baf65, Jun  6 2024, 17:33:18) [Clang 13.0.0 (clang-1300.0.29.30)]",
+          "openai-whisper": "20250625",
+          "torch": "2.11.0",
+          "numpy": "2.4.4",
+          "jiwer": "4.0.0"
+        },
+        "ffmpeg": "ffmpeg version 8.0.1 Copyright (c) 2000-2025 the FFmpeg developers",
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "platform_machine": "arm64",
+        "ram_bytes": 8589934592,
+        "git": {
+          "HEAD": "cb8ea0624954314e6f1783e8b11d2056fa13a468",
+          "dirty": true
+        },
+        "peak_rss_bytes": 787496960,
+        "peak_rss_note": "resource.getrusage(RUSAGE_SELF).ru_maxrss \u2014 bytes on macOS, KB on Linux",
+        "warmup_utterance_id": "1089-134686-0003",
+        "warmup_status": "ok",
+        "repeatability": {
+          "reps": 5,
+          "repeat_subset_k": 10,
+          "requested_k": 10,
+          "actual_k": 10,
+          "n_quantile_selected": 10,
+          "n_fallback_selected": 0,
+          "n_quantile_dropped": 0,
+          "n_fallback_dropped": 0,
+          "fallback_file_ids": [],
+          "selected_ids": [
+            "3575-170457-0002",
+            "4446-2273-0012",
+            "3570-5694-0022",
+            "672-122797-0034",
+            "5639-40744-0017",
+            "2961-960-0022",
+            "4992-41806-0001",
+            "1221-135767-0018",
+            "2961-960-0006",
+            "3575-170457-0046"
+          ],
+          "rows_written": 50
+        }
+      },
+      "n_total": 120,
+      "n_ok": 120,
+      "n_error": 0,
+      "n_empty_hyp": 0,
+      "error_files": [],
+      "empty_hyp_files": [],
+      "wer_primary": {
+        "corpus_wer": 0.04935370152761457,
+        "mean_per_file_wer": 0.04997653333333333,
+        "S": 98,
+        "D": 10,
+        "I": 18,
+        "N": 2553,
+        "hits": 2445,
+        "bootstrap_95ci_lo": 0.03815892997639654,
+        "bootstrap_95ci_hi": 0.0614630467571644,
+        "bootstrap_note": "File-level bootstrap, seed=42, n_resamples=10000"
+      },
+      "wer_simple": {
+        "corpus_wer": 0.05258995650454725,
+        "mean_per_file_wer": 0.05589171666666667,
+        "S": 109,
+        "D": 14,
+        "I": 10,
+        "N": 2529,
+        "hits": 2406
+      },
+      "speaker_wer": {
+        "1089": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 24
+        },
+        "1188": {
+          "wer": 0.03361344537815126,
+          "S": 3,
+          "D": 0,
+          "I": 1,
+          "N": 119
+        },
+        "121": {
+          "wer": 0.03125,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 32
+        },
+        "1221": {
+          "wer": 0.017094017094017096,
+          "S": 1,
+          "D": 0,
+          "I": 1,
+          "N": 117
+        },
+        "1284": {
+          "wer": 0.017241379310344827,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 58
+        },
+        "1320": {
+          "wer": 0.02,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 50
+        },
+        "1580": {
+          "wer": 0.05172413793103448,
+          "S": 2,
+          "D": 1,
+          "I": 0,
+          "N": 58
+        },
+        "1995": {
+          "wer": 0.14285714285714285,
+          "S": 4,
+          "D": 2,
+          "I": 0,
+          "N": 42
+        },
+        "2094": {
+          "wer": 0.08928571428571429,
+          "S": 5,
+          "D": 0,
+          "I": 0,
+          "N": 56
+        },
+        "2300": {
+          "wer": 0.0379746835443038,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 79
+        },
+        "237": {
+          "wer": 0.09090909090909091,
+          "S": 4,
+          "D": 0,
+          "I": 0,
+          "N": 44
+        },
+        "260": {
+          "wer": 0.06329113924050633,
+          "S": 3,
+          "D": 2,
+          "I": 0,
+          "N": 79
+        },
+        "2830": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 55
+        },
+        "2961": {
+          "wer": 0.023809523809523808,
+          "S": 1,
+          "D": 1,
+          "I": 0,
+          "N": 84
+        },
+        "3570": {
+          "wer": 0.06097560975609756,
+          "S": 3,
+          "D": 2,
+          "I": 0,
+          "N": 82
+        },
+        "3575": {
+          "wer": 0.09574468085106383,
+          "S": 8,
+          "D": 0,
+          "I": 1,
+          "N": 94
+        },
+        "3729": {
+          "wer": 0.0297029702970297,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 101
+        },
+        "4077": {
+          "wer": 0.05343511450381679,
+          "S": 6,
+          "D": 0,
+          "I": 1,
+          "N": 131
+        },
+        "4446": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 28
+        },
+        "4507": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 46
+        },
+        "4970": {
+          "wer": 0.03773584905660377,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 53
+        },
+        "4992": {
+          "wer": 0.0784313725490196,
+          "S": 2,
+          "D": 1,
+          "I": 1,
+          "N": 51
+        },
+        "5105": {
+          "wer": 0.06,
+          "S": 3,
+          "D": 0,
+          "I": 0,
+          "N": 50
+        },
+        "5142": {
+          "wer": 0.1,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 30
+        },
+        "5639": {
+          "wer": 0.05970149253731343,
+          "S": 3,
+          "D": 1,
+          "I": 0,
+          "N": 67
+        },
+        "5683": {
+          "wer": 0.06060606060606061,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 33
+        },
+        "61": {
+          "wer": 0.0425531914893617,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 47
+        },
+        "672": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 32
+        },
+        "6829": {
+          "wer": 0.06521739130434782,
+          "S": 3,
+          "D": 0,
+          "I": 0,
+          "N": 46
+        },
+        "6930": {
+          "wer": 0.14705882352941177,
+          "S": 7,
+          "D": 0,
+          "I": 3,
+          "N": 68
+        },
+        "7021": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 58
+        },
+        "7127": {
+          "wer": 0.017857142857142856,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 56
+        },
+        "7176": {
+          "wer": 0.0989010989010989,
+          "S": 7,
+          "D": 0,
+          "I": 2,
+          "N": 91
+        },
+        "7729": {
+          "wer": 0.03409090909090909,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 88
+        },
+        "8224": {
+          "wer": 0.01639344262295082,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 61
+        },
+        "8230": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 118
+        },
+        "8455": {
+          "wer": 0.03225806451612903,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 62
+        },
+        "8463": {
+          "wer": 0.11363636363636363,
+          "S": 3,
+          "D": 0,
+          "I": 2,
+          "N": 44
+        },
+        "8555": {
+          "wer": 0.0945945945945946,
+          "S": 6,
+          "D": 0,
+          "I": 1,
+          "N": 74
+        },
+        "908": {
+          "wer": 0.08888888888888889,
+          "S": 3,
+          "D": 0,
+          "I": 1,
+          "N": 45
+        }
+      },
+      "worst_5_speakers": [
+        [
+          "6930",
+          0.14705882352941177
+        ],
+        [
+          "1995",
+          0.14285714285714285
+        ],
+        [
+          "8463",
+          0.11363636363636363
+        ],
+        [
+          "5142",
+          0.1
+        ],
+        [
+          "7176",
+          0.0989010989010989
+        ]
+      ],
+      "worst_5_files": [
+        {
+          "utterance_id": "6930-76324-0027",
+          "speaker_id": "6930",
+          "wer": 0.304348,
+          "ref": "forgetting all their weariness they seized their candles and scurried through the house finding an occasional paper tucked away in some odd corner",
+          "hyp": "for getting all their weariness they seize their candles and scurry through the house finding on occasional paper it is tucked away in some odd corner"
+        },
+        {
+          "utterance_id": "1995-1826-0025",
+          "speaker_id": "1995",
+          "wer": 0.3,
+          "ref": "some time you will tell me please will not you",
+          "hyp": "sometimes you tell me please will not you"
+        },
+        {
+          "utterance_id": "5142-33396-0037",
+          "speaker_id": "5142",
+          "wer": 0.222222,
+          "ref": "hakon there shall be your constant companion friend farmer",
+          "hyp": "hawk in there shall be your constant companion friend farmer"
+        },
+        {
+          "utterance_id": "7729-102255-0025",
+          "speaker_id": "7729",
+          "wer": 0.2,
+          "ref": "their assumed character changed with their changing opportunities or necessities",
+          "hyp": "they are assumed character changed with their changing opportunities or necessities"
+        },
+        {
+          "utterance_id": "2094-142345-0028",
+          "speaker_id": "2094",
+          "wer": 0.1875,
+          "ref": "no no no totty ud get her feet wet said missus poyser carrying away her iron",
+          "hyp": "no no no toddy had get her feet wet said missus poison carrying away her iron"
+        }
+      ],
+      "fallback_count": 0,
+      "fallback_file_ids": [],
+      "latency": {
+        "mean": 2.112651666666667,
+        "median": 1.729,
+        "p90": 3.2243,
+        "p95": 3.9613,
+        "max": 14.7196,
+        "min": 1.0916,
+        "n": 120
+      },
+      "decode": {
+        "mean": 0.09083666666666666,
+        "median": 0.0762,
+        "p90": 0.1122,
+        "p95": 0.1742,
+        "max": 0.6859,
+        "min": 0.0535,
+        "n": 120
+      },
+      "rtf": {
+        "mean": 0.35358666666666666,
+        "median": 0.2709
+      },
+      "total_wall_s": 253.5182,
+      "repeatability": {
+        "n_files": 10,
+        "n_identical": 10,
+        "pct_identical": 100.0,
+        "differing_files": {},
+        "file_rep_details": {
+          "1221-135767-0018": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.060606,
+            "wer_max": 0.060606,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 11.16,
+            "speaker_id": "1221"
+          },
+          "2961-960-0006": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.05,
+            "wer_max": 0.05,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 15.725,
+            "speaker_id": "2961"
+          },
+          "2961-960-0022": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.0,
+            "wer_max": 0.0,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 7.425,
+            "speaker_id": "2961"
+          },
+          "3570-5694-0022": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.076923,
+            "wer_max": 0.076923,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 4.295,
+            "speaker_id": "3570"
+          },
+          "3575-170457-0002": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.0,
+            "wer_max": 0.0,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 2.11,
+            "speaker_id": "3575"
+          },
+          "3575-170457-0046": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.115942,
+            "wer_max": 0.115942,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 25.64,
+            "speaker_id": "3575"
+          },
+          "4446-2273-0012": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.0,
+            "wer_max": 0.0,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 2.98,
+            "speaker_id": "4446"
+          },
+          "4992-41806-0001": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.166667,
+            "wer_max": 0.166667,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 8.31,
+            "speaker_id": "4992"
+          },
+          "5639-40744-0017": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.055556,
+            "wer_max": 0.055556,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 5.88,
+            "speaker_id": "5639"
+          },
+          "672-122797-0034": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.0,
+            "wer_max": 0.0,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 5.11,
+            "speaker_id": "672"
+          }
+        }
+      }
+    }
+  },
+  "cross_process_consistency_B_vs_C": {
+    "n_compared": 120,
+    "n_identical": 120,
+    "pct_identical": 100.0,
+    "n_differing": 0,
+    "differing_files": [],
+    "corpus_wer_b": 0.04935370152761457,
+    "corpus_wer_c": 0.04935370152761457,
+    "corpus_wer_abs_diff": 0.0
+  },
+  "appendix_runs": {
+    "B_old": {
+      "label": "B_old",
+      "run_id": "20261024T075603Z",
+      "run_dir": "/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/experiments/audio-evaluation/results/runs/20261024T075603Z",
+      "config": {
+        "run_id": "20261024T075603Z",
+        "argv": [
+          "experiments/audio-evaluation/run_eval.py",
+          "--manifest",
+          "experiments/audio-evaluation/results/manifest_stratified_s42_n3.csv",
+          "--reps",
+          "5",
+          "--repeat-subset",
+          "10"
+        ],
+        "manifest_path": "/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/experiments/audio-evaluation/results/manifest_stratified_s42_n3.csv",
+        "manifest_sha256": "f1b058a7c1d7e0a77ca926773f608157343e03cde2457dba015f8650c674b3d5",
+        "manifest_rows_total": 120,
+        "manifest_rows_evaluated": 120,
+        "CADENCE_ENV": "dev",
+        "model_name": "base",
+        "device": "cpu",
+        "dtype_note": "cpu \u2192 fp32 (Whisper forces fp32 when device=cpu, see whisper/transcribe.py:127-136)",
+        "transcribe_call_literal": "model.transcribe(audio, word_timestamps=True)",
+        "default_temperature_from_signature": "(0.0, 0.2, 0.4, 0.6, 0.8, 1.0)",
+        "transcription_path_used": "_run_whisper_transcription from services/ml-audio/main.py",
+        "parity_check": {
+          "parity_string": "model.transcribe(audio, word_timestamps=True)",
+          "main_py_contains": true,
+          "amqp_consumer_py_contains": true,
+          "passed": true
+        },
+        "timeout_enforced": false,
+        "timeout_note": "No per-file timeout is enforced; transcription runs until Whisper completes.",
+        "torch_initial_seed": 15418426734770796776,
+        "torch_num_threads": 4,
+        "torch_seed_note": "torch not seeded; production-faithful. Non-determinism possible on temperature fallback.",
+        "normalizer_names": [
+          "primary: whisper.normalizers.EnglishTextNormalizer",
+          "simple: lowercase + strip punctuation (re.sub([^\\w\\s], '', text.lower()).strip())"
+        ],
+        "versions": {
+          "python": "3.12.4 (v3.12.4:8e8a4baf65, Jun  6 2024, 17:33:18) [Clang 13.0.0 (clang-1300.0.29.30)]",
+          "openai-whisper": "20250625",
+          "torch": "2.11.0",
+          "numpy": "2.4.4",
+          "jiwer": "4.0.0"
+        },
+        "ffmpeg": "ffmpeg version 8.0.1 Copyright (c) 2000-2025 the FFmpeg developers",
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "platform_machine": "arm64",
+        "ram_bytes": 8589934592,
+        "git": {
+          "HEAD": "cb8ea0624954314e6f1783e8b11d2056fa13a468",
+          "dirty": true
+        },
+        "peak_rss_bytes": 762249216,
+        "peak_rss_note": "resource.getrusage(RUSAGE_SELF).ru_maxrss \u2014 bytes on macOS, KB on Linux",
+        "warmup_utterance_id": "1089-134686-0003",
+        "warmup_status": "ok",
+        "repeatability": {
+          "reps": 5,
+          "repeat_subset_k": 10,
+          "rows_written": 25
+        }
+      },
+      "n_total": 120,
+      "n_ok": 120,
+      "n_error": 0,
+      "n_empty_hyp": 0,
+      "error_files": [],
+      "empty_hyp_files": [],
+      "wer_primary": {
+        "corpus_wer": 0.04935370152761457,
+        "mean_per_file_wer": 0.04997653333333333,
+        "S": 98,
+        "D": 10,
+        "I": 18,
+        "N": 2553,
+        "hits": 2445,
+        "bootstrap_95ci_lo": 0.03815892997639654,
+        "bootstrap_95ci_hi": 0.0614630467571644,
+        "bootstrap_note": "File-level bootstrap, seed=42, n_resamples=10000"
+      },
+      "wer_simple": {
+        "corpus_wer": 0.05258995650454725,
+        "mean_per_file_wer": 0.05589171666666667,
+        "S": 109,
+        "D": 14,
+        "I": 10,
+        "N": 2529,
+        "hits": 2406
+      },
+      "speaker_wer": {
+        "1089": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 24
+        },
+        "1188": {
+          "wer": 0.03361344537815126,
+          "S": 3,
+          "D": 0,
+          "I": 1,
+          "N": 119
+        },
+        "121": {
+          "wer": 0.03125,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 32
+        },
+        "1221": {
+          "wer": 0.017094017094017096,
+          "S": 1,
+          "D": 0,
+          "I": 1,
+          "N": 117
+        },
+        "1284": {
+          "wer": 0.017241379310344827,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 58
+        },
+        "1320": {
+          "wer": 0.02,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 50
+        },
+        "1580": {
+          "wer": 0.05172413793103448,
+          "S": 2,
+          "D": 1,
+          "I": 0,
+          "N": 58
+        },
+        "1995": {
+          "wer": 0.14285714285714285,
+          "S": 4,
+          "D": 2,
+          "I": 0,
+          "N": 42
+        },
+        "2094": {
+          "wer": 0.08928571428571429,
+          "S": 5,
+          "D": 0,
+          "I": 0,
+          "N": 56
+        },
+        "2300": {
+          "wer": 0.0379746835443038,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 79
+        },
+        "237": {
+          "wer": 0.09090909090909091,
+          "S": 4,
+          "D": 0,
+          "I": 0,
+          "N": 44
+        },
+        "260": {
+          "wer": 0.06329113924050633,
+          "S": 3,
+          "D": 2,
+          "I": 0,
+          "N": 79
+        },
+        "2830": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 55
+        },
+        "2961": {
+          "wer": 0.023809523809523808,
+          "S": 1,
+          "D": 1,
+          "I": 0,
+          "N": 84
+        },
+        "3570": {
+          "wer": 0.06097560975609756,
+          "S": 3,
+          "D": 2,
+          "I": 0,
+          "N": 82
+        },
+        "3575": {
+          "wer": 0.09574468085106383,
+          "S": 8,
+          "D": 0,
+          "I": 1,
+          "N": 94
+        },
+        "3729": {
+          "wer": 0.0297029702970297,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 101
+        },
+        "4077": {
+          "wer": 0.05343511450381679,
+          "S": 6,
+          "D": 0,
+          "I": 1,
+          "N": 131
+        },
+        "4446": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 28
+        },
+        "4507": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 46
+        },
+        "4970": {
+          "wer": 0.03773584905660377,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 53
+        },
+        "4992": {
+          "wer": 0.0784313725490196,
+          "S": 2,
+          "D": 1,
+          "I": 1,
+          "N": 51
+        },
+        "5105": {
+          "wer": 0.06,
+          "S": 3,
+          "D": 0,
+          "I": 0,
+          "N": 50
+        },
+        "5142": {
+          "wer": 0.1,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 30
+        },
+        "5639": {
+          "wer": 0.05970149253731343,
+          "S": 3,
+          "D": 1,
+          "I": 0,
+          "N": 67
+        },
+        "5683": {
+          "wer": 0.06060606060606061,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 33
+        },
+        "61": {
+          "wer": 0.0425531914893617,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 47
+        },
+        "672": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 32
+        },
+        "6829": {
+          "wer": 0.06521739130434782,
+          "S": 3,
+          "D": 0,
+          "I": 0,
+          "N": 46
+        },
+        "6930": {
+          "wer": 0.14705882352941177,
+          "S": 7,
+          "D": 0,
+          "I": 3,
+          "N": 68
+        },
+        "7021": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 58
+        },
+        "7127": {
+          "wer": 0.017857142857142856,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 56
+        },
+        "7176": {
+          "wer": 0.0989010989010989,
+          "S": 7,
+          "D": 0,
+          "I": 2,
+          "N": 91
+        },
+        "7729": {
+          "wer": 0.03409090909090909,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 88
+        },
+        "8224": {
+          "wer": 0.01639344262295082,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 61
+        },
+        "8230": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 118
+        },
+        "8455": {
+          "wer": 0.03225806451612903,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 62
+        },
+        "8463": {
+          "wer": 0.11363636363636363,
+          "S": 3,
+          "D": 0,
+          "I": 2,
+          "N": 44
+        },
+        "8555": {
+          "wer": 0.0945945945945946,
+          "S": 6,
+          "D": 0,
+          "I": 1,
+          "N": 74
+        },
+        "908": {
+          "wer": 0.08888888888888889,
+          "S": 3,
+          "D": 0,
+          "I": 1,
+          "N": 45
+        }
+      },
+      "worst_5_speakers": [
+        [
+          "6930",
+          0.14705882352941177
+        ],
+        [
+          "1995",
+          0.14285714285714285
+        ],
+        [
+          "8463",
+          0.11363636363636363
+        ],
+        [
+          "5142",
+          0.1
+        ],
+        [
+          "7176",
+          0.0989010989010989
+        ]
+      ],
+      "worst_5_files": [
+        {
+          "utterance_id": "6930-76324-0027",
+          "speaker_id": "6930",
+          "wer": 0.304348,
+          "ref": "forgetting all their weariness they seized their candles and scurried through the house finding an occasional paper tucked away in some odd corner",
+          "hyp": "for getting all their weariness they seize their candles and scurry through the house finding on occasional paper it is tucked away in some odd corner"
+        },
+        {
+          "utterance_id": "1995-1826-0025",
+          "speaker_id": "1995",
+          "wer": 0.3,
+          "ref": "some time you will tell me please will not you",
+          "hyp": "sometimes you tell me please will not you"
+        },
+        {
+          "utterance_id": "5142-33396-0037",
+          "speaker_id": "5142",
+          "wer": 0.222222,
+          "ref": "hakon there shall be your constant companion friend farmer",
+          "hyp": "hawk in there shall be your constant companion friend farmer"
+        },
+        {
+          "utterance_id": "7729-102255-0025",
+          "speaker_id": "7729",
+          "wer": 0.2,
+          "ref": "their assumed character changed with their changing opportunities or necessities",
+          "hyp": "they are assumed character changed with their changing opportunities or necessities"
+        },
+        {
+          "utterance_id": "2094-142345-0028",
+          "speaker_id": "2094",
+          "wer": 0.1875,
+          "ref": "no no no totty ud get her feet wet said missus poyser carrying away her iron",
+          "hyp": "no no no toddy had get her feet wet said missus poison carrying away her iron"
+        }
+      ],
+      "fallback_count": 0,
+      "fallback_file_ids": [],
+      "latency": {
+        "mean": 1.7743908333333331,
+        "median": 1.4164,
+        "p90": 2.6284,
+        "p95": 3.892,
+        "max": 9.4129,
+        "min": 0.968,
+        "n": 120
+      },
+      "decode": {
+        "mean": 0.09546583333333333,
+        "median": 0.0641,
+        "p90": 0.1682,
+        "p95": 0.2371,
+        "max": 0.5738,
+        "min": 0.0536,
+        "n": 120
+      },
+      "rtf": {
+        "mean": 0.3013116666666667,
+        "median": 0.2168
+      },
+      "total_wall_s": 212.9269,
+      "repeatability": {
+        "n_files": 5,
+        "n_identical": 5,
+        "pct_identical": 100.0,
+        "differing_files": {},
+        "file_rep_details": {
+          "1320-122612-0013": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.0,
+            "wer_max": 0.0,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 6.55,
+            "speaker_id": "1320"
+          },
+          "1580-141084-0010": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.142857,
+            "wer_max": 0.142857,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 4.47,
+            "speaker_id": "1580"
+          },
+          "3575-170457-0002": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.0,
+            "wer_max": 0.0,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 2.11,
+            "speaker_id": "3575"
+          },
+          "3575-170457-0046": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.115942,
+            "wer_max": 0.115942,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 25.64,
+            "speaker_id": "3575"
+          },
+          "908-157963-0025": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.105263,
+            "wer_max": 0.105263,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 9.265,
+            "speaker_id": "908"
+          }
+        }
+      }
+    },
+    "C_old": {
+      "label": "C_old",
+      "run_id": "20261024T080108Z",
+      "run_dir": "/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/experiments/audio-evaluation/results/runs/20261024T080108Z",
+      "config": {
+        "run_id": "20261024T080108Z",
+        "argv": [
+          "experiments/audio-evaluation/run_eval.py",
+          "--manifest",
+          "experiments/audio-evaluation/results/manifest_stratified_s42_n3.csv",
+          "--reps",
+          "5",
+          "--repeat-subset",
+          "10"
+        ],
+        "manifest_path": "/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/experiments/audio-evaluation/results/manifest_stratified_s42_n3.csv",
+        "manifest_sha256": "f1b058a7c1d7e0a77ca926773f608157343e03cde2457dba015f8650c674b3d5",
+        "manifest_rows_total": 120,
+        "manifest_rows_evaluated": 120,
+        "CADENCE_ENV": "dev",
+        "model_name": "base",
+        "device": "cpu",
+        "dtype_note": "cpu \u2192 fp32 (Whisper forces fp32 when device=cpu, see whisper/transcribe.py:127-136)",
+        "transcribe_call_literal": "model.transcribe(audio, word_timestamps=True)",
+        "default_temperature_from_signature": "(0.0, 0.2, 0.4, 0.6, 0.8, 1.0)",
+        "transcription_path_used": "_run_whisper_transcription from services/ml-audio/main.py",
+        "parity_check": {
+          "parity_string": "model.transcribe(audio, word_timestamps=True)",
+          "main_py_contains": true,
+          "amqp_consumer_py_contains": true,
+          "passed": true
+        },
+        "timeout_enforced": false,
+        "timeout_note": "No per-file timeout is enforced; transcription runs until Whisper completes.",
+        "torch_initial_seed": 3820754954673608750,
+        "torch_num_threads": 4,
+        "torch_seed_note": "torch not seeded; production-faithful. Non-determinism possible on temperature fallback.",
+        "normalizer_names": [
+          "primary: whisper.normalizers.EnglishTextNormalizer",
+          "simple: lowercase + strip punctuation (re.sub([^\\w\\s], '', text.lower()).strip())"
+        ],
+        "versions": {
+          "python": "3.12.4 (v3.12.4:8e8a4baf65, Jun  6 2024, 17:33:18) [Clang 13.0.0 (clang-1300.0.29.30)]",
+          "openai-whisper": "20250625",
+          "torch": "2.11.0",
+          "numpy": "2.4.4",
+          "jiwer": "4.0.0"
+        },
+        "ffmpeg": "ffmpeg version 8.0.1 Copyright (c) 2000-2025 the FFmpeg developers",
+        "platform": "macOS-27.0.1-arm64-arm-64bit",
+        "platform_machine": "arm64",
+        "ram_bytes": 8589934592,
+        "git": {
+          "HEAD": "cb8ea0624954314e6f1783e8b11d2056fa13a468",
+          "dirty": true
+        },
+        "peak_rss_bytes": 864763904,
+        "peak_rss_note": "resource.getrusage(RUSAGE_SELF).ru_maxrss \u2014 bytes on macOS, KB on Linux",
+        "warmup_utterance_id": "1089-134686-0003",
+        "warmup_status": "ok",
+        "repeatability": {
+          "reps": 5,
+          "repeat_subset_k": 10,
+          "rows_written": 25
+        }
+      },
+      "n_total": 120,
+      "n_ok": 120,
+      "n_error": 0,
+      "n_empty_hyp": 0,
+      "error_files": [],
+      "empty_hyp_files": [],
+      "wer_primary": {
+        "corpus_wer": 0.04935370152761457,
+        "mean_per_file_wer": 0.04997653333333333,
+        "S": 98,
+        "D": 10,
+        "I": 18,
+        "N": 2553,
+        "hits": 2445,
+        "bootstrap_95ci_lo": 0.03815892997639654,
+        "bootstrap_95ci_hi": 0.0614630467571644,
+        "bootstrap_note": "File-level bootstrap, seed=42, n_resamples=10000"
+      },
+      "wer_simple": {
+        "corpus_wer": 0.05258995650454725,
+        "mean_per_file_wer": 0.05589171666666667,
+        "S": 109,
+        "D": 14,
+        "I": 10,
+        "N": 2529,
+        "hits": 2406
+      },
+      "speaker_wer": {
+        "1089": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 24
+        },
+        "1188": {
+          "wer": 0.03361344537815126,
+          "S": 3,
+          "D": 0,
+          "I": 1,
+          "N": 119
+        },
+        "121": {
+          "wer": 0.03125,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 32
+        },
+        "1221": {
+          "wer": 0.017094017094017096,
+          "S": 1,
+          "D": 0,
+          "I": 1,
+          "N": 117
+        },
+        "1284": {
+          "wer": 0.017241379310344827,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 58
+        },
+        "1320": {
+          "wer": 0.02,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 50
+        },
+        "1580": {
+          "wer": 0.05172413793103448,
+          "S": 2,
+          "D": 1,
+          "I": 0,
+          "N": 58
+        },
+        "1995": {
+          "wer": 0.14285714285714285,
+          "S": 4,
+          "D": 2,
+          "I": 0,
+          "N": 42
+        },
+        "2094": {
+          "wer": 0.08928571428571429,
+          "S": 5,
+          "D": 0,
+          "I": 0,
+          "N": 56
+        },
+        "2300": {
+          "wer": 0.0379746835443038,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 79
+        },
+        "237": {
+          "wer": 0.09090909090909091,
+          "S": 4,
+          "D": 0,
+          "I": 0,
+          "N": 44
+        },
+        "260": {
+          "wer": 0.06329113924050633,
+          "S": 3,
+          "D": 2,
+          "I": 0,
+          "N": 79
+        },
+        "2830": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 55
+        },
+        "2961": {
+          "wer": 0.023809523809523808,
+          "S": 1,
+          "D": 1,
+          "I": 0,
+          "N": 84
+        },
+        "3570": {
+          "wer": 0.06097560975609756,
+          "S": 3,
+          "D": 2,
+          "I": 0,
+          "N": 82
+        },
+        "3575": {
+          "wer": 0.09574468085106383,
+          "S": 8,
+          "D": 0,
+          "I": 1,
+          "N": 94
+        },
+        "3729": {
+          "wer": 0.0297029702970297,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 101
+        },
+        "4077": {
+          "wer": 0.05343511450381679,
+          "S": 6,
+          "D": 0,
+          "I": 1,
+          "N": 131
+        },
+        "4446": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 28
+        },
+        "4507": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 46
+        },
+        "4970": {
+          "wer": 0.03773584905660377,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 53
+        },
+        "4992": {
+          "wer": 0.0784313725490196,
+          "S": 2,
+          "D": 1,
+          "I": 1,
+          "N": 51
+        },
+        "5105": {
+          "wer": 0.06,
+          "S": 3,
+          "D": 0,
+          "I": 0,
+          "N": 50
+        },
+        "5142": {
+          "wer": 0.1,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 30
+        },
+        "5639": {
+          "wer": 0.05970149253731343,
+          "S": 3,
+          "D": 1,
+          "I": 0,
+          "N": 67
+        },
+        "5683": {
+          "wer": 0.06060606060606061,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 33
+        },
+        "61": {
+          "wer": 0.0425531914893617,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 47
+        },
+        "672": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 32
+        },
+        "6829": {
+          "wer": 0.06521739130434782,
+          "S": 3,
+          "D": 0,
+          "I": 0,
+          "N": 46
+        },
+        "6930": {
+          "wer": 0.14705882352941177,
+          "S": 7,
+          "D": 0,
+          "I": 3,
+          "N": 68
+        },
+        "7021": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 58
+        },
+        "7127": {
+          "wer": 0.017857142857142856,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 56
+        },
+        "7176": {
+          "wer": 0.0989010989010989,
+          "S": 7,
+          "D": 0,
+          "I": 2,
+          "N": 91
+        },
+        "7729": {
+          "wer": 0.03409090909090909,
+          "S": 2,
+          "D": 0,
+          "I": 1,
+          "N": 88
+        },
+        "8224": {
+          "wer": 0.01639344262295082,
+          "S": 1,
+          "D": 0,
+          "I": 0,
+          "N": 61
+        },
+        "8230": {
+          "wer": 0.0,
+          "S": 0,
+          "D": 0,
+          "I": 0,
+          "N": 118
+        },
+        "8455": {
+          "wer": 0.03225806451612903,
+          "S": 2,
+          "D": 0,
+          "I": 0,
+          "N": 62
+        },
+        "8463": {
+          "wer": 0.11363636363636363,
+          "S": 3,
+          "D": 0,
+          "I": 2,
+          "N": 44
+        },
+        "8555": {
+          "wer": 0.0945945945945946,
+          "S": 6,
+          "D": 0,
+          "I": 1,
+          "N": 74
+        },
+        "908": {
+          "wer": 0.08888888888888889,
+          "S": 3,
+          "D": 0,
+          "I": 1,
+          "N": 45
+        }
+      },
+      "worst_5_speakers": [
+        [
+          "6930",
+          0.14705882352941177
+        ],
+        [
+          "1995",
+          0.14285714285714285
+        ],
+        [
+          "8463",
+          0.11363636363636363
+        ],
+        [
+          "5142",
+          0.1
+        ],
+        [
+          "7176",
+          0.0989010989010989
+        ]
+      ],
+      "worst_5_files": [
+        {
+          "utterance_id": "6930-76324-0027",
+          "speaker_id": "6930",
+          "wer": 0.304348,
+          "ref": "forgetting all their weariness they seized their candles and scurried through the house finding an occasional paper tucked away in some odd corner",
+          "hyp": "for getting all their weariness they seize their candles and scurry through the house finding on occasional paper it is tucked away in some odd corner"
+        },
+        {
+          "utterance_id": "1995-1826-0025",
+          "speaker_id": "1995",
+          "wer": 0.3,
+          "ref": "some time you will tell me please will not you",
+          "hyp": "sometimes you tell me please will not you"
+        },
+        {
+          "utterance_id": "5142-33396-0037",
+          "speaker_id": "5142",
+          "wer": 0.222222,
+          "ref": "hakon there shall be your constant companion friend farmer",
+          "hyp": "hawk in there shall be your constant companion friend farmer"
+        },
+        {
+          "utterance_id": "7729-102255-0025",
+          "speaker_id": "7729",
+          "wer": 0.2,
+          "ref": "their assumed character changed with their changing opportunities or necessities",
+          "hyp": "they are assumed character changed with their changing opportunities or necessities"
+        },
+        {
+          "utterance_id": "2094-142345-0028",
+          "speaker_id": "2094",
+          "wer": 0.1875,
+          "ref": "no no no totty ud get her feet wet said missus poyser carrying away her iron",
+          "hyp": "no no no toddy had get her feet wet said missus poison carrying away her iron"
+        }
+      ],
+      "fallback_count": 0,
+      "fallback_file_ids": [],
+      "latency": {
+        "mean": 1.5534483333333333,
+        "median": 1.2442,
+        "p90": 2.4804,
+        "p95": 3.1848,
+        "max": 4.5986,
+        "min": 0.9838,
+        "n": 120
+      },
+      "decode": {
+        "mean": 0.0773925,
+        "median": 0.0634,
+        "p90": 0.0969,
+        "p95": 0.1656,
+        "max": 0.3752,
+        "min": 0.0528,
+        "n": 120
+      },
+      "rtf": {
+        "mean": 0.25007583333333333,
+        "median": 0.2202
+      },
+      "total_wall_s": 186.4138,
+      "repeatability": {
+        "n_files": 5,
+        "n_identical": 5,
+        "pct_identical": 100.0,
+        "differing_files": {},
+        "file_rep_details": {
+          "1320-122612-0013": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.0,
+            "wer_max": 0.0,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 6.55,
+            "speaker_id": "1320"
+          },
+          "1580-141084-0010": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.142857,
+            "wer_max": 0.142857,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 4.47,
+            "speaker_id": "1580"
+          },
+          "3575-170457-0002": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.0,
+            "wer_max": 0.0,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 2.11,
+            "speaker_id": "3575"
+          },
+          "3575-170457-0046": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.115942,
+            "wer_max": 0.115942,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 25.64,
+            "speaker_id": "3575"
+          },
+          "908-157963-0025": {
+            "n_reps": 5,
+            "n_distinct_sha256": 1,
+            "fully_identical": true,
+            "wer_min": 0.105263,
+            "wer_max": 0.105263,
+            "wer_range": 0.0,
+            "max_temperature": 0.0,
+            "duration_s": 9.265,
+            "speaker_id": "908"
+          }
+        }
+      }
+    }
+  }
+}

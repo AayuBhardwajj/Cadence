@@ -1,0 +1,11 @@
+# LibriSpeech dataset — large binary files, not for version control
+LibriSpeech/
+*.tar
+*.tar.gz
+*.flac
+# Evaluation run outputs (may be large)
+results/runs/
+# Backup files
+*.orig
+# Unignore evaluation report
+!results/summary/REPORT.md

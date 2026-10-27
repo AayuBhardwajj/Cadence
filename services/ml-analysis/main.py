@@ -38,12 +38,11 @@ from amqp_consumer import AmqpConsumer  # noqa: E402
 async def lifespan(app: FastAPI):
     """Manage startup and shutdown lifecycle for ml-analysis, including AMQP consumer."""
     consumer = AmqpConsumer()
+    app.state.amqp_consumer = consumer
     try:
         await consumer.start()
-        app.state.amqp_consumer = consumer
     except Exception as err:
         logger.error("Failed to start AMQP consumer (service will continue in HTTP-only mode): %s", err)
-        app.state.amqp_consumer = None
 
     yield
 
