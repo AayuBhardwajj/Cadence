@@ -7,10 +7,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface WordBankRepository extends JpaRepository<WordBank, UUID> {
+
+    Optional<WordBank> findFirstByWordIgnoreCaseAndActiveTrueAndIssueType(String word, String issueType);
 
     @Query(value = "SELECT * FROM public.get_random_words(:difficulty, :issueType, :topic, :limit)", nativeQuery = true)
     List<WordBank> getRandomWords(

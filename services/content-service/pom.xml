@@ -52,7 +52,14 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- JWT Support (retained for future JWT auth integration) -->
+        <!-- Cadence shared security starter (JWT signature verification, D27) -->
+        <dependency>
+            <groupId>com.cadence</groupId>
+            <artifactId>cadence-security-starter</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+
+        <!-- JJWT kept for test-token signing in security tests (not used at runtime) -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -76,6 +83,15 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- cadence-security-starter test helpers (JwtTestTokenHelper) -->
+        <dependency>
+            <groupId>com.cadence</groupId>
+            <artifactId>cadence-security-starter</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
         </dependency>
 
         <!-- Testing -->

@@ -33,6 +33,10 @@ public class AssessmentReport {
     @Column(name = "focus_areas")
     private List<String> focusAreas;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "amcat_error_log", columnDefinition = "jsonb")
+    private com.fasterxml.jackson.databind.JsonNode amcatErrorLog;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 }

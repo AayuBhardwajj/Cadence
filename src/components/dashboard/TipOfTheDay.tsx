@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Sparkles, RefreshCw, Lock } from "lucide-react";
 import { EnhancedCard } from "./EnhancedCard";
 import { useTier } from "../../lib/TierContext";
-import { supabase } from "../../lib/supabase";
+import { getAuthHeaders } from "../../services/api";
 
 const CONTENT_SERVICE_BASE = import.meta.env.VITE_CONTENT_SERVICE_URL ?? "http://localhost:8084";
 
@@ -29,13 +29,12 @@ export function TipOfTheDay() {
         setLoading(true);
         setError(false);
         try {
-            // Get user_id from Supabase — same pattern as the rest of the app
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user?.id) throw new Error("Not authenticated");
-
-            const res = await fetch(
-                `${CONTENT_SERVICE_BASE}/api/tip-of-the-day?user_id=${user.id}`
-            );
+            const authHeaders = await getAuthHeaders();
+            const res = await fetch(`${CONTENT_SERVICE_BASE}/api/tip-of-the-day`, {
+                headers: {
+                    ...authHeaders,
+                },
+            });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data: TipData = await res.json();
             setTip(data);

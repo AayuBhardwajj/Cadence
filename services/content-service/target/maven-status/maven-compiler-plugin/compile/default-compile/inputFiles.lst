@@ -2,6 +2,7 @@
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/client/LlmClient.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/config/SecurityConfig.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/controller/CourseController.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/controller/DrillController.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/controller/ExerciseController.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/controller/LessonController.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/controller/PassageController.java
@@ -9,6 +10,8 @@
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/dto/CourseDetailDto.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/dto/CourseProgressDto.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/dto/CourseSummaryDto.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/dto/DrillPlanDto.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/dto/DrillPlanItemDto.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/dto/ExerciseAttemptRequest.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/dto/ExerciseAttemptResponse.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/dto/ExerciseDto.java
@@ -25,6 +28,7 @@
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/entity/CourseModule.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/entity/DailyTip.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/entity/DailyTipId.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/entity/DrillPhrase.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/entity/Exercise.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/entity/ExerciseAttempt.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/entity/GeneratedPassage.java
@@ -33,6 +37,8 @@
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/entity/PassagePool.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/entity/Profile.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/entity/RefillLock.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/entity/UserDrillPlan.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/entity/UserDrillPlanItem.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/entity/WordBank.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/filter/PassthroughAuthFilter.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/repository/AssessmentReportRepository.java
@@ -40,6 +46,7 @@
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/repository/CourseModuleRepository.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/repository/CourseRepository.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/repository/DailyTipRepository.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/repository/DrillPhraseRepository.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/repository/ExerciseAttemptRepository.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/repository/ExerciseRepository.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/repository/GeneratedPassageRepository.java
@@ -48,6 +55,8 @@
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/repository/PassagePoolRepository.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/repository/ProfileRepository.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/repository/RefillLockRepository.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/repository/UserDrillPlanItemRepository.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/repository/UserDrillPlanRepository.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/repository/WordBankRepository.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/security/CadenceLearnerAuthenticationToken.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/security/CurrentLearnerId.java
@@ -55,8 +64,10 @@
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/security/LearnerAuthFilter.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/security/LearnerPrincipal.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/service/CourseService.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/service/DrillPlanService.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/service/ExerciseService.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/service/LessonService.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/service/PassageService.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/service/TipService.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/util/OnsetResolver.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/main/java/com/cadence/content/worker/RefillWorker.java

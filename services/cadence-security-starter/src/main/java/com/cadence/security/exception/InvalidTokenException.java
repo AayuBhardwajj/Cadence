@@ -15,7 +15,8 @@ public class InvalidTokenException extends RuntimeException {
         UNSUPPORTED_ALGORITHM,
         MISSING_SUBJECT,
         INVALID_SUBJECT,
-        KEY_RESOLUTION_FAILED
+        KEY_RESOLUTION_FAILED,
+        INVALID_ROLE
     }
 
     private final Reason reason;

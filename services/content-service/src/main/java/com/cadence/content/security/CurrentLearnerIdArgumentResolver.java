@@ -1,5 +1,7 @@
 package com.cadence.content.security;
 
+import com.cadence.security.auth.CadenceLearnerAuthenticationToken;
+import com.cadence.security.model.LearnerPrincipal;
 import org.springframework.core.MethodParameter;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -11,6 +13,13 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.util.UUID;
 
+/**
+ * Resolves @CurrentLearnerId parameters from the shared CadenceLearnerAuthenticationToken.
+ * Supports required=false for public read endpoints that optionally accept a learner context.
+ * <p>
+ * Uses the SHARED com.cadence.security.auth.CadenceLearnerAuthenticationToken so the
+ * identity always comes from a cryptographically verified JWT (D27).
+ */
 public class CurrentLearnerIdArgumentResolver implements HandlerMethodArgumentResolver {
 
     @Override
@@ -31,8 +40,10 @@ public class CurrentLearnerIdArgumentResolver implements HandlerMethodArgumentRe
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication instanceof CadenceLearnerAuthenticationToken learnerAuth) {
-            return learnerAuth.getPrincipal().userId();
+        // Extract UUID from the SHARED token's LearnerPrincipal (cryptographically verified)
+        if (authentication instanceof CadenceLearnerAuthenticationToken sharedToken) {
+            LearnerPrincipal principal = sharedToken.getPrincipal();
+            return principal.userId();
         }
 
         if (required) {
@@ -42,3 +53,4 @@ public class CurrentLearnerIdArgumentResolver implements HandlerMethodArgumentRe
         return null;
     }
 }
+

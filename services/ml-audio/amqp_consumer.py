@@ -37,6 +37,7 @@ import time
 import urllib.request
 import uuid
 
+from typing import Any
 import aio_pika
 # D26 dead-code: load_dotenv removed — env loaded via ml_shared.env.load_env()
 # from dotenv import load_dotenv  # D26
@@ -298,70 +299,184 @@ async def start_amqp_consumer(app) -> None:
 
     logger.info("Connecting to RabbitMQ at %s...", rabbitmq_url.split("@")[-1])
     connection = None
-    max_retries = 10
-    retry_delay = 2
-    for attempt in range(1, max_retries + 1):
+    try:
+        connection = await aio_pika.connect_robust(rabbitmq_url, heartbeat=60)
         try:
-            connection = await aio_pika.connect_robust(rabbitmq_url, heartbeat=60)
-            break
-        except Exception as conn_err:
-            if attempt == max_retries:
-                logger.error("Failed to connect to RabbitMQ after %d attempts: %s", max_retries, conn_err)
-                raise
-            logger.warning(
-                "RabbitMQ not ready yet (attempt %d/%d): %s. Retrying in %ds...",
-                attempt, max_retries, conn_err, retry_delay
+            channel = await connection.channel()
+
+            # ── Idempotent queue declarations (D-impl-1) ────────────────────────────
+            # MUST match RabbitMQConfig.java in session-service:
+            #   durable=True, auto_delete=False, exclusive=False
+            # A mismatch will raise PRECONDITION_FAILED (406) here — change both files together.
+            await channel.declare_queue(
+                QUEUE_ANALYSIS_REQUESTED,
+                durable=True,
+                auto_delete=False,
+                exclusive=False,
             )
-            await asyncio.sleep(retry_delay)
-    app.state.amqp_connection = connection
+            await channel.declare_queue(
+                QUEUE_ANALYSIS_AUDIO_COMPLETED,
+                durable=True,
+                auto_delete=False,
+                exclusive=False,
+            )
+            logger.info(
+                "Queues declared idempotently: %s, %s",
+                QUEUE_ANALYSIS_REQUESTED,
+                QUEUE_ANALYSIS_AUDIO_COMPLETED,
+            )
 
-    channel = await connection.channel()
+            # prefetch_count=1: one message at a time — single Whisper model, no concurrency benefit.
+            await channel.set_qos(prefetch_count=1)
 
-    # ── Idempotent queue declarations (D-impl-1) ────────────────────────────
-    # MUST match RabbitMQConfig.java in session-service:
-    #   durable=True, auto_delete=False, exclusive=False
-    # A mismatch will raise PRECONDITION_FAILED (406) here — change both files together.
-    await channel.declare_queue(
-        QUEUE_ANALYSIS_REQUESTED,
-        durable=True,
-        auto_delete=False,
-        exclusive=False,
-    )
-    await channel.declare_queue(
-        QUEUE_ANALYSIS_AUDIO_COMPLETED,
-        durable=True,
-        auto_delete=False,
-        exclusive=False,
-    )
-    logger.info(
-        "Queues declared idempotently: %s, %s",
-        QUEUE_ANALYSIS_REQUESTED,
-        QUEUE_ANALYSIS_AUDIO_COMPLETED,
-    )
+            queue = await channel.get_queue(QUEUE_ANALYSIS_REQUESTED)
 
-    # prefetch_count=1: one message at a time — single Whisper model, no concurrency benefit.
-    await channel.set_qos(prefetch_count=1)
+            async def on_message(message: aio_pika.abc.AbstractIncomingMessage) -> None:
+                await _handle_analysis_requested(
+                    message,
+                    app.state.whisper_model,
+                    channel,
+                    supabase_url,
+                    service_key,
+                )
 
-    queue = await channel.get_queue(QUEUE_ANALYSIS_REQUESTED)
-
-    async def on_message(message: aio_pika.abc.AbstractIncomingMessage) -> None:
-        await _handle_analysis_requested(
-            message,
-            app.state.whisper_model,
-            channel,
-            supabase_url,
-            service_key,
+            await queue.consume(on_message)
+            app.state.amqp_connection = connection
+            app.state.amqp_channel = channel
+            logger.info(
+                "ml-audio AMQP consumer active — listening on '%s' (prefetch=1, heartbeat=60s)",
+                QUEUE_ANALYSIS_REQUESTED,
+            )
+        except Exception:
+            try:
+                if connection and not connection.is_closed:
+                    await connection.close()
+            except Exception:
+                pass
+            connection = None
+            raise
+    except Exception as conn_err:
+        try:
+            if connection and not connection.is_closed:
+                await connection.close()
+        except Exception:
+            pass
+        app.state.amqp_connection = None
+        app.state.amqp_channel = None
+        logger.warning(
+            "RabbitMQ not ready at startup: %s. Continuing in HTTP-only mode; launching background reconnection task.",
+            conn_err,
+        )
+        app.state.amqp_reconnect_task = asyncio.create_task(
+            _reconnect_loop(app, rabbitmq_url, supabase_url, service_key)
         )
 
-    await queue.consume(on_message)
-    logger.info(
-        "ml-audio AMQP consumer active — listening on '%s' (prefetch=1, heartbeat=60s)",
-        QUEUE_ANALYSIS_REQUESTED,
-    )
+    # Replaced finite 10x2s retry loop with background reconnect task (D-stall-fix)
+    # max_retries = 10
+    # retry_delay = 2
+    # for attempt in range(1, max_retries + 1):
+    #     try:
+    #         connection = await aio_pika.connect_robust(rabbitmq_url, heartbeat=60)
+    #         break
+    #     except Exception as conn_err:
+    #         if attempt == max_retries:
+    #             logger.error("Failed to connect to RabbitMQ after %d attempts: %s", max_retries, conn_err)
+    #             raise
+    #         logger.warning(
+    #             "RabbitMQ not ready yet (attempt %d/%d): %s. Retrying in %ds...",
+    #             attempt, max_retries, conn_err, retry_delay
+    #         )
+    #         await asyncio.sleep(retry_delay)
+
+
+async def _reconnect_loop(app: Any, rabbitmq_url: str, supabase_url: str, service_key: str) -> None:
+    """Background retry loop with capped exponential backoff until RabbitMQ connects."""
+    delay = 2.0
+    max_delay = 30.0
+    attempt = 0
+    while not getattr(app.state, "amqp_closing", False):
+        connection = None
+        try:
+            attempt += 1
+            connection = await aio_pika.connect_robust(rabbitmq_url, heartbeat=60)
+            try:
+                channel = await connection.channel()
+                await channel.declare_queue(
+                    QUEUE_ANALYSIS_REQUESTED,
+                    durable=True,
+                    auto_delete=False,
+                    exclusive=False,
+                )
+                await channel.declare_queue(
+                    QUEUE_ANALYSIS_AUDIO_COMPLETED,
+                    durable=True,
+                    auto_delete=False,
+                    exclusive=False,
+                )
+                await channel.set_qos(prefetch_count=1)
+                queue = await channel.get_queue(QUEUE_ANALYSIS_REQUESTED)
+
+                async def on_message(message: aio_pika.abc.AbstractIncomingMessage) -> None:
+                    await _handle_analysis_requested(
+                        message,
+                        app.state.whisper_model,
+                        channel,
+                        supabase_url,
+                        service_key,
+                    )
+
+                await queue.consume(on_message)
+                app.state.amqp_connection = connection
+                app.state.amqp_channel = channel
+                logger.info(
+                    "ml-audio AMQP consumer successfully connected (late connect on attempt %d) — listening on '%s' (prefetch=1, heartbeat=60s)",
+                    attempt,
+                    QUEUE_ANALYSIS_REQUESTED,
+                )
+                break
+            except Exception:
+                try:
+                    if connection and not connection.is_closed:
+                        await connection.close()
+                except Exception:
+                    pass
+                connection = None
+                raise
+        except asyncio.CancelledError:
+            try:
+                if connection and not connection.is_closed:
+                    await connection.close()
+            except Exception:
+                pass
+            app.state.amqp_connection = None
+            break
+        except Exception as exc:
+            try:
+                if connection and not connection.is_closed:
+                    await connection.close()
+            except Exception:
+                pass
+            app.state.amqp_connection = None
+            logger.warning(
+                "RabbitMQ reconnect attempt %d failed: %s. Retrying in %.1fs...",
+                attempt,
+                exc,
+                delay,
+            )
+            await asyncio.sleep(delay)
+            delay = min(delay * 2, max_delay)
 
 
 async def stop_amqp_consumer(app) -> None:
-    """Cleanly closes the AMQP connection on shutdown."""
+    """Cleanly closes the AMQP connection and cancels reconnect task on shutdown."""
+    app.state.amqp_closing = True
+    task = getattr(app.state, "amqp_reconnect_task", None)
+    if task and not task.done():
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
     conn = getattr(app.state, "amqp_connection", None)
     if conn and not conn.is_closed:
         await conn.close()

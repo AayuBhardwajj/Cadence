@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { subscribeToAssessment, AssessmentNotification } from '../../services/websocket';
 import { fetchAssessmentReport, AnalysisResult } from '../../services/api';
 import { CadenceButton } from '../ui/CadenceButton';
+import { CadenceCard } from '../ui/CadenceCard';
+
+const POLL_TIMEOUT_MS = 120000;
 
 interface ProcessingScreenProps {
     sessionId: string;
@@ -32,10 +35,15 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({
     const [currentStep, setCurrentStep] = useState(0);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [isTimedOut, setIsTimedOut] = useState<boolean>(false);
 
     const pendingResultRef = useRef<AnalysisResult | null>(null);
     const recommendationsReadyRef = useRef<boolean>(false);
     const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const timeoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const unsubscribeRef = useRef<(() => void) | null>(null);
+    const isCompletedRef = useRef<boolean>(false);
 
     const onReportReadyRef = useRef(onReportReady);
     onReportReadyRef.current = onReportReady;
@@ -48,21 +56,57 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({
 
     // Step animation loop while waiting for async events
     useEffect(() => {
-        if (errorMessage) return;
+        if (errorMessage || isTimedOut) return;
         const interval = setInterval(() => {
             setCurrentStep(prev => (prev < steps.length - 1 ? prev + 1 : prev));
         }, 3000);
         return () => clearInterval(interval);
-    }, [errorMessage]);
+    }, [errorMessage, isTimedOut]);
 
-    // WebSocket STOMP subscription to /topic/assessment/{sessionId}
-    useEffect(() => {
-        if (!sessionId) return;
+    const cleanup = () => {
+        isCompletedRef.current = true;
+        if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+        }
+        if (timeoutTimerRef.current) {
+            clearTimeout(timeoutTimerRef.current);
+            timeoutTimerRef.current = null;
+        }
+        if (fallbackTimerRef.current) {
+            clearTimeout(fallbackTimerRef.current);
+            fallbackTimerRef.current = null;
+        }
+        if (unsubscribeRef.current) {
+            unsubscribeRef.current();
+            unsubscribeRef.current = null;
+        }
+    };
 
+    const startProcessing = () => {
+        cleanup();
+        isCompletedRef.current = false;
+        recommendationsReadyRef.current = false;
+        pendingResultRef.current = null;
+        setIsTimedOut(false);
+        setErrorMessage(null);
+        setStatusMessage(null);
+        setCurrentStep(0);
+
+        // WebSocket STOMP subscription to /topic/assessment/{sessionId}
         const unsubscribe = subscribeToAssessment(
             sessionId,
             async (notification: AssessmentNotification) => {
                 if (notification.event === 'REPORT_READY') {
+                    // Clear the poll interval when REPORT_READY has been handled
+                    if (pollIntervalRef.current) {
+                        clearInterval(pollIntervalRef.current);
+                        pollIntervalRef.current = null;
+                    }
+                    if (timeoutTimerRef.current) {
+                        clearTimeout(timeoutTimerRef.current);
+                        timeoutTimerRef.current = null;
+                    }
                     setStatusMessage("Report ready! Finalizing personalized recommendations...");
                     try {
                         const result = await fetchAssessmentReport(sessionId);
@@ -104,6 +148,15 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({
                         onReportReadyRef.current(res);
                     }
                 } else if (notification.event === 'ASSESSMENT_FAILED') {
+                    // Clear poll interval and timeout timer when ASSESSMENT_FAILED arrives
+                    if (pollIntervalRef.current) {
+                        clearInterval(pollIntervalRef.current);
+                        pollIntervalRef.current = null;
+                    }
+                    if (timeoutTimerRef.current) {
+                        clearTimeout(timeoutTimerRef.current);
+                        timeoutTimerRef.current = null;
+                    }
                     if (fallbackTimerRef.current) {
                         clearTimeout(fallbackTimerRef.current);
                         fallbackTimerRef.current = null;
@@ -117,15 +170,23 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({
                 console.warn('[STOMP] WebSocket transport error (will auto-reconnect):', error);
             }
         );
+        unsubscribeRef.current = unsubscribe;
 
-        let isCompleted = false;
+        // Bounded polling loop (3s interval)
         const pollInterval = setInterval(async () => {
-            if (isCompleted) return;
+            if (isCompletedRef.current) return;
             try {
                 const result = await fetchAssessmentReport(sessionId);
                 if (result && (result.overall_score !== undefined || result.breakdown)) {
-                    isCompleted = true;
-                    clearInterval(pollInterval);
+                    isCompletedRef.current = true;
+                    if (pollIntervalRef.current) {
+                        clearInterval(pollIntervalRef.current);
+                        pollIntervalRef.current = null;
+                    }
+                    if (timeoutTimerRef.current) {
+                        clearTimeout(timeoutTimerRef.current);
+                        timeoutTimerRef.current = null;
+                    }
                     if (fallbackTimerRef.current) {
                         clearTimeout(fallbackTimerRef.current);
                         fallbackTimerRef.current = null;
@@ -136,17 +197,61 @@ export const ProcessingScreen: React.FC<ProcessingScreenProps> = ({
                 // Not ready yet (404/waiting), keep waiting for WebSocket or next poll
             }
         }, 3000);
+        pollIntervalRef.current = pollInterval;
 
-        return () => {
-            isCompleted = true;
-            clearInterval(pollInterval);
+        // Bounded timeout (120s): stop polling, close STOMP, show timeout retry UI
+        const timeoutTimer = setTimeout(() => {
+            if (isCompletedRef.current) return;
+            // Stop polling
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+                pollIntervalRef.current = null;
+            }
+            // Close STOMP client via existing cleanup path
+            if (unsubscribeRef.current) {
+                unsubscribeRef.current();
+                unsubscribeRef.current = null;
+            }
             if (fallbackTimerRef.current) {
                 clearTimeout(fallbackTimerRef.current);
                 fallbackTimerRef.current = null;
             }
-            unsubscribe();
+            setIsTimedOut(true);
+        }, POLL_TIMEOUT_MS);
+        timeoutTimerRef.current = timeoutTimer;
+    };
+
+    // WebSocket STOMP subscription to /topic/assessment/{sessionId}
+    useEffect(() => {
+        if (!sessionId) return;
+        startProcessing();
+        return () => {
+            cleanup();
         };
     }, [sessionId]);
+
+    if (isTimedOut) {
+        return (
+            <div className="fixed inset-0 z-30 flex flex-col items-center justify-center bg-background px-6">
+                <CadenceCard className="max-w-md w-full text-center flex flex-col items-center gap-6 p-8">
+                    <div className="w-16 h-16 rounded-full bg-warning/10 text-warning flex items-center justify-center text-2xl font-bold border border-warning/20">
+                        ⏳
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-text-primary tracking-tight">
+                            Analysis in Progress
+                        </h2>
+                        <p className="text-sm text-text-secondary mt-2">
+                            This is taking longer than expected.
+                        </p>
+                    </div>
+                    <CadenceButton size="lg" variant="primary" onClick={startProcessing} className="px-8 shadow-md">
+                        Retry
+                    </CadenceButton>
+                </CadenceCard>
+            </div>
+        );
+    }
 
     if (errorMessage) {
         return (

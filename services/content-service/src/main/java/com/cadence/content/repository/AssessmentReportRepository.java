@@ -15,6 +15,7 @@ public interface AssessmentReportRepository extends JpaRepository<AssessmentRepo
     @Query(value = "SELECT ar.* FROM public.assessment_reports ar " +
                    "JOIN public.assessment_sessions s ON ar.assessment_session_id = s.id " +
                    "WHERE s.user_id = :userId " +
+                   "AND s.status = 'completed' " +
                    "ORDER BY s.created_at DESC LIMIT 1", nativeQuery = true)
     Optional<AssessmentReport> findLatestByUserId(@Param("userId") UUID userId);
 }

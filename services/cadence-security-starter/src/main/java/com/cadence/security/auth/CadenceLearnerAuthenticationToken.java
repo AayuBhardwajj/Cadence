@@ -1,3 +1,4 @@
+
 package com.cadence.security.auth;
 
 import com.cadence.security.model.LearnerPrincipal;
@@ -10,7 +11,8 @@ import java.util.List;
 
 /**
  * Authentication token for verified learner requests.
- * Explicitly grants ROLE_LEARNER and ROLE_AUTHENTICATED.
+ * Grants ROLE_LEARNER and ROLE_AUTHENTICATED only
+ * when the verified JWT role is "authenticated".
  * Does NOT grant ROLE_INTERNAL_SERVICE.
  */
 public class CadenceLearnerAuthenticationToken extends AbstractAuthenticationToken {
@@ -18,20 +20,29 @@ public class CadenceLearnerAuthenticationToken extends AbstractAuthenticationTok
     public static final String ROLE_LEARNER = "ROLE_LEARNER";
     public static final String ROLE_AUTHENTICATED = "ROLE_AUTHENTICATED";
 
-    private static final List<GrantedAuthority> DEFAULT_AUTHORITIES = List.of(
-            new SimpleGrantedAuthority(ROLE_LEARNER),
-            new SimpleGrantedAuthority(ROLE_AUTHENTICATED)
-    );
-
     private final LearnerPrincipal principal;
 
     public CadenceLearnerAuthenticationToken(LearnerPrincipal principal) {
-        super(DEFAULT_AUTHORITIES);
+        super(deriveAuthorities(principal != null ? principal.role() : null));
         this.principal = principal;
         setAuthenticated(true);
     }
 
-    public CadenceLearnerAuthenticationToken(LearnerPrincipal principal, Collection<? extends GrantedAuthority> authorities) {
+    private static List<GrantedAuthority> deriveAuthorities(String role) {
+        if ("authenticated".equals(role)) {
+            return List.of(
+                    new SimpleGrantedAuthority(ROLE_LEARNER),
+                    new SimpleGrantedAuthority(ROLE_AUTHENTICATED)
+            );
+        }
+
+        return List.of();
+    }
+
+    public CadenceLearnerAuthenticationToken(
+            LearnerPrincipal principal,
+            Collection<? extends GrantedAuthority> authorities
+    ) {
         super(authorities);
         this.principal = principal;
         setAuthenticated(true);
@@ -39,7 +50,7 @@ public class CadenceLearnerAuthenticationToken extends AbstractAuthenticationTok
 
     @Override
     public Object getCredentials() {
-        return null; // Credentials (JWT) are not retained in memory
+        return null;
     }
 
     @Override

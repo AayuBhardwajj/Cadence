@@ -1,6 +1,13 @@
+com/cadence/content/util/OnsetResolverTest.class
+com/cadence/content/service/LessonServiceTest.class
+com/cadence/content/service/ExerciseServiceTest.class
+com/cadence/content/service/TipServiceTest.class
+com/cadence/content/util/OnsetResolverTest$1.class
+com/cadence/content/service/DrillPlanServiceTest.class
 com/cadence/content/service/PassageServiceTest.class
 com/cadence/content/client/LlmClientTest.class
+com/cadence/content/service/CourseServiceTest.class
+com/cadence/content/controller/DrillControllerTest.class
 com/cadence/content/worker/RefillWorkerTest.class
 com/cadence/content/worker/RefillWorkerTest$1.class
 com/cadence/content/ContentServiceApplicationTests.class
-com/cadence/content/service/TipServiceTest.class

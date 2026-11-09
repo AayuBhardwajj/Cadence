@@ -26,3 +26,22 @@ cadence:
     gemini-api-key: ${GEMINI_API_KEY:}
   refill:
     interval-seconds: ${REFILL_INTERVAL_SECONDS:600}
+  # JWT verification via cadence-security-starter (DECISIONS.md D27).
+  # Algorithm, issuer, audience and secret follow the same pattern as report-service.
+  # Secrets are injected from env/dev.env or env/prod.env via with-env.sh (D26).
+  # No defaults for secret — startup fails if unset (fail-closed).
+  security:
+    jwt:
+      issuer: ${SUPABASE_JWT_ISSUER:http://127.0.0.1:54321/auth/v1}
+      audience: ${SUPABASE_JWT_AUDIENCE:authenticated}
+      allowed-algorithms: ${SUPABASE_JWT_ALLOWED_ALGORITHMS:HS256}
+      secret: ${SUPABASE_JWT_SECRET:}
+      public-key-pem: ${SUPABASE_JWT_PUBLIC_KEY_PEM:}
+      jwks-url: ${SUPABASE_JWT_JWKS_URL:}
+      jwks-cache-ttl-seconds: ${SUPABASE_JWT_JWKS_CACHE_TTL_SECONDS:600}
+      jwks-min-refresh-seconds: ${SUPABASE_JWT_JWKS_MIN_REFRESH_SECONDS:30}
+    internal:
+      # content-service has no internal-only endpoints.
+      # Set enabled=false so the InternalAuthFilter does not require a secret to start.
+      enabled: false
+

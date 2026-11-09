@@ -98,3 +98,146 @@ async def test_analyze_audio_contract_shape():
     assert result["filler_detail"].get("um") == 1
     assert len(result["words_data"]) == 7
     assert result["duration"] == 3.0
+
+
+from unittest.mock import AsyncMock
+import asyncio
+
+
+@pytest.mark.asyncio
+async def test_ml_audio_amqp_reconnect_retry_loop_recovers():
+    from amqp_consumer import start_amqp_consumer, stop_amqp_consumer
+
+    class FakeState:
+        whisper_model = MagicMock()
+
+    class FakeApp:
+        state = FakeState()
+
+    fake_app = FakeApp()
+
+    mock_queue = AsyncMock()
+    mock_queue.consume = AsyncMock(return_value="ctag-audio-123")
+    mock_channel = AsyncMock()
+    mock_channel.set_qos = AsyncMock()
+    mock_channel.declare_queue = AsyncMock(return_value=mock_queue)
+    mock_channel.get_queue = AsyncMock(return_value=mock_queue)
+    mock_connection = AsyncMock()
+    mock_connection.channel = AsyncMock(return_value=mock_channel)
+
+    call_count = 0
+
+    async def mock_connect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count <= 2:
+            raise ConnectionError("Broker not ready")
+        return mock_connection
+
+    with patch.dict(os.environ, {"SUPABASE_URL": "http://localhost:54321", "SUPABASE_SERVICE_ROLE_KEY": "test_key", "RABBITMQ_PASSWORD": "test_pw"}), \
+         patch("aio_pika.connect_robust", side_effect=mock_connect), \
+         patch("asyncio.sleep", new=AsyncMock()):
+        await start_amqp_consumer(fake_app)
+        assert getattr(fake_app.state, "amqp_reconnect_task", None) is not None
+        await fake_app.state.amqp_reconnect_task
+        assert call_count == 3
+        assert fake_app.state.amqp_connection == mock_connection
+        await stop_amqp_consumer(fake_app)
+
+
+@pytest.mark.asyncio
+async def test_ml_audio_stop_cancels_reconnect_task():
+    from amqp_consumer import start_amqp_consumer, stop_amqp_consumer
+
+    class FakeState:
+        whisper_model = MagicMock()
+
+    class FakeApp:
+        state = FakeState()
+
+    fake_app = FakeApp()
+
+    async def hanging_connect(*args, **kwargs):
+        raise ConnectionError("Broker unreachable")
+
+    with patch.dict(os.environ, {"SUPABASE_URL": "http://localhost:54321", "SUPABASE_SERVICE_ROLE_KEY": "test_key", "RABBITMQ_PASSWORD": "test_pw"}), \
+         patch("aio_pika.connect_robust", side_effect=hanging_connect):
+        await start_amqp_consumer(fake_app)
+        task = getattr(fake_app.state, "amqp_reconnect_task", None)
+        assert task is not None
+        assert not task.done()
+
+        await stop_amqp_consumer(fake_app)
+        assert task.done()
+
+
+@pytest.mark.asyncio
+async def test_ml_audio_closes_connection_if_setup_fails():
+    from amqp_consumer import start_amqp_consumer, stop_amqp_consumer
+
+    class FakeState:
+        whisper_model = MagicMock()
+
+    class FakeApp:
+        state = FakeState()
+
+    fake_app = FakeApp()
+
+    mock_connection = AsyncMock()
+    mock_connection.is_closed = False
+    mock_connection.close = AsyncMock()
+    mock_connection.channel = AsyncMock(side_effect=RuntimeError("Channel setup failed"))
+
+    with patch.dict(os.environ, {"SUPABASE_URL": "http://localhost:54321", "SUPABASE_SERVICE_ROLE_KEY": "test_key", "RABBITMQ_PASSWORD": "test_pw"}), \
+         patch("aio_pika.connect_robust", return_value=mock_connection):
+        await start_amqp_consumer(fake_app)
+        mock_connection.close.assert_awaited_once()
+        assert fake_app.state.amqp_connection is None
+        await stop_amqp_consumer(fake_app)
+
+
+@pytest.mark.asyncio
+async def test_ml_audio_reconnect_loop_closes_connection_on_setup_failure_then_succeeds():
+    from amqp_consumer import _reconnect_loop, stop_amqp_consumer
+
+    class FakeState:
+        whisper_model = MagicMock()
+
+    class FakeApp:
+        state = FakeState()
+
+    fake_app = FakeApp()
+
+    mock_conn1 = AsyncMock()
+    mock_conn1.is_closed = False
+    mock_conn1.close = AsyncMock()
+    mock_conn1.channel = AsyncMock(side_effect=RuntimeError("Channel setup failed"))
+
+    mock_queue = AsyncMock()
+    mock_queue.consume = AsyncMock(return_value="ctag-audio-ok")
+    mock_channel2 = AsyncMock()
+    mock_channel2.set_qos = AsyncMock()
+    mock_channel2.declare_queue = AsyncMock(return_value=mock_queue)
+    mock_channel2.get_queue = AsyncMock(return_value=mock_queue)
+    mock_conn2 = AsyncMock()
+    mock_conn2.is_closed = False
+    mock_conn2.close = AsyncMock()
+    mock_conn2.channel = AsyncMock(return_value=mock_channel2)
+
+    connections = [mock_conn1, mock_conn2]
+
+    async def mock_connect(*args, **kwargs):
+        if connections:
+            return connections.pop(0)
+        return mock_conn2
+
+    with patch("aio_pika.connect_robust", side_effect=mock_connect), \
+         patch("asyncio.sleep", new=AsyncMock()):
+        task = asyncio.create_task(
+            _reconnect_loop(fake_app, "amqp://guest:guest@localhost:5672/", "http://localhost:54321", "test_key")
+        )
+        await task
+        mock_conn1.close.assert_awaited_once()
+        assert fake_app.state.amqp_connection == mock_conn2
+        await stop_amqp_consumer(fake_app)
+

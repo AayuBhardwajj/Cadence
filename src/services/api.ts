@@ -15,7 +15,7 @@ const PRACTICE_GAME_SERVICE_URL =
 /* Shared HTTP and authentication helpers                                     */
 /* -------------------------------------------------------------------------- */
 
-async function getAuthHeaders(): Promise<HeadersInit> {
+export async function getAuthHeaders(): Promise<HeadersInit> {
     const headers: Record<string, string> = {};
 
     try {
@@ -621,11 +621,17 @@ export const completeExercise = async (
 /* -------------------------------------------------------------------------- */
 
 export const apiClient = {
-    async post<T>(path: string, body: unknown): Promise<T> {
+    async post<T>(path: string, body: unknown, extraHeaders?: Record<string, string>): Promise<T> {
+        // Always attach the authenticated learner's JWT for content-service protected routes (Phase A).
+        // getAuthHeaders() returns {} if no session exists, so unauthenticated callers get 401 from
+        // the server rather than a silent client-side failure.
+        const authHeaders = await getAuthHeaders();
         return requestJson<T>(`${CONTENT_SERVICE_URL}${path}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                ...authHeaders,
+                ...extraHeaders,
             },
             body: JSON.stringify(body),
         });

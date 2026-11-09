@@ -61,6 +61,7 @@ public class CadenceSecurityProperties {
 
     public static class JwtProperties {
         private List<String> allowedAlgorithms = new java.util.ArrayList<>(java.util.List.of("HS256"));
+        private List<String> allowedRoles = new java.util.ArrayList<>(java.util.List.of("authenticated"));
         private String secret;
         private String secondarySecret;
         private String publicKeyPem;
@@ -104,6 +105,28 @@ public class CadenceSecurityProperties {
                 this.allowedAlgorithms = flatList;
             } else {
                 this.allowedAlgorithms = new java.util.ArrayList<>(java.util.List.of("HS256"));
+            }
+        }
+
+        public java.util.List<String> getAllowedRoles() {
+            return allowedRoles;
+        }
+
+        public void setAllowedRoles(java.util.List<String> allowedRoles) {
+            if (allowedRoles != null) {
+                java.util.List<String> flatList = new java.util.ArrayList<>();
+                for (String item : allowedRoles) {
+                    if (item != null) {
+                        for (String part : item.split(",")) {
+                            if (!part.isBlank()) {
+                                flatList.add(part.trim());
+                            }
+                        }
+                    }
+                }
+                this.allowedRoles = flatList;
+            } else {
+                this.allowedRoles = new java.util.ArrayList<>(java.util.List.of("authenticated"));
             }
         }
 
@@ -214,6 +237,10 @@ public class CadenceSecurityProperties {
 
             if (audience == null || audience.isBlank()) {
                 throw new SecurityConfigurationException("JWT expected audience (cadence.security.jwt.audience) must be explicitly specified");
+            }
+
+            if (allowedRoles == null || allowedRoles.isEmpty()) {
+                throw new SecurityConfigurationException("JWT allowed roles (cadence.security.jwt.allowed-roles) must be explicitly specified (e.g. authenticated)");
             }
 
             if (clockSkewSeconds < 0 || clockSkewSeconds > 300) {

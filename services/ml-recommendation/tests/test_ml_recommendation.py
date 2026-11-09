@@ -278,6 +278,7 @@ def test_extract_diagnostic_issues():
 
 
 from unittest.mock import AsyncMock, patch
+import asyncio
 
 @pytest.mark.asyncio
 async def test_ml_recommendation_amqp_reconnect_retry_loop_recovers():
@@ -343,6 +344,76 @@ async def test_ml_recommendation_stop_cancels_reconnect_task():
 
         await stop_amqp_consumer(fake_app)
         assert task.done()
+
+
+@pytest.mark.asyncio
+async def test_ml_recommendation_closes_connection_if_setup_fails():
+    from amqp_consumer import start_amqp_consumer, stop_amqp_consumer
+
+    class FakeState:
+        pass
+
+    class FakeApp:
+        state = FakeState()
+
+    fake_app = FakeApp()
+
+    mock_connection = AsyncMock()
+    mock_connection.is_closed = False
+    mock_connection.close = AsyncMock()
+    mock_connection.channel = AsyncMock(side_effect=RuntimeError("Channel setup failed"))
+
+    with patch("aio_pika.connect_robust", return_value=mock_connection):
+        await start_amqp_consumer(fake_app)
+        mock_connection.close.assert_awaited_once()
+        assert fake_app.state.amqp_connection is None
+        await stop_amqp_consumer(fake_app)
+
+
+@pytest.mark.asyncio
+async def test_ml_recommendation_reconnect_loop_closes_connection_on_setup_failure_then_succeeds():
+    from amqp_consumer import _reconnect_loop, stop_amqp_consumer
+
+    class FakeState:
+        pass
+
+    class FakeApp:
+        state = FakeState()
+
+    fake_app = FakeApp()
+
+    mock_conn1 = AsyncMock()
+    mock_conn1.is_closed = False
+    mock_conn1.close = AsyncMock()
+    mock_conn1.channel = AsyncMock(side_effect=RuntimeError("Channel setup failed"))
+
+    mock_queue = AsyncMock()
+    mock_queue.consume = AsyncMock(return_value="ctag-rec-ok")
+    mock_channel2 = AsyncMock()
+    mock_channel2.set_qos = AsyncMock()
+    mock_channel2.declare_queue = AsyncMock(return_value=mock_queue)
+    mock_conn2 = AsyncMock()
+    mock_conn2.is_closed = False
+    mock_conn2.close = AsyncMock()
+    mock_conn2.channel = AsyncMock(return_value=mock_channel2)
+
+    connections = [mock_conn1, mock_conn2]
+
+    async def mock_connect(*args, **kwargs):
+        if connections:
+            return connections.pop(0)
+        return mock_conn2
+
+    with patch("aio_pika.connect_robust", side_effect=mock_connect), \
+         patch("asyncio.sleep", new=AsyncMock()):
+        task = asyncio.create_task(_reconnect_loop(fake_app, "amqp://guest:guest@localhost:5672/"))
+        await task
+        mock_conn1.close.assert_awaited_once()
+        assert fake_app.state.amqp_connection == mock_conn2
+        assert fake_app.state.amqp_consumer_tag == "ctag-rec-ok"
+        await stop_amqp_consumer(fake_app)
+
+
 
 
 

@@ -47,6 +47,7 @@ public class JwtValidator {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final List<String> allowedAlgorithms;
+    private final List<String> allowedRoles;
     private final String expectedIssuer;
     private final String expectedAudience;
     private final boolean requireSubject;
@@ -63,6 +64,7 @@ public class JwtValidator {
 
         CadenceSecurityProperties.JwtProperties jwtProps = properties.getJwt();
         this.allowedAlgorithms = List.copyOf(jwtProps.getAllowedAlgorithms());
+        this.allowedRoles = List.copyOf(jwtProps.getAllowedRoles());
         this.expectedIssuer = jwtProps.getIssuer();
         this.expectedAudience = jwtProps.getAudience();
         this.requireSubject = jwtProps.isRequireSubject();
@@ -139,6 +141,7 @@ public class JwtValidator {
             boolean requireSubject
     ) {
         this.allowedAlgorithms = List.copyOf(allowedAlgorithms);
+        this.allowedRoles = List.of("authenticated");
         this.primarySecretKey = primarySecretKey;
         this.secondarySecretKey = secondarySecretKey;
         this.primaryPublicKey = primaryPublicKey;
@@ -160,7 +163,12 @@ public class JwtValidator {
      * Package-private legacy constructor for unit tests passing a single algorithm and Key instances.
      */
     JwtValidator(JwtAlgorithm algorithm, Key primaryKey, Key secondaryKey, String issuer, String audience, long clockSkewSeconds, boolean requireSubject) {
+        this(algorithm, primaryKey, secondaryKey, issuer, audience, clockSkewSeconds, requireSubject, List.of("authenticated"));
+    }
+
+    JwtValidator(JwtAlgorithm algorithm, Key primaryKey, Key secondaryKey, String issuer, String audience, long clockSkewSeconds, boolean requireSubject, List<String> allowedRoles) {
         this.allowedAlgorithms = List.of(algorithm.getStandardName());
+        this.allowedRoles = List.copyOf(allowedRoles);
         this.expectedIssuer = issuer;
         this.expectedAudience = audience;
         this.requireSubject = requireSubject;
@@ -271,6 +279,13 @@ public class JwtValidator {
 
         String email = payload.get("email", String.class);
         String role = payload.get("role", String.class);
+
+        // Strict Supabase role enforcement (authenticated allow-list, D27)
+        if (role == null || role.isBlank() || !allowedRoles.contains(role.trim())) {
+            log.debug("JWT role rejection: role is null, blank, or not in allowed-roles {}", allowedRoles);
+            throw new InvalidTokenException(Reason.INVALID_ROLE, "Token missing or invalid role claim");
+        }
+
         Instant issuedAt = payload.getIssuedAt() != null ? payload.getIssuedAt().toInstant() : null;
         Instant expiresAt = payload.getExpiration() != null ? payload.getExpiration().toInstant() : null;
         Set<String> audience = payload.getAudience();

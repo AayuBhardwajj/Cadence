@@ -87,20 +87,40 @@ class AmqpConsumer:
     async def start(self) -> None:
         """Connect to RabbitMQ and begin consuming. If unavailable, start background retry task."""
         logger.info("Connecting to RabbitMQ at %s...", self.amqp_url.split("@")[-1])
+        conn = None
         try:
-            self.connection = await aio_pika.connect_robust(
+            conn = await aio_pika.connect_robust(
                 self.amqp_url,
                 client_properties={"connection_name": "cadence:ml-analysis"},
             )
-            self.channel = await self.connection.channel()
-            await self.channel.set_qos(prefetch_count=1)
-            await self._declare_topology()
-            self.consumer_tag = await self.incoming_queue.consume(self._on_message)
-            logger.info(
-                "ml-analysis AMQP consumer active — listening on '%s' (prefetch=1)",
-                QUEUE_ANALYSIS_AUDIO_COMPLETED,
-            )
+            try:
+                self.connection = conn
+                self.channel = await conn.channel()
+                await self.channel.set_qos(prefetch_count=1)
+                await self._declare_topology()
+                self.consumer_tag = await self.incoming_queue.consume(self._on_message)
+                logger.info(
+                    "ml-analysis AMQP consumer active — listening on '%s' (prefetch=1)",
+                    QUEUE_ANALYSIS_AUDIO_COMPLETED,
+                )
+            except Exception:
+                try:
+                    if conn and not conn.is_closed:
+                        await conn.close()
+                except Exception:
+                    pass
+                conn = None
+                self.connection = None
+                self.channel = None
+                raise
         except Exception as conn_err:
+            try:
+                if conn and not conn.is_closed:
+                    await conn.close()
+            except Exception:
+                pass
+            self.connection = None
+            self.channel = None
             logger.warning(
                 "RabbitMQ not ready at startup: %s. Continuing in HTTP-only mode; launching background reconnection task.",
                 conn_err,
@@ -143,34 +163,59 @@ class AmqpConsumer:
         max_delay = 30.0
         attempt = 0
         while not self._closing:
+            conn = None
             try:
-                await asyncio.sleep(delay)
-                if self._closing:
-                    break
                 attempt += 1
-                self.connection = await aio_pika.connect_robust(
+                conn = await aio_pika.connect_robust(
                     self.amqp_url,
                     client_properties={"connection_name": "cadence:ml-analysis"},
                 )
-                self.channel = await self.connection.channel()
-                await self.channel.set_qos(prefetch_count=1)
-                await self._declare_topology()
-                self.consumer_tag = await self.incoming_queue.consume(self._on_message)
-                logger.info(
-                    "ml-analysis AMQP consumer successfully connected (late connect on attempt %d) — listening on '%s' (prefetch=1)",
-                    attempt,
-                    QUEUE_ANALYSIS_AUDIO_COMPLETED,
-                )
-                break
+                try:
+                    self.connection = conn
+                    self.channel = await conn.channel()
+                    await self.channel.set_qos(prefetch_count=1)
+                    await self._declare_topology()
+                    self.consumer_tag = await self.incoming_queue.consume(self._on_message)
+                    logger.info(
+                        "ml-analysis AMQP consumer successfully connected (late connect on attempt %d) — listening on '%s' (prefetch=1)",
+                        attempt,
+                        QUEUE_ANALYSIS_AUDIO_COMPLETED,
+                    )
+                    break
+                except Exception:
+                    try:
+                        if conn and not conn.is_closed:
+                            await conn.close()
+                    except Exception:
+                        pass
+                    conn = None
+                    self.connection = None
+                    self.channel = None
+                    raise
             except asyncio.CancelledError:
+                try:
+                    if conn and not conn.is_closed:
+                        await conn.close()
+                except Exception:
+                    pass
+                self.connection = None
+                self.channel = None
                 break
             except Exception as exc:
+                try:
+                    if conn and not conn.is_closed:
+                        await conn.close()
+                except Exception:
+                    pass
+                self.connection = None
+                self.channel = None
                 logger.warning(
                     "RabbitMQ reconnect attempt %d failed: %s. Retrying in %.1fs...",
                     attempt,
                     exc,
                     delay,
                 )
+                await asyncio.sleep(delay)
                 delay = min(delay * 2, max_delay)
 
     async def _declare_topology(self) -> None:

@@ -67,8 +67,7 @@ class JwtValidatorTest {
             String aud,
             Instant issuedAt,
             Instant expiresAt,
-            Map<String, Object> extraClaims
-    ) {
+            Map<String, Object> extraClaims) {
         var builder = Jwts.builder()
                 .issuer(iss)
                 .audience().add(aud).and()
@@ -92,6 +91,7 @@ class JwtValidatorTest {
     void testValidTokenVerification() {
         UUID expectedUserId = UUID.randomUUID();
         Instant now = Instant.now();
+
         String token = createToken(
                 primaryKey,
                 expectedUserId.toString(),
@@ -99,8 +99,7 @@ class JwtValidatorTest {
                 EXPECTED_AUDIENCE,
                 now,
                 now.plus(1, ChronoUnit.HOURS),
-                Map.of("email", "learner@cadence.ai", "role", "authenticated")
-        );
+                Map.of("email", "learner@cadence.ai", "role", "authenticated"));
 
         JwtClaims claims = validator.validate(token);
 
@@ -117,6 +116,7 @@ class JwtValidatorTest {
     void testWrongSignatureFails() {
         UUID userId = UUID.randomUUID();
         Instant now = Instant.now();
+
         String token = createToken(
                 otherKey,
                 userId.toString(),
@@ -124,10 +124,12 @@ class JwtValidatorTest {
                 EXPECTED_AUDIENCE,
                 now,
                 now.plus(1, ChronoUnit.HOURS),
-                null
-        );
+                null);
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> validator.validate(token));
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> validator.validate(token));
+
         assertEquals(Reason.BAD_SIGNATURE, ex.getReason());
     }
 
@@ -136,6 +138,7 @@ class JwtValidatorTest {
     void testTamperedPayloadFails() {
         UUID userId = UUID.randomUUID();
         Instant now = Instant.now();
+
         String token = createToken(
                 primaryKey,
                 userId.toString(),
@@ -143,15 +146,18 @@ class JwtValidatorTest {
                 EXPECTED_AUDIENCE,
                 now,
                 now.plus(1, ChronoUnit.HOURS),
-                null
-        );
+                null);
 
         // Tamper with middle part (payload)
         String[] parts = token.split("\\.");
         assertEquals(3, parts.length);
+
         String tamperedToken = parts[0] + "." + parts[1] + "tampered" + "." + parts[2];
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> validator.validate(tamperedToken));
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> validator.validate(tamperedToken));
+
         assertEquals(Reason.BAD_SIGNATURE, ex.getReason());
     }
 
@@ -160,6 +166,7 @@ class JwtValidatorTest {
     void testExpiredTokenFails() {
         UUID userId = UUID.randomUUID();
         Instant past = Instant.now().minus(2, ChronoUnit.HOURS);
+
         String token = createToken(
                 primaryKey,
                 userId.toString(),
@@ -167,10 +174,12 @@ class JwtValidatorTest {
                 EXPECTED_AUDIENCE,
                 past.minus(1, ChronoUnit.HOURS),
                 past, // expired 2 hours ago
-                null
-        );
+                null);
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> validator.validate(token));
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> validator.validate(token));
+
         assertEquals(Reason.EXPIRED, ex.getReason());
     }
 
@@ -179,6 +188,7 @@ class JwtValidatorTest {
     void testIssuerMismatchFails() {
         UUID userId = UUID.randomUUID();
         Instant now = Instant.now();
+
         String token = createToken(
                 primaryKey,
                 userId.toString(),
@@ -186,10 +196,12 @@ class JwtValidatorTest {
                 EXPECTED_AUDIENCE,
                 now,
                 now.plus(1, ChronoUnit.HOURS),
-                null
-        );
+                null);
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> validator.validate(token));
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> validator.validate(token));
+
         assertEquals(Reason.INVALID_ISSUER, ex.getReason());
     }
 
@@ -198,6 +210,7 @@ class JwtValidatorTest {
     void testAudienceMismatchFails() {
         UUID userId = UUID.randomUUID();
         Instant now = Instant.now();
+
         String token = createToken(
                 primaryKey,
                 userId.toString(),
@@ -205,10 +218,12 @@ class JwtValidatorTest {
                 "wrong-audience",
                 now,
                 now.plus(1, ChronoUnit.HOURS),
-                null
-        );
+                null);
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> validator.validate(token));
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> validator.validate(token));
+
         assertEquals(Reason.INVALID_AUDIENCE, ex.getReason());
     }
 
@@ -219,15 +234,21 @@ class JwtValidatorTest {
         String payload = "eyJzdWIiOiIxMjM0NTY3OC0xMjM0LTEyMzQtMTIzNC0xMjM0NTY3ODEyMzQiLCJpc3MiOiJodHRwczovL3Rlc3Quc3VwYWJhc2UuY28vYXV0aC92MSIsImF1ZCI6ImF1dGhlbnRpY2F0ZWQifQ";
         String unsignedToken = header + "." + payload + ".";
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> validator.validate(unsignedToken));
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> validator.validate(unsignedToken));
+
         assertEquals(Reason.UNSUPPORTED_ALGORITHM, ex.getReason());
     }
 
     @Test
     @DisplayName("Token signed with HS512 when HS256 is expected is rejected")
     void testAlgorithmMismatchRejected() {
-        SecretKey key512 = Keys.hmacShaKeyFor((TEST_SECRET + TEST_SECRET).getBytes(StandardCharsets.UTF_8));
+        SecretKey key512 = Keys.hmacShaKeyFor(
+                (TEST_SECRET + TEST_SECRET).getBytes(StandardCharsets.UTF_8));
+
         Instant now = Instant.now();
+
         String token = Jwts.builder()
                 .subject(UUID.randomUUID().toString())
                 .issuer(EXPECTED_ISSUER)
@@ -237,7 +258,10 @@ class JwtValidatorTest {
                 .signWith(key512, Jwts.SIG.HS512)
                 .compact();
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> validator.validate(token));
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> validator.validate(token));
+
         assertEquals(Reason.UNSUPPORTED_ALGORITHM, ex.getReason());
     }
 
@@ -256,6 +280,7 @@ class JwtValidatorTest {
     @DisplayName("Token missing subject claim is rejected")
     void testMissingSubjectRejected() {
         Instant now = Instant.now();
+
         String token = createToken(
                 primaryKey,
                 null,
@@ -263,10 +288,12 @@ class JwtValidatorTest {
                 EXPECTED_AUDIENCE,
                 now,
                 now.plus(1, ChronoUnit.HOURS),
-                null
-        );
+                null);
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> validator.validate(token));
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> validator.validate(token));
+
         assertEquals(Reason.MISSING_SUBJECT, ex.getReason());
     }
 
@@ -274,6 +301,7 @@ class JwtValidatorTest {
     @DisplayName("Token with non-UUID subject claim is rejected")
     void testInvalidUuidSubjectRejected() {
         Instant now = Instant.now();
+
         String token = createToken(
                 primaryKey,
                 "not-a-valid-uuid",
@@ -281,10 +309,12 @@ class JwtValidatorTest {
                 EXPECTED_AUDIENCE,
                 now,
                 now.plus(1, ChronoUnit.HOURS),
-                null
-        );
+                null);
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> validator.validate(token));
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> validator.validate(token));
+
         assertEquals(Reason.INVALID_SUBJECT, ex.getReason());
     }
 
@@ -305,14 +335,40 @@ class JwtValidatorTest {
         UUID user2 = UUID.randomUUID();
         Instant now = Instant.now();
 
-        String token1 = createToken(primaryKey, user1.toString(), EXPECTED_ISSUER, EXPECTED_AUDIENCE, now, now.plus(1, ChronoUnit.HOURS), null);
-        String token2 = createToken(secondaryKey, user2.toString(), EXPECTED_ISSUER, EXPECTED_AUDIENCE, now, now.plus(1, ChronoUnit.HOURS), null);
-        String token3 = createToken(otherKey, UUID.randomUUID().toString(), EXPECTED_ISSUER, EXPECTED_AUDIENCE, now, now.plus(1, ChronoUnit.HOURS), null);
+        String token1 = createToken(
+                primaryKey,
+                user1.toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                Map.of("role", "authenticated"));
+
+        String token2 = createToken(
+                secondaryKey,
+                user2.toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                Map.of("role", "authenticated"));
+
+        String token3 = createToken(
+                otherKey,
+                UUID.randomUUID().toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                Map.of("role", "authenticated"));
 
         assertEquals(user1, rotatingValidator.validate(token1).userId());
         assertEquals(user2, rotatingValidator.validate(token2).userId());
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> rotatingValidator.validate(token3));
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> rotatingValidator.validate(token3));
+
         assertEquals(Reason.BAD_SIGNATURE, ex.getReason());
     }
 
@@ -336,12 +392,13 @@ class JwtValidatorTest {
             String aud,
             Instant issuedAt,
             Instant expiresAt,
-            Map<String, Object> extraClaims
-    ) {
+            Map<String, Object> extraClaims) {
         var builder = Jwts.builder();
+
         if (kid != null) {
             builder.header().keyId(kid).and();
         }
+
         builder.issuer(iss)
                 .audience().add(aud).and()
                 .issuedAt(Date.from(issuedAt))
@@ -351,6 +408,7 @@ class JwtValidatorTest {
         if (sub != null) {
             builder.subject(sub);
         }
+
         if (extraClaims != null) {
             extraClaims.forEach(builder::claim);
         }
@@ -373,11 +431,11 @@ class JwtValidatorTest {
                 EXPECTED_ISSUER,
                 EXPECTED_AUDIENCE,
                 5,
-                true
-        );
+                true);
 
         UUID userId = UUID.randomUUID();
         Instant now = Instant.now();
+
         String token = createEcToken(
                 kp.getPrivate(),
                 "test-kid",
@@ -386,10 +444,10 @@ class JwtValidatorTest {
                 EXPECTED_AUDIENCE,
                 now,
                 now.plus(1, ChronoUnit.HOURS),
-                Map.of("email", "learner@cadence.ai", "role", "authenticated")
-        );
+                Map.of("email", "learner@cadence.ai", "role", "authenticated"));
 
         JwtClaims claims = ecValidator.validate(token);
+
         assertNotNull(claims);
         assertEquals(userId, claims.userId());
         assertEquals("learner@cadence.ai", claims.email());
@@ -411,10 +469,10 @@ class JwtValidatorTest {
                 EXPECTED_ISSUER,
                 EXPECTED_AUDIENCE,
                 5,
-                true
-        );
+                true);
 
         Instant now = Instant.now();
+
         String tokenWithoutKid = createEcToken(
                 kp.getPrivate(),
                 null, // no kid
@@ -423,10 +481,12 @@ class JwtValidatorTest {
                 EXPECTED_AUDIENCE,
                 now,
                 now.plus(1, ChronoUnit.HOURS),
-                null
-        );
+                null);
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> ecValidator.validate(tokenWithoutKid));
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> ecValidator.validate(tokenWithoutKid));
+
         assertEquals(Reason.UNSUPPORTED_ALGORITHM, ex.getReason());
         assertTrue(ex.getMessage().contains("missing required 'kid'"));
     }
@@ -447,11 +507,11 @@ class JwtValidatorTest {
                 EXPECTED_ISSUER,
                 EXPECTED_AUDIENCE,
                 5,
-                true
-        );
+                true);
 
         UUID userId = UUID.randomUUID();
         Instant now = Instant.now();
+
         String token = createEcToken(
                 kp2.getPrivate(),
                 "kid-1",
@@ -460,10 +520,12 @@ class JwtValidatorTest {
                 EXPECTED_AUDIENCE,
                 now,
                 now.plus(1, ChronoUnit.HOURS),
-                null
-        );
+                null);
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> ecValidator.validate(token));
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> ecValidator.validate(token));
+
         assertEquals(Reason.BAD_SIGNATURE, ex.getReason());
     }
 
@@ -482,21 +544,38 @@ class JwtValidatorTest {
                 EXPECTED_ISSUER,
                 EXPECTED_AUDIENCE,
                 5,
-                true
-        );
+                true);
 
         UUID userHmac = UUID.randomUUID();
         UUID userEc = UUID.randomUUID();
         Instant now = Instant.now();
 
-        String hmacToken = createToken(primaryKey, userHmac.toString(), EXPECTED_ISSUER, EXPECTED_AUDIENCE, now, now.plus(1, ChronoUnit.HOURS), null);
-        String ecToken = createEcToken(kp.getPrivate(), "kid-ec", userEc.toString(), EXPECTED_ISSUER, EXPECTED_AUDIENCE, now, now.plus(1, ChronoUnit.HOURS), null);
+        String hmacToken = createToken(
+                primaryKey,
+                userHmac.toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                Map.of("role", "authenticated"));
+
+        String ecToken = createEcToken(
+                kp.getPrivate(),
+                "kid-ec",
+                userEc.toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                Map.of("role", "authenticated"));
 
         assertEquals(userHmac, dualValidator.validate(hmacToken).userId());
         assertEquals(userEc, dualValidator.validate(ecToken).userId());
 
         // Algorithm not in allowedAlgorithms is rejected
-        SecretKey key512 = Keys.hmacShaKeyFor((TEST_SECRET + TEST_SECRET).getBytes(StandardCharsets.UTF_8));
+        SecretKey key512 = Keys.hmacShaKeyFor(
+                (TEST_SECRET + TEST_SECRET).getBytes(StandardCharsets.UTF_8));
+
         String token512 = Jwts.builder()
                 .subject(UUID.randomUUID().toString())
                 .issuer(EXPECTED_ISSUER)
@@ -506,7 +585,10 @@ class JwtValidatorTest {
                 .signWith(key512, Jwts.SIG.HS512)
                 .compact();
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> dualValidator.validate(token512));
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> dualValidator.validate(token512));
+
         assertEquals(Reason.UNSUPPORTED_ALGORITHM, ex.getReason());
     }
 
@@ -525,12 +607,13 @@ class JwtValidatorTest {
                 EXPECTED_ISSUER,
                 EXPECTED_AUDIENCE,
                 5,
-                true
-        );
+                true);
 
         // Attacker creates HS256 token signed with the EC public key bytes
         SecretKey confusedHmacKey = Keys.hmacShaKeyFor(kp.getPublic().getEncoded());
+
         Instant now = Instant.now();
+
         String confusedToken = createToken(
                 confusedHmacKey,
                 UUID.randomUUID().toString(),
@@ -538,10 +621,12 @@ class JwtValidatorTest {
                 EXPECTED_AUDIENCE,
                 now,
                 now.plus(1, ChronoUnit.HOURS),
-                null
-        );
+                null);
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> dualValidator.validate(confusedToken));
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> dualValidator.validate(confusedToken));
+
         assertEquals(Reason.BAD_SIGNATURE, ex.getReason());
     }
 
@@ -558,8 +643,7 @@ class JwtValidatorTest {
                 "http://localhost:54321/auth/v1/.well-known/jwks.json",
                 600,
                 30,
-                url -> jwksJson
-        );
+                url -> jwksJson);
 
         JwtValidator jwksValidator = new JwtValidator(
                 List.of("ES256"),
@@ -571,11 +655,11 @@ class JwtValidatorTest {
                 EXPECTED_ISSUER,
                 EXPECTED_AUDIENCE,
                 5,
-                true
-        );
+                true);
 
         UUID userId = UUID.randomUUID();
         Instant now = Instant.now();
+
         String token = createEcToken(
                 kp.getPrivate(),
                 kid,
@@ -584,10 +668,10 @@ class JwtValidatorTest {
                 EXPECTED_AUDIENCE,
                 now,
                 now.plus(1, ChronoUnit.HOURS),
-                Map.of("email", "jwks-learner@cadence.ai", "role", "authenticated")
-        );
+                Map.of("email", "jwks-learner@cadence.ai", "role", "authenticated"));
 
         JwtClaims claims = jwksValidator.validate(token);
+
         assertNotNull(claims);
         assertEquals(userId, claims.userId());
         assertEquals("jwks-learner@cadence.ai", claims.email());
@@ -602,6 +686,7 @@ class JwtValidatorTest {
         String jwksJson = JwtTestTokenHelper.toJwksJson(kid, kp.getPublic());
 
         AtomicInteger fetchCount = new AtomicInteger(0);
+
         JwksKeyResolver resolver = new JwksKeyResolver(
                 "http://localhost:54321/auth/v1/.well-known/jwks.json",
                 600,
@@ -609,8 +694,7 @@ class JwtValidatorTest {
                 url -> {
                     fetchCount.incrementAndGet();
                     return jwksJson;
-                }
-        );
+                });
 
         JwtValidator jwksValidator = new JwtValidator(
                 List.of("ES256"),
@@ -622,21 +706,43 @@ class JwtValidatorTest {
                 EXPECTED_ISSUER,
                 EXPECTED_AUDIENCE,
                 5,
-                true
-        );
+                true);
 
         Instant now = Instant.now();
+
         // First unknown kid triggers initial fetch and then 1 refresh attempt
-        String token1 = createEcToken(kp.getPrivate(), "unknown-kid-1", UUID.randomUUID().toString(), EXPECTED_ISSUER, EXPECTED_AUDIENCE, now, now.plus(1, ChronoUnit.HOURS), null);
+        String token1 = createEcToken(
+                kp.getPrivate(),
+                "unknown-kid-1",
+                UUID.randomUUID().toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                null);
+
         assertThrows(InvalidTokenException.class, () -> jwksValidator.validate(token1));
+
         int fetchesAfterFirst = fetchCount.get();
         assertTrue(fetchesAfterFirst >= 1);
 
         // Immediate second unknown kid should be throttled (no additional HTTP fetch)
-        String token2 = createEcToken(kp.getPrivate(), "unknown-kid-2", UUID.randomUUID().toString(), EXPECTED_ISSUER, EXPECTED_AUDIENCE, now, now.plus(1, ChronoUnit.HOURS), null);
+        String token2 = createEcToken(
+                kp.getPrivate(),
+                "unknown-kid-2",
+                UUID.randomUUID().toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                null);
+
         assertThrows(InvalidTokenException.class, () -> jwksValidator.validate(token2));
 
-        assertEquals(fetchesAfterFirst, fetchCount.get(), "Fetch count must not increase because of 30s throttling");
+        assertEquals(
+                fetchesAfterFirst,
+                fetchCount.get(),
+                "Fetch count must not increase because of 30s throttling");
     }
 
     @Test
@@ -647,18 +753,20 @@ class JwtValidatorTest {
         String jwksJson = JwtTestTokenHelper.toJwksJson(kid, kp.getPublic());
 
         AtomicInteger fetchCount = new AtomicInteger(0);
+
         JwksKeyResolver resolver = new JwksKeyResolver(
                 "http://localhost:54321/auth/v1/.well-known/jwks.json",
                 1, // 1 second TTL
                 0,
                 url -> {
                     int count = fetchCount.incrementAndGet();
+
                     if (count > 1) {
                         throw new IOException("Remote JWKS endpoint 500 Internal Error");
                     }
+
                     return jwksJson;
-                }
-        );
+                });
 
         JwtValidator jwksValidator = new JwtValidator(
                 List.of("ES256"),
@@ -670,12 +778,20 @@ class JwtValidatorTest {
                 EXPECTED_ISSUER,
                 EXPECTED_AUDIENCE,
                 5,
-                true
-        );
+                true);
 
         UUID userId = UUID.randomUUID();
         Instant now = Instant.now();
-        String token = createEcToken(kp.getPrivate(), kid, userId.toString(), EXPECTED_ISSUER, EXPECTED_AUDIENCE, now, now.plus(1, ChronoUnit.HOURS), null);
+
+        String token = createEcToken(
+                kp.getPrivate(),
+                kid,
+                userId.toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                Map.of("role", "authenticated"));
 
         // 1st validation populates cache
         assertEquals(userId, jwksValidator.validate(token).userId());
@@ -684,9 +800,13 @@ class JwtValidatorTest {
         // Wait for 1s TTL to expire
         try {
             Thread.sleep(1100);
-        } catch (InterruptedException ignored) {}
+        } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
+            fail("Test interrupted while waiting for JWKS cache expiration");
+        }
 
-        // 2nd validation: cache is expired and fetcher throws IOException, but stale cache verifies token
+        // 2nd validation: cache is expired and fetcher throws IOException,
+        // but stale cache verifies token
         assertEquals(userId, jwksValidator.validate(token).userId());
         assertEquals(2, fetchCount.get());
     }
@@ -695,14 +815,14 @@ class JwtValidatorTest {
     @DisplayName("JWKS: If keys were never fetched and fetch fails, validator fails closed")
     void testNeverFetchedFailClosed() {
         KeyPair kp = generateEcKeyPair();
+
         JwksKeyResolver resolver = new JwksKeyResolver(
                 "http://localhost:54321/auth/v1/.well-known/jwks.json",
                 600,
                 30,
                 url -> {
                     throw new IOException("Network connection refused");
-                }
-        );
+                });
 
         JwtValidator jwksValidator = new JwtValidator(
                 List.of("ES256"),
@@ -714,13 +834,24 @@ class JwtValidatorTest {
                 EXPECTED_ISSUER,
                 EXPECTED_AUDIENCE,
                 5,
-                true
-        );
+                true);
 
         Instant now = Instant.now();
-        String token = createEcToken(kp.getPrivate(), "kid-1", UUID.randomUUID().toString(), EXPECTED_ISSUER, EXPECTED_AUDIENCE, now, now.plus(1, ChronoUnit.HOURS), null);
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> jwksValidator.validate(token));
+        String token = createEcToken(
+                kp.getPrivate(),
+                "kid-1",
+                UUID.randomUUID().toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                null);
+
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> jwksValidator.validate(token));
+
         assertEquals(Reason.BAD_SIGNATURE, ex.getReason());
         assertTrue(ex.getMessage().contains("could not be fetched"));
     }
@@ -731,18 +862,41 @@ class JwtValidatorTest {
         KeyPair kp = generateEcKeyPair();
         String kid = "jwks-kid-iss";
         String jwksJson = JwtTestTokenHelper.toJwksJson(kid, kp.getPublic());
-        JwksKeyResolver resolver = new JwksKeyResolver("http://url", 600, 30, u -> jwksJson);
+
+        JwksKeyResolver resolver = new JwksKeyResolver(
+                "http://url",
+                600,
+                30,
+                u -> jwksJson);
 
         JwtValidator jwksValidator = new JwtValidator(
                 List.of("ES256"),
-                null, null, null, null, resolver,
-                EXPECTED_ISSUER, EXPECTED_AUDIENCE, 5, true
-        );
+                null,
+                null,
+                null,
+                null,
+                resolver,
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                5,
+                true);
 
         Instant now = Instant.now();
-        String token = createEcToken(kp.getPrivate(), kid, UUID.randomUUID().toString(), "https://wrong-issuer.com/auth/v1", EXPECTED_AUDIENCE, now, now.plus(1, ChronoUnit.HOURS), null);
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> jwksValidator.validate(token));
+        String token = createEcToken(
+                kp.getPrivate(),
+                kid,
+                UUID.randomUUID().toString(),
+                "https://wrong-issuer.com/auth/v1",
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                null);
+
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> jwksValidator.validate(token));
+
         assertEquals(Reason.INVALID_ISSUER, ex.getReason());
     }
 
@@ -752,18 +906,41 @@ class JwtValidatorTest {
         KeyPair kp = generateEcKeyPair();
         String kid = "jwks-kid-aud";
         String jwksJson = JwtTestTokenHelper.toJwksJson(kid, kp.getPublic());
-        JwksKeyResolver resolver = new JwksKeyResolver("http://url", 600, 30, u -> jwksJson);
+
+        JwksKeyResolver resolver = new JwksKeyResolver(
+                "http://url",
+                600,
+                30,
+                u -> jwksJson);
 
         JwtValidator jwksValidator = new JwtValidator(
                 List.of("ES256"),
-                null, null, null, null, resolver,
-                EXPECTED_ISSUER, EXPECTED_AUDIENCE, 5, true
-        );
+                null,
+                null,
+                null,
+                null,
+                resolver,
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                5,
+                true);
 
         Instant now = Instant.now();
-        String token = createEcToken(kp.getPrivate(), kid, UUID.randomUUID().toString(), EXPECTED_ISSUER, "wrong-aud", now, now.plus(1, ChronoUnit.HOURS), null);
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> jwksValidator.validate(token));
+        String token = createEcToken(
+                kp.getPrivate(),
+                kid,
+                UUID.randomUUID().toString(),
+                EXPECTED_ISSUER,
+                "wrong-aud",
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                null);
+
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> jwksValidator.validate(token));
+
         assertEquals(Reason.INVALID_AUDIENCE, ex.getReason());
     }
 
@@ -773,18 +950,153 @@ class JwtValidatorTest {
         KeyPair kp = generateEcKeyPair();
         String kid = "jwks-kid-exp";
         String jwksJson = JwtTestTokenHelper.toJwksJson(kid, kp.getPublic());
-        JwksKeyResolver resolver = new JwksKeyResolver("http://url", 600, 30, u -> jwksJson);
+
+        JwksKeyResolver resolver = new JwksKeyResolver(
+                "http://url",
+                600,
+                30,
+                u -> jwksJson);
 
         JwtValidator jwksValidator = new JwtValidator(
                 List.of("ES256"),
-                null, null, null, null, resolver,
-                EXPECTED_ISSUER, EXPECTED_AUDIENCE, 5, true
-        );
+                null,
+                null,
+                null,
+                null,
+                resolver,
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                5,
+                true);
 
         Instant past = Instant.now().minus(2, ChronoUnit.HOURS);
-        String token = createEcToken(kp.getPrivate(), kid, UUID.randomUUID().toString(), EXPECTED_ISSUER, EXPECTED_AUDIENCE, past.minus(1, ChronoUnit.HOURS), past, null);
 
-        InvalidTokenException ex = assertThrows(InvalidTokenException.class, () -> jwksValidator.validate(token));
+        String token = createEcToken(
+                kp.getPrivate(),
+                kid,
+                UUID.randomUUID().toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                past.minus(1, ChronoUnit.HOURS),
+                past,
+                null);
+
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> jwksValidator.validate(token));
+
         assertEquals(Reason.EXPIRED, ex.getReason());
+    }
+
+    // ---- Supabase Role Enforcement Tests (D27) ----
+
+    @Test
+    @DisplayName("Role enforcement: role 'authenticated' is accepted")
+    void testRoleAuthenticatedAccepted() {
+        UUID userId = UUID.randomUUID();
+        Instant now = Instant.now();
+
+        String token = createToken(
+                primaryKey,
+                userId.toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                Map.of("role", "authenticated"));
+
+        JwtClaims claims = validator.validate(token);
+
+        assertNotNull(claims);
+        assertEquals("authenticated", claims.role());
+    }
+
+    @Test
+    @DisplayName("Role enforcement: role 'anon' is rejected with INVALID_ROLE")
+    void testRoleAnonRejected() {
+        UUID userId = UUID.randomUUID();
+        Instant now = Instant.now();
+
+        String token = createToken(
+                primaryKey,
+                userId.toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                Map.of("role", "anon"));
+
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> validator.validate(token));
+
+        assertEquals(Reason.INVALID_ROLE, ex.getReason());
+    }
+
+    @Test
+    @DisplayName("Role enforcement: role 'service_role' is rejected with INVALID_ROLE")
+    void testRoleServiceRoleRejected() {
+        UUID userId = UUID.randomUUID();
+        Instant now = Instant.now();
+
+        String token = createToken(
+                primaryKey,
+                userId.toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                Map.of("role", "service_role"));
+
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> validator.validate(token));
+
+        assertEquals(Reason.INVALID_ROLE, ex.getReason());
+    }
+
+    @Test
+    @DisplayName("Role enforcement: missing role claim is rejected with INVALID_ROLE")
+    void testMissingRoleRejected() {
+        UUID userId = UUID.randomUUID();
+        Instant now = Instant.now();
+
+        String token = createToken(
+                primaryKey,
+                userId.toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                Map.of() // no role
+        );
+
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> validator.validate(token));
+
+        assertEquals(Reason.INVALID_ROLE, ex.getReason());
+    }
+
+    @Test
+    @DisplayName("Role enforcement: unexpected role 'admin' is rejected with INVALID_ROLE")
+    void testUnexpectedRoleRejected() {
+        UUID userId = UUID.randomUUID();
+        Instant now = Instant.now();
+
+        String token = createToken(
+                primaryKey,
+                userId.toString(),
+                EXPECTED_ISSUER,
+                EXPECTED_AUDIENCE,
+                now,
+                now.plus(1, ChronoUnit.HOURS),
+                Map.of("role", "admin"));
+
+        InvalidTokenException ex = assertThrows(
+                InvalidTokenException.class,
+                () -> validator.validate(token));
+
+        assertEquals(Reason.INVALID_ROLE, ex.getReason());
     }
 }

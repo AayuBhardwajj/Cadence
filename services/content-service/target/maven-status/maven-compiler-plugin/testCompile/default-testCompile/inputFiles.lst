@@ -1,8 +1,15 @@
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/ContentServiceApplicationTests.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/client/LlmClientTest.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/controller/DrillControllerTest.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/security/ContentServiceSecurityFilterChainTest.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/security/CurrentLearnerIdArgumentResolverTest.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/security/FilterRegistrationVerificationTest.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/security/StartupFailureWithoutSecretTest.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/service/CourseServiceTest.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/service/DrillPlanServiceTest.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/service/ExerciseServiceTest.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/service/LessonServiceTest.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/service/PassageServiceTest.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/service/TipServiceTest.java
+/Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/util/OnsetResolverTest.java
 /Users/aayushbhardwaj/iCloud Drive (Archive)/Documents/Projects/Cadence/Cadence/services/content-service/src/test/java/com/cadence/content/worker/RefillWorkerTest.java

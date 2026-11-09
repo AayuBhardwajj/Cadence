@@ -4,6 +4,7 @@ import com.cadence.security.filter.CadenceInternalAuthFilter;
 import com.cadence.security.filter.CadenceJwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -53,6 +54,24 @@ public class SecurityConfig {
             .addFilterBefore(cadenceInternalAuthFilter, CadenceJwtAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public FilterRegistrationBean<CadenceJwtAuthenticationFilter> cadenceJwtAuthenticationFilterRegistration(
+            CadenceJwtAuthenticationFilter filter
+    ) {
+        FilterRegistrationBean<CadenceJwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    public FilterRegistrationBean<CadenceInternalAuthFilter> cadenceInternalAuthFilterRegistration(
+            CadenceInternalAuthFilter filter
+    ) {
+        FilterRegistrationBean<CadenceInternalAuthFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean

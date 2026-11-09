@@ -189,59 +189,80 @@ async def start_amqp_consumer(app: Any) -> None:
     app.state.amqp_closing = False
     app.state.amqp_reconnect_task = None
 
+    connection = None
     try:
         connection = await aio_pika.connect_robust(
             amqp_url,
             client_properties={"connection_name": "cadence:ml-recommendation"},
         )
-        channel = await connection.channel()
-        await channel.set_qos(prefetch_count=PREFETCH_COUNT)
+        try:
+            channel = await connection.channel()
+            await channel.set_qos(prefetch_count=PREFETCH_COUNT)
 
-        inbound_queue = await channel.declare_queue(
-            INBOUND_QUEUE,
-            durable=True,
-            exclusive=False,
-            auto_delete=False,
-        )
-
-        await channel.declare_queue(
-            OUTBOUND_QUEUE,
-            durable=True,
-            exclusive=False,
-            auto_delete=False,
-        )
-
-        logger.info(
-            "ml-recommendation.amqp: topology declared — "
-            "inbound=%r outbound=%r",
-            INBOUND_QUEUE,
-            OUTBOUND_QUEUE,
-        )
-
-        consumer_tag = await inbound_queue.consume(
-            lambda msg: asyncio.ensure_future(
-                _process_message(msg, None, channel)
+            # Inbound queue — durable, already declared by ml-analysis Stage 2.
+            # Re-declaring with the same parameters is idempotent.
+            inbound_queue = await channel.declare_queue(
+                INBOUND_QUEUE,
+                durable=True,
+                exclusive=False,
+                auto_delete=False,
             )
-        )
 
-        app.state.amqp_connection = connection
-        app.state.amqp_channel = channel
-        app.state.amqp_consumer_tag = consumer_tag
-        app.state.amqp_inbound_queue = inbound_queue
+            # Outbound queue — durable direct queue. Declared here; report-service
+            # attaches a consumer in Stage 4 (expand-contract).
+            await channel.declare_queue(
+                OUTBOUND_QUEUE,
+                durable=True,
+                exclusive=False,
+                auto_delete=False,
+            )
 
-        logger.info(
-            "ml-recommendation.amqp: consumer active — "
-            "listening on %r (prefetch=%d)",
-            INBOUND_QUEUE,
-            PREFETCH_COUNT,
-        )
+            logger.info(
+                "ml-recommendation.amqp: topology declared — "
+                "inbound=%r outbound=%r",
+                INBOUND_QUEUE,
+                OUTBOUND_QUEUE,
+            )
+
+            # Start consuming — capture consumer_tag for clean cancellation
+            consumer_tag = await inbound_queue.consume(
+                lambda msg: asyncio.ensure_future(
+                    _process_message(msg, None, channel)
+                )
+            )
+
+            app.state.amqp_connection = connection
+            app.state.amqp_channel = channel
+            app.state.amqp_consumer_tag = consumer_tag
+            app.state.amqp_inbound_queue = inbound_queue
+
+            logger.info(
+                "ml-recommendation.amqp: consumer active — "
+                "listening on %r (prefetch=%d)",
+                INBOUND_QUEUE,
+                PREFETCH_COUNT,
+            )
+        except Exception:
+            try:
+                if connection and not connection.is_closed:
+                    await connection.close()
+            except Exception:
+                pass
+            connection = None
+            raise
 
     except Exception as exc:  # noqa: BLE001
+        try:
+            if connection and not connection.is_closed:
+                await connection.close()
+        except Exception:
+            pass
+        app.state.amqp_connection = None
+        app.state.amqp_channel = None
         logger.warning(
             "ml-recommendation.amqp: RabbitMQ not ready at startup: %s. Continuing in HTTP-only mode; launching background reconnection task.",
             exc,
         )
-        app.state.amqp_connection = None
         app.state.amqp_reconnect_task = asyncio.create_task(_reconnect_loop(app, amqp_url))
 
     # Replaced finite 10x2s retry loop with background reconnect task (D-stall-fix)
@@ -303,59 +324,86 @@ async def _reconnect_loop(app: Any, amqp_url: str) -> None:
     max_delay = 30.0
     attempt = 0
     while not getattr(app.state, "amqp_closing", False):
+        connection = None
         try:
-            await asyncio.sleep(delay)
-            if getattr(app.state, "amqp_closing", False):
-                break
             attempt += 1
             connection = await aio_pika.connect_robust(
                 amqp_url,
                 client_properties={"connection_name": "cadence:ml-recommendation"},
             )
-            channel = await connection.channel()
-            await channel.set_qos(prefetch_count=PREFETCH_COUNT)
+            try:
+                channel = await connection.channel()
+                await channel.set_qos(prefetch_count=PREFETCH_COUNT)
 
-            inbound_queue = await channel.declare_queue(
-                INBOUND_QUEUE,
-                durable=True,
-                exclusive=False,
-                auto_delete=False,
-            )
-
-            await channel.declare_queue(
-                OUTBOUND_QUEUE,
-                durable=True,
-                exclusive=False,
-                auto_delete=False,
-            )
-
-            consumer_tag = await inbound_queue.consume(
-                lambda msg: asyncio.ensure_future(
-                    _process_message(msg, None, channel)
+                # Inbound queue — durable, already declared by ml-analysis Stage 2.
+                # Re-declaring with the same parameters is idempotent.
+                inbound_queue = await channel.declare_queue(
+                    INBOUND_QUEUE,
+                    durable=True,
+                    exclusive=False,
+                    auto_delete=False,
                 )
-            )
 
-            app.state.amqp_connection = connection
-            app.state.amqp_channel = channel
-            app.state.amqp_consumer_tag = consumer_tag
-            app.state.amqp_inbound_queue = inbound_queue
+                # Outbound queue — durable direct queue. Declared here; report-service
+                # attaches a consumer in Stage 4 (expand-contract).
+                await channel.declare_queue(
+                    OUTBOUND_QUEUE,
+                    durable=True,
+                    exclusive=False,
+                    auto_delete=False,
+                )
 
-            logger.info(
-                "ml-recommendation.amqp: successfully connected (late connect on attempt %d) — listening on %r (prefetch=%d)",
-                attempt,
-                INBOUND_QUEUE,
-                PREFETCH_COUNT,
-            )
-            break
+                # Start consuming — capture consumer_tag for clean cancellation
+                consumer_tag = await inbound_queue.consume(
+                    lambda msg: asyncio.ensure_future(
+                        _process_message(msg, None, channel)
+                    )
+                )
+
+                app.state.amqp_connection = connection
+                app.state.amqp_channel = channel
+                app.state.amqp_consumer_tag = consumer_tag
+                app.state.amqp_inbound_queue = inbound_queue
+
+                logger.info(
+                    "ml-recommendation.amqp: successfully connected (late connect on attempt %d) — listening on %r (prefetch=%d)",
+                    attempt,
+                    INBOUND_QUEUE,
+                    PREFETCH_COUNT,
+                )
+                break
+            except Exception:
+                try:
+                    if connection and not connection.is_closed:
+                        await connection.close()
+                except Exception:
+                    pass
+                connection = None
+                raise
         except asyncio.CancelledError:
+            try:
+                if connection and not connection.is_closed:
+                    await connection.close()
+            except Exception:
+                pass
+            app.state.amqp_connection = None
+            app.state.amqp_channel = None
             break
         except Exception as exc:
+            try:
+                if connection and not connection.is_closed:
+                    await connection.close()
+            except Exception:
+                pass
+            app.state.amqp_connection = None
+            app.state.amqp_channel = None
             logger.warning(
                 "ml-recommendation.amqp: reconnect attempt %d failed: %s. Retrying in %.1fs...",
                 attempt,
                 exc,
                 delay,
             )
+            await asyncio.sleep(delay)
             delay = min(delay * 2, max_delay)
 
 

@@ -180,3 +180,60 @@ async def test_amqp_consumer_stop_cancels_reconnect_task():
         assert consumer._reconnect_task.done()
 
 
+@pytest.mark.asyncio
+async def test_amqp_consumer_closes_connection_if_setup_fails():
+    from amqp_consumer import AmqpConsumer
+    consumer = AmqpConsumer(amqp_url="amqp://guest:guest@localhost:5672/")
+
+    mock_connection = AsyncMock()
+    mock_connection.is_closed = False
+    mock_connection.close = AsyncMock()
+    mock_connection.channel = AsyncMock(side_effect=RuntimeError("Channel setup failed"))
+
+    with patch("aio_pika.connect_robust", return_value=mock_connection):
+        await consumer.start()
+        mock_connection.close.assert_awaited_once()
+        assert consumer.connection is None
+        await consumer.stop()
+
+
+@pytest.mark.asyncio
+async def test_amqp_consumer_reconnect_loop_closes_connection_on_setup_failure_then_succeeds():
+    from amqp_consumer import AmqpConsumer
+    consumer = AmqpConsumer(amqp_url="amqp://guest:guest@localhost:5672/")
+
+    mock_conn1 = AsyncMock()
+    mock_conn1.is_closed = False
+    mock_conn1.close = AsyncMock()
+    mock_conn1.channel = AsyncMock(side_effect=RuntimeError("Channel setup failed"))
+
+    mock_queue = AsyncMock()
+    mock_queue.consume = AsyncMock(return_value="ctag-ok")
+    mock_channel2 = AsyncMock()
+    mock_channel2.set_qos = AsyncMock()
+    mock_channel2.declare_queue = AsyncMock(return_value=mock_queue)
+    mock_channel2.declare_exchange = AsyncMock(return_value=AsyncMock())
+    mock_conn2 = AsyncMock()
+    mock_conn2.is_closed = False
+    mock_conn2.close = AsyncMock()
+    mock_conn2.channel = AsyncMock(return_value=mock_channel2)
+
+    connections = [mock_conn1, mock_conn2]
+
+    async def mock_connect(*args, **kwargs):
+        if connections:
+            return connections.pop(0)
+        return mock_conn2
+
+    with patch("aio_pika.connect_robust", side_effect=mock_connect), \
+         patch("asyncio.sleep", new=AsyncMock()):
+        task = asyncio.create_task(consumer._reconnect_loop())
+        await task
+        mock_conn1.close.assert_awaited_once()
+        assert consumer.connection == mock_conn2
+        assert consumer.consumer_tag == "ctag-ok"
+        await consumer.stop()
+
+
+
+

@@ -50,13 +50,15 @@ async def lifespan(app: FastAPI):
     # If RabbitMQ is unreachable at startup, the consumer is skipped gracefully and the
     # service continues in HTTP-only mode — POST /analyze/audio remains fully operational.
     # This mirrors ml-analysis's lifespan pattern exactly (see services/ml-analysis/main.py).
+    # Set app.state.amqp_consumer BEFORE start so lifespan teardown always runs.
+    app.state.amqp_consumer = True
     try:
         await start_amqp_consumer(app)
     except Exception as err:
         logger.warning(
             "Failed to start AMQP consumer (service will continue in HTTP-only mode): %s", err
         )
-        app.state.amqp_consumer = None
+        # Note: app.state.amqp_consumer remains set so stop_amqp_consumer cleans up retry task
 
     yield
 

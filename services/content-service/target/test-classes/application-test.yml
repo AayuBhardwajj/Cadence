@@ -19,6 +19,14 @@ spring:
         format_sql: true
 
 cadence:
+  security:
+    jwt:
+      issuer: "https://auth.test.cadence.ai/auth/v1"
+      audience: "authenticated"
+      allowed-algorithms: "HS256"
+      secret: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    internal:
+      enabled: false
   cors:
     allowed-origins: "http://localhost:5173,http://localhost:5174"
   llm:
