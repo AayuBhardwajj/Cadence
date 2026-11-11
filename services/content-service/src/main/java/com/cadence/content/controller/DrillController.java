@@ -2,6 +2,7 @@ package com.cadence.content.controller;
 
 import com.cadence.content.dto.DrillPlanDto;
 import com.cadence.content.dto.DrillPlanItemDto;
+import com.cadence.content.dto.RecordAttemptRequest;
 import com.cadence.content.security.CurrentLearnerId;
 import com.cadence.content.service.DrillPlanService;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,17 @@ public class DrillController {
             @CurrentLearnerId UUID currentLearnerId
     ) {
         DrillPlanItemDto item = drillPlanService.completeItem(itemId, currentLearnerId);
+        return ResponseEntity.ok(item);
+    }
+
+    @PostMapping("/plan/items/{itemId}/attempt")
+    public ResponseEntity<DrillPlanItemDto> recordAttempt(
+            @PathVariable("itemId") UUID itemId,
+            @RequestBody RecordAttemptRequest request,
+            @CurrentLearnerId UUID currentLearnerId
+    ) {
+        boolean passed = request != null && Boolean.TRUE.equals(request.getPassed());
+        DrillPlanItemDto item = drillPlanService.recordAttempt(itemId, currentLearnerId, passed);
         return ResponseEntity.ok(item);
     }
 }

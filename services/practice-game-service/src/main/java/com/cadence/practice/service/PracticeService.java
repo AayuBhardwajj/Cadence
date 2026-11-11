@@ -40,6 +40,7 @@ public class PracticeService {
     /**
      * Tunable WER (Word Error Rate) threshold for drill match gating.
      * Values <= 0.15 are considered successful phonetic matches.
+     * Legacy fixed constant preserved for backward compatibility reference (See DECISIONS D29: dynamic thresholdFor(int)).
      */
     public static final double WER_THRESHOLD = 0.15;
     public static final Duration SESSION_STATE_TTL = Duration.ofMinutes(30);
@@ -161,7 +162,9 @@ public class PracticeService {
 
         // 2. Compute deterministic Word Error Rate (WER)
         double wer = computeWer(targetText, transcribedText);
-        boolean isMatch = wer <= WER_THRESHOLD;
+        String cleanTarget = normalizeText(targetText);
+        int refWordCount = cleanTarget.isEmpty() ? 0 : cleanTarget.split("\\s+").length;
+        boolean isMatch = wer <= thresholdFor(refWordCount);
 
         log.info("Drill attempt for session {}: target='{}', transcribed='{}', wer={}, isMatch={}",
                 practiceSessionId, targetText, transcribedText, String.format("%.4f", wer), isMatch);
@@ -445,5 +448,19 @@ public class PracticeService {
                 .replaceAll("[^a-z0-9\\s]", " ")
                 .replaceAll("\\s+", " ")
                 .trim();
+    }
+
+    /**
+     * Threshold determination based on reference word count (See DECISIONS D29).
+     * <=4 words: 0.15 ; 5-7 words: 0.25 ; >=8 words: 0.35.
+     */
+    public static double thresholdFor(int referenceWordCount) {
+        if (referenceWordCount <= 4) {
+            return 0.15;
+        } else if (referenceWordCount <= 7) {
+            return 0.25;
+        } else {
+            return 0.35;
+        }
     }
 }

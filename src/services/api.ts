@@ -717,3 +717,88 @@ export const completePracticeSession = async (
         { method: 'POST' }
     );
 };
+
+/* -------------------------------------------------------------------------- */
+/* Personalized Drill Plan API (D28)                                          */
+/* -------------------------------------------------------------------------- */
+
+export interface DrillPlanItemDto {
+    id: string;
+    plan_id: string;
+    position: number;
+    level: 1 | 2 | 3;
+    target_kind: 'onset' | 'bucket';
+    target_value: string;
+    trigger_word?: string | null;
+    phrase_text: string;
+    phrase_source: 'carrier' | 'pool' | 'curated' | 'word' | 'word_bank';
+    from_report: boolean;
+    attempts: number;
+    passed_attempts: number;
+    completed_at?: string | null;
+    last_attempt_at?: string | null;
+}
+
+export interface DrillPlanDto {
+    id?: string;
+    user_id?: string;
+    source_report_id?: string;
+    status: 'active' | 'no_targets' | string;
+    generation_summary?: Record<string, any>;
+    created_at?: string;
+    items?: DrillPlanItemDto[];
+}
+
+export const getOrCreateDrillPlan = async (): Promise<DrillPlanDto> => {
+    const authHeaders = await getAuthHeaders();
+    return requestJson<DrillPlanDto>(`${CONTENT_SERVICE_URL}/api/drills/plan`, {
+        method: 'POST',
+        headers: {
+            ...authHeaders,
+            'Content-Type': 'application/json',
+        },
+    });
+};
+
+export const getDrillPlan = async (): Promise<DrillPlanDto> => {
+    const authHeaders = await getAuthHeaders();
+    return requestJson<DrillPlanDto>(`${CONTENT_SERVICE_URL}/api/drills/plan`, {
+        method: 'GET',
+        headers: {
+            ...authHeaders,
+        },
+    });
+};
+
+export const recordDrillAttempt = async (
+    itemId: string,
+    passed: boolean
+): Promise<DrillPlanItemDto> => {
+    const authHeaders = await getAuthHeaders();
+    return requestJson<DrillPlanItemDto>(
+        `${CONTENT_SERVICE_URL}/api/drills/plan/items/${encodeURIComponent(itemId)}/attempt`,
+        {
+            method: 'POST',
+            headers: {
+                ...authHeaders,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ passed }),
+        }
+    );
+};
+
+export const completeDrillItem = async (
+    itemId: string
+): Promise<DrillPlanItemDto> => {
+    const authHeaders = await getAuthHeaders();
+    return requestJson<DrillPlanItemDto>(
+        `${CONTENT_SERVICE_URL}/api/drills/plan/items/${encodeURIComponent(itemId)}/complete`,
+        {
+            method: 'POST',
+            headers: {
+                ...authHeaders,
+            },
+        }
+    );
+};

@@ -498,6 +498,32 @@ class ContentServiceSecurityFilterChainTest {
     }
 
     @Test
+    @DisplayName("Anonymous POST /api/drills/plan/items/{id}/attempt → 401")
+    void anonymous_recordAttempt_returns401() throws Exception {
+        mockMvc.perform(post("/api/drills/plan/items/" + UUID.randomUUID() + "/attempt")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"passed\":true}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Authenticated POST /api/drills/plan/items/{id}/attempt → 200")
+    void authenticated_recordAttempt_returns200() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID itemId = UUID.randomUUID();
+        when(drillPlanService.recordAttempt(eq(itemId), any(UUID.class), eq(true)))
+                .thenReturn(DrillPlanItemDto.builder().id(itemId).attempts(1).passedAttempts(1).build());
+
+        mockMvc.perform(post("/api/drills/plan/items/" + itemId + "/attempt")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"passed\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.attempts").value(1))
+                .andExpect(jsonPath("$.passed_attempts").value(1));
+    }
+
+    @Test
     @DisplayName("CORS preflight OPTIONS with Authorization header from allowed origin returns 2xx and allow headers")
     void corsPreflight_options_allowedOrigin_success() throws Exception {
         mockMvc.perform(options("/api/drills/plan")

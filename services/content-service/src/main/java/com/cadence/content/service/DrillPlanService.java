@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -133,13 +134,55 @@ public class DrillPlanService {
         List<UserDrillPlanItem> items = new ArrayList<>();
         List<Map<String, String>> poolGaps = new ArrayList<>();
         int positionCounter = 1;
-        int carrierIndex = 0;
+        // int carrierIndex = 0; // See DECISIONS D29
 
         for (TargetStats stats : rankedTargets) {
             TargetKey targetKey = stats.getKey();
             String triggerWord = stats.getTriggerWord();
 
-            // Level 1: Carrier sentence using trigger word (skip if non-alphabetic or < 3 chars)
+            // Level 1: The user's own error words from the report, MAX 2 (most frequent first, ties alphabetical) (See DECISIONS D29)
+            List<String> reportWords = stats.getReportWords().stream()
+                    .filter(w -> w.matches("^[a-zA-Z]{2,}$"))
+                    .limit(2)
+                    .toList();
+            for (String reportWord : reportWords) {
+                items.add(UserDrillPlanItem.builder()
+                        .plan(plan)
+                        .position(positionCounter++)
+                        .level((short) 1)
+                        .targetKind(targetKey.kind())
+                        .targetValue(targetKey.value())
+                        .triggerWord(reportWord)
+                        .phraseText(reportWord)
+                        .phraseSource("word")
+                        .fromReport(true)
+                        .attempts(0)
+                        .passedAttempts(0)
+                        .build());
+            }
+
+            // Level 1: Supplementary words from curated word bank (removed: See DECISIONS D29)
+            /*
+            List<String> supplementaryWords = fetchSupplementaryWords(targetKey, new HashSet<>(reportWords), 1);
+            for (String supWord : supplementaryWords) {
+                items.add(UserDrillPlanItem.builder()
+                        .plan(plan)
+                        .position(positionCounter++)
+                        .level((short) 1)
+                        .targetKind(targetKey.kind())
+                        .targetValue(targetKey.value())
+                        .triggerWord(supWord)
+                        .phraseText(supWord)
+                        .phraseSource("word_bank")
+                        .fromReport(false)
+                        .attempts(0)
+                        .passedAttempts(0)
+                        .build());
+            }
+            */
+
+            // Level 1: Carrier sentence using trigger word (removed: See DECISIONS D29)
+            /*
             if (triggerWord != null && triggerWord.matches("^[a-zA-Z]{3,}$")) {
                 String template = CARRIER_TEMPLATES.get(carrierIndex % CARRIER_TEMPLATES.size());
                 carrierIndex++;
@@ -154,11 +197,15 @@ public class DrillPlanService {
                         .triggerWord(triggerWord.toLowerCase())
                         .phraseText(phraseText)
                         .phraseSource("carrier")
+                        .fromReport(false)
+                        .attempts(0)
+                        .passedAttempts(0)
                         .build());
             }
+            */
 
-            // Level 2: Up to 2 pool phrases
-            List<DrillPhrase> level2Phrases = fetchPoolPhrases(targetKey, (short) 2, 2);
+            // Level 2: Up to 3 pool phrases (See DECISIONS D29)
+            List<DrillPhrase> level2Phrases = fetchPoolPhrases(targetKey, (short) 2, 3, userId);
             for (DrillPhrase dp : level2Phrases) {
                 items.add(UserDrillPlanItem.builder()
                         .plan(plan)
@@ -169,11 +216,14 @@ public class DrillPlanService {
                         .triggerWord(null)
                         .phraseText(dp.getPhraseText())
                         .phraseSource(dp.getSource())
+                        .fromReport(false)
+                        .attempts(0)
+                        .passedAttempts(0)
                         .build());
             }
 
-            // Level 3: Up to 1 pool phrase
-            List<DrillPhrase> level3Phrases = fetchPoolPhrases(targetKey, (short) 3, 1);
+            // Level 3: Up to 2 pool phrases (See DECISIONS D29)
+            List<DrillPhrase> level3Phrases = fetchPoolPhrases(targetKey, (short) 3, 2, userId);
             for (DrillPhrase dp : level3Phrases) {
                 items.add(UserDrillPlanItem.builder()
                         .plan(plan)
@@ -184,6 +234,9 @@ public class DrillPlanService {
                         .triggerWord(null)
                         .phraseText(dp.getPhraseText())
                         .phraseSource(dp.getSource())
+                        .fromReport(false)
+                        .attempts(0)
+                        .passedAttempts(0)
                         .build());
             }
 
@@ -256,7 +309,74 @@ public class DrillPlanService {
         return toItemDto(item);
     }
 
-    private List<DrillPhrase> fetchPoolPhrases(TargetKey targetKey, Short level, int limit) {
+    /**
+     * Record an evaluated speech attempt for a drill plan item.
+     * Increments attempts; increments passed_attempts only when passed == true;
+     * updates last_attempt_at timestamp (DECISIONS.md D28).
+     */
+    @Transactional
+    public DrillPlanItemDto recordAttempt(UUID itemId, UUID userId, boolean passed) {
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User identity is required");
+        }
+
+        UserDrillPlanItem item = userDrillPlanItemRepository.findById(itemId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Drill item not found"));
+
+        if (!item.getPlan().getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden: you do not own this drill plan item");
+        }
+
+        int currentAttempts = item.getAttempts() != null ? item.getAttempts() : 0;
+        int currentPassed = item.getPassedAttempts() != null ? item.getPassedAttempts() : 0;
+
+        item.setAttempts(currentAttempts + 1);
+        if (passed) {
+            item.setPassedAttempts(currentPassed + 1);
+        }
+        item.setLastAttemptAt(OffsetDateTime.now());
+
+        UserDrillPlanItem saved = userDrillPlanItemRepository.save(item);
+        log.info("Recorded attempt for drill item {} (user {}, passed={}): attempts={}, passed_attempts={}",
+                itemId, userId, passed, saved.getAttempts(), saved.getPassedAttempts());
+
+        return toItemDto(saved);
+    }
+
+    private List<String> fetchSupplementaryWords(TargetKey targetKey, Set<String> excludeWords, int limit) {
+        List<String> candidates = new ArrayList<>();
+        if ("bucket".equals(targetKey.kind())) {
+            List<WordBank> rows = wordBankRepository.findByBucketAndActiveTrue(targetKey.value());
+            if (rows != null) {
+                for (WordBank wb : rows) {
+                    if (wb.getWord() != null) {
+                        String clean = wb.getWord().trim().toLowerCase();
+                        if (!clean.isEmpty() && !excludeWords.contains(clean)) {
+                            candidates.add(clean);
+                        }
+                    }
+                }
+            }
+        } else if ("onset".equals(targetKey.kind())) {
+            List<WordBank> rows = wordBankRepository.findByActiveTrue();
+            if (rows != null) {
+                for (WordBank wb : rows) {
+                    if (wb.getWord() != null) {
+                        String clean = wb.getWord().trim().toLowerCase();
+                        if (!clean.isEmpty() && !excludeWords.contains(clean)) {
+                            Optional<String> onset = OnsetResolver.resolve(clean);
+                            if (onset.isPresent() && onset.get().equals(targetKey.value())) {
+                                candidates.add(clean);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return candidates.stream().distinct().limit(limit).toList();
+    }
+
+    private List<DrillPhrase> fetchPoolPhrases(TargetKey targetKey, Short level, int limit, UUID userId) {
         List<DrillPhrase> matches;
         if ("onset".equals(targetKey.kind())) {
             matches = drillPhraseRepository.findByOnsetAndLevelAndActiveTrueOrderByCreatedAtAsc(targetKey.value(), level);
@@ -272,7 +392,12 @@ public class DrillPlanService {
         if (matches == null || matches.isEmpty()) {
             return Collections.emptyList();
         }
-        return matches.stream().limit(limit).toList();
+        return matches.stream()
+                .sorted(Comparator.comparingLong((DrillPhrase dp) ->
+                        UUID.nameUUIDFromBytes((userId.toString() + ":" + dp.getId().toString()).getBytes(StandardCharsets.UTF_8)).getMostSignificantBits()
+                ).thenComparing(DrillPhrase::getId))
+                .limit(limit)
+                .toList();
     }
 
     private DrillPlanDto toDto(UserDrillPlan plan) {
@@ -303,6 +428,10 @@ public class DrillPlanService {
                 .phraseText(item.getPhraseText())
                 .phraseSource(item.getPhraseSource())
                 .completedAt(item.getCompletedAt())
+                .fromReport(item.getFromReport() != null ? item.getFromReport() : false)
+                .attempts(item.getAttempts() != null ? item.getAttempts() : 0)
+                .passedAttempts(item.getPassedAttempts() != null ? item.getPassedAttempts() : 0)
+                .lastAttemptAt(item.getLastAttemptAt())
                 .build();
     }
 
@@ -333,11 +462,20 @@ public class DrillPlanService {
             return count;
         }
 
+        public List<String> getReportWords() {
+            return wordFrequencies.entrySet().stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()
+                            .thenComparing(Map.Entry::getKey))
+                    .map(Map.Entry::getKey)
+                    .toList();
+        }
+
         public String getTriggerWord() {
             return wordFrequencies.entrySet().stream()
-                    .max(Map.Entry.<String, Integer>comparingByValue()
-                            .thenComparing(entry -> -entry.getKey().compareTo("")))
+                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()
+                            .thenComparing(Map.Entry::getKey))
                     .map(Map.Entry::getKey)
+                    .findFirst()
                     .orElse(null);
         }
     }

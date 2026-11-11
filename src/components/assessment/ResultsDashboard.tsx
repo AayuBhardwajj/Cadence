@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
     TrendingUp, Zap, CheckCircle2,
-    AlertCircle, Lock, LayoutDashboard, Share2, FileText, X
+    AlertCircle, Lock, LayoutDashboard, Share2, FileText, X, Sparkles
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { AnalysisResult } from '../../services/api';
 import { AssessmentReport } from './AssessmentReport';
 import { CadenceButton } from '../ui/CadenceButton';
@@ -38,6 +39,7 @@ const MetricBar = ({ label, value, color }: { label: string, value: number, colo
 export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result, onRetry, userName, sessionId }) => {
     const { breakdown } = result;
     const [isReportOpen, setIsReportOpen] = useState(false);
+    const navigate = useNavigate();
 
     return (
         <div className="w-full max-w-5xl mx-auto py-6 md:py-12 px-4 sm:px-6 md:px-8">
@@ -165,6 +167,32 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result, onRe
 
                 {/* Course & Learning Pipeline Section */}
                 <LearningPathSection sessionId={sessionId} />
+
+                {/* Personalized Drills CTA */}
+                <div className="p-5 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0">
+                            <Sparkles size={18} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-white mb-0.5">
+                                Start your personalized drills
+                            </p>
+                            <p className="text-xs text-white/50 leading-relaxed max-w-sm">
+                                We've built a drill plan based on words that did not match the passage you read.
+                                Practice them now to build lasting confidence.
+                            </p>
+                        </div>
+                    </div>
+                    <CadenceButton
+                        variant="primary"
+                        leftIcon={<Sparkles size={16} />}
+                        onClick={() => navigate('/exercises')}
+                        className="w-full sm:w-auto shrink-0 shadow-lg"
+                    >
+                        Open Drill Hub
+                    </CadenceButton>
+                </div>
 
                 {/* Footer Actions */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-4">

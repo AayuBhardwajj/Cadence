@@ -15,6 +15,10 @@ public interface WordBankRepository extends JpaRepository<WordBank, UUID> {
 
     Optional<WordBank> findFirstByWordIgnoreCaseAndActiveTrueAndIssueType(String word, String issueType);
 
+    List<WordBank> findByBucketAndActiveTrue(String bucket);
+
+    List<WordBank> findByActiveTrue();
+
     @Query(value = "SELECT * FROM public.get_random_words(:difficulty, :issueType, :topic, :limit)", nativeQuery = true)
     List<WordBank> getRandomWords(
             @Param("difficulty") String difficulty,

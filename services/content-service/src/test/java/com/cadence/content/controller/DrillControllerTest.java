@@ -2,6 +2,7 @@ package com.cadence.content.controller;
 
 import com.cadence.content.dto.DrillPlanDto;
 import com.cadence.content.dto.DrillPlanItemDto;
+import com.cadence.content.dto.RecordAttemptRequest;
 import com.cadence.content.service.DrillPlanService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -110,6 +111,30 @@ class DrillControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getCompletedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("POST /api/drills/plan/items/{itemId}/attempt delegates to service with passed boolean")
+    void testRecordAttempt() {
+        UUID userId = UUID.randomUUID();
+        UUID itemId = UUID.randomUUID();
+
+        DrillPlanItemDto itemDto = DrillPlanItemDto.builder()
+                .id(itemId)
+                .attempts(1)
+                .passedAttempts(1)
+                .lastAttemptAt(OffsetDateTime.now())
+                .build();
+
+        when(drillPlanService.recordAttempt(itemId, userId, true)).thenReturn(itemDto);
+
+        RecordAttemptRequest request = new RecordAttemptRequest(true);
+        ResponseEntity<DrillPlanItemDto> response = drillController.recordAttempt(itemId, request, userId);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getAttempts()).isEqualTo(1);
+        assertThat(response.getBody().getPassedAttempts()).isEqualTo(1);
     }
 }
 

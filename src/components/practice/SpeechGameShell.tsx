@@ -41,6 +41,12 @@ import { SpeechRunnerScene, RunnerState } from "../../game/SpeechRunnerScene";
 interface SpeechGameShellProps {
   onClose: () => void;
   initialBucket?: "th_sound" | "v_w_mix";
+  /** When provided, overrides the static bucket phrase list entirely */
+  phrases?: DrillPhrase[];
+  /** Called after each verdict, with the phrase id and whether it passed */
+  onAttemptResult?: (phraseId: string, passed: boolean) => void | Promise<void>;
+  /** Override the header title */
+  title?: string;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -199,6 +205,9 @@ ProgressBar.displayName = "ProgressBar";
 export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
   onClose,
   initialBucket = "th_sound",
+  phrases: externalPhrases,
+  onAttemptResult,
+  title,
 }) => {
   if (perfProbe.isEnabled()) {
     perfProbe.markRender();
@@ -220,12 +229,18 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
   // XState Game Machine
   const [state, send] = useMachine(speechGameMachine);
 
-  // Filter phrases for the active bucket
+  // Filter phrases for the active bucket (or use externally-provided phrases)
   const bucketPhrases = React.useMemo(() => {
+    if (externalPhrases && externalPhrases.length > 0) return externalPhrases;
     return STATIC_DRILL_PHRASES.filter((p) => p.bucket === selectedBucket);
-  }, [selectedBucket]);
+  }, [externalPhrases, selectedBucket]);
 
-  const bucketInfo = DRILL_BUCKETS[selectedBucket];
+  const bucketInfo = DRILL_BUCKETS[selectedBucket] ?? {
+    id: selectedBucket,
+    title: title ?? selectedBucket,
+    description: "",
+    tip: "Say it slowly first, then at normal pace.",
+  };
   const currentPhrase: DrillPhrase | undefined =
     state.context.phrases[state.context.currentPhraseIndex] ||
     bucketPhrases[state.context.currentPhraseIndex];
@@ -338,12 +353,18 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
             transcribedText: result.transcribedText,
             wer: result.wer,
           });
+          if (onAttemptResult && currentPhrase) {
+            await onAttemptResult(currentPhrase.id, true);
+          }
         } else {
           send({
             type: "VERDICT_ERROR",
             transcribedText: result.transcribedText,
             wer: result.wer,
           });
+          if (onAttemptResult && currentPhrase) {
+            await onAttemptResult(currentPhrase.id, false);
+          }
         }
       } catch (err: any) {
         console.error("[SpeechGameShell] Submission error:", err);
@@ -355,7 +376,7 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
         isSubmittingRef.current = false;
       }
     },
-    [session, currentPhrase, state.context.attemptNumber, send]
+    [session, currentPhrase, state.context.attemptNumber, send, onAttemptResult]
   );
 
   // 4. Pure Speech Sensing Hook (Silero VAD)
@@ -493,7 +514,7 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-black text-white uppercase tracking-tight">
-                Speech Runner
+                {title ?? "Speech Runner"}
               </h2>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
                 Phase A
@@ -506,7 +527,8 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Bucket Switcher */}
+          {/* Bucket Switcher — hidden when phrases are externally supplied */}
+          {!externalPhrases && (
           <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 text-xs">
             <button
               onClick={() => setSelectedBucket("th_sound")}
@@ -531,6 +553,7 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
               V vs W
             </button>
           </div>
+          )}
 
           <button
             onClick={onClose}
@@ -691,7 +714,7 @@ export const SpeechGameShell: React.FC<SpeechGameShellProps> = ({
             </h3>
 
             <p className="text-xs text-white/40 max-w-md mx-auto italic">
-              💡 Tip: {bucketInfo?.tip}
+              💡 Tip: {bucketInfo?.tip || "Say it slowly first, then at normal pace."}
             </p>
           </div>
 

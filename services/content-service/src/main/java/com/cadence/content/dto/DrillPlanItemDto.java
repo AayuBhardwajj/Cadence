@@ -41,5 +41,17 @@ public class DrillPlanItemDto {
 
     @JsonProperty("completed_at")
     private OffsetDateTime completedAt;
+
+    @JsonProperty("from_report")
+    private Boolean fromReport;
+
+    @JsonProperty("attempts")
+    private Integer attempts;
+
+    @JsonProperty("passed_attempts")
+    private Integer passedAttempts;
+
+    @JsonProperty("last_attempt_at")
+    private OffsetDateTime lastAttemptAt;
 }
 

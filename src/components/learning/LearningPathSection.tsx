@@ -86,6 +86,14 @@ export const LearningPathSection: React.FC<LearningPathSectionProps> = ({
                     <span>View All Courses</span>
                     <ArrowRight size={16} />
                 </button>
+                <button
+                    type="button"
+                    onClick={() => navigate('/exercises')}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all shadow-sm hover:shadow self-start md:self-center"
+                >
+                    <Sparkles size={16} />
+                    <span>Start your personalized drills</span>
+                </button>
             </div>
 
             {loading ? (

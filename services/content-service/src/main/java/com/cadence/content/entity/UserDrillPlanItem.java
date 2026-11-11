@@ -50,5 +50,20 @@ public class UserDrillPlanItem {
 
     @Column(name = "completed_at")
     private OffsetDateTime completedAt;
+
+    @Column(name = "from_report", nullable = false)
+    @Builder.Default
+    private Boolean fromReport = false;
+
+    @Column(name = "attempts", nullable = false)
+    @Builder.Default
+    private Integer attempts = 0;
+
+    @Column(name = "passed_attempts", nullable = false)
+    @Builder.Default
+    private Integer passedAttempts = 0;
+
+    @Column(name = "last_attempt_at")
+    private OffsetDateTime lastAttemptAt;
 }
 
